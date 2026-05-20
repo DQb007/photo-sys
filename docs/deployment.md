@@ -1,75 +1,203 @@
-# VPS 部署说明
+# Debian 12 部署说明
 
-## 1. 准备 MySQL
+以下示例假设项目部署在 `/opt/photo-sys`，站点域名为 `your-domain.example`，后端监听 `127.0.0.1:3001`。
+
+## 1. 安装基础服务
+
+```bash
+sudo apt update
+sudo apt install -y curl git nginx mariadb-server redis-server
+
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+node -v
+npm -v
+```
+
+## 2. 配置 Redis 密码
+
+编辑 Redis 配置：
+
+```bash
+sudo nano /etc/redis/redis.conf
+```
+
+找到或新增：
+
+```conf
+requirepass your_redis_password
+supervised systemd
+```
+
+重启并验证：
+
+```bash
+sudo systemctl restart redis-server
+redis-cli -a 'your_redis_password' ping
+```
+
+返回 `PONG` 即可。
+
+## 3. 准备数据库
+
+```bash
+sudo mariadb
+```
+
+执行：
 
 ```sql
 CREATE DATABASE photo_sys CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'photo_sys'@'localhost' IDENTIFIED BY 'change_this_password';
+CREATE USER 'photo_sys'@'localhost' IDENTIFIED BY 'change_this_mysql_password';
 GRANT ALL PRIVILEGES ON photo_sys.* TO 'photo_sys'@'localhost';
 FLUSH PRIVILEGES;
+EXIT;
 ```
 
-执行表结构：
+新服务器首次部署时执行完整表结构：
 
 ```bash
 mysql -u photo_sys -p photo_sys < apps/api/db/schema.sql
 ```
 
-从旧版本升级时，执行异步任务字段迁移：
+已有旧版本数据库升级时，不要重复导入完整 `schema.sql`，按时间顺序执行缺失的迁移文件，例如：
 
 ```bash
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-20-users-permissions-settings.sql
 mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-20-async-generation.sql
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-20-soft-delete-generations.sql
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-21-credits.sql
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-21-redeem-codes.sql
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-21-generation-cancel.sql
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-21-prompt-templates.sql
+mysql -u photo_sys -p photo_sys < apps/api/db/migrations/2026-05-21-prompt-template-example-image.sql
 ```
 
-## 2. 配置后端环境变量
+## 4. 上传代码并安装依赖
 
-复制 `apps/api/.env.example` 为 `apps/api/.env`，填写：
+```bash
+sudo mkdir -p /opt/photo-sys
+sudo chown -R $USER:$USER /opt/photo-sys
+cd /opt/photo-sys
+
+git clone <你的仓库地址> .
+npm ci
+```
+
+如果不是用 Git 部署，也可以把项目文件上传到 `/opt/photo-sys` 后执行 `npm ci`。
+
+## 5. 配置后端环境变量
+
+```bash
+cp apps/api/.env.example apps/api/.env
+nano apps/api/.env
+```
+
+生产环境建议至少配置：
 
 ```env
+NODE_ENV=production
+PORT=3001
+PUBLIC_BASE_URL=https://your-domain.example
+PUBLIC_APP_URL=https://your-domain.example
+FRONTEND_ORIGIN=https://your-domain.example
+
 OPENAI_BASE_URL=https://你的中转域名
 OPENAI_API_KEY=你的中转密钥
 IMAGE_MODEL=gpt-image-2
-DATABASE_URL=mysql://photo_sys:change_this_password@localhost:3306/photo_sys
-REDIS_URL=redis://localhost:6379
+
+DATABASE_URL=mysql://photo_sys:change_this_mysql_password@localhost:3306/photo_sys
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_PASSWORD=your_redis_password
+
 STORAGE_DIR=./storage
-PUBLIC_BASE_URL=https://你的站点域名
-FRONTEND_ORIGIN=https://你的站点域名
+MAX_UPLOAD_MB=30
 REQUEST_TIMEOUT_MS=300000
+
+JWT_SECRET=换成一串足够长的随机密钥
+JWT_EXPIRES_IN=7d
+SETTINGS_ENCRYPTION_KEY=换成另一串足够长的随机密钥
+
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=换成管理员初始密码
+ADMIN_NAME=Administrator
 ```
 
-`OPENAI_API_KEY` 只放在后端，不要放进前端环境变量。
+`REDIS_PASSWORD` 是推荐写法。你也可以把密码写进 `REDIS_URL`，格式为 `redis://:your_redis_password@127.0.0.1:6379`；如果密码包含 `@`、`:`、`/` 等特殊字符，必须 URL encode。
 
-## 3. 构建
+生成随机密钥可以用：
 
 ```bash
-npm install
+openssl rand -base64 48
+```
+
+## 6. 构建项目
+
+```bash
+cd /opt/photo-sys
 npm run build
+mkdir -p storage
 ```
 
-## 4. 运行后端
+## 7. 使用 systemd 运行后端
 
-可以用 `pm2` 或 systemd。示例：
+创建服务文件：
 
 ```bash
-cd apps/api
-npm run start
+sudo nano /etc/systemd/system/photo-sys-api.service
 ```
 
-生产环境建议使用 pm2：
+写入：
+
+```ini
+[Unit]
+Description=炫步 AI API
+After=network.target mariadb.service redis-server.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/photo-sys
+ExecStart=/usr/bin/node /opt/photo-sys/apps/api/dist/server.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启动：
 
 ```bash
-pm2 start apps/api/dist/server.js --name photo-sys-api
+sudo systemctl daemon-reload
+sudo systemctl enable --now photo-sys-api
+sudo systemctl status photo-sys-api
 ```
 
-## 5. Nginx 示例
+查看日志：
+
+```bash
+journalctl -u photo-sys-api -f
+```
+
+## 8. 配置 Nginx
+
+```bash
+sudo nano /etc/nginx/sites-available/photo-sys
+```
+
+写入：
 
 ```nginx
 server {
   listen 80;
   server_name your-domain.example;
 
-  root /path/to/photo-sys/apps/web/dist;
+  root /opt/photo-sys/apps/web/dist;
   index index.html;
+
+  client_max_body_size 30m;
 
   location / {
     try_files $uri /index.html;
@@ -77,6 +205,7 @@ server {
 
   location /api/ {
     proxy_pass http://127.0.0.1:3001/api/;
+    proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -85,6 +214,7 @@ server {
 
   location /files/ {
     proxy_pass http://127.0.0.1:3001/files/;
+    proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -93,9 +223,46 @@ server {
 }
 ```
 
-## 6. 验证
+启用站点：
 
-- 打开 `/settings`，点击连接测试。
-- 打开 `/generate`，输入提示词并上传可选参考图。
-- 生成成功后检查 `storage/generated` 是否有图片文件。
-- 打开 `/history`，确认记录可以展示和删除。
+```bash
+sudo ln -s /etc/nginx/sites-available/photo-sys /etc/nginx/sites-enabled/photo-sys
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+如需 HTTPS，建议使用 Certbot：
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.example
+```
+
+## 9. 更新部署
+
+```bash
+cd /opt/photo-sys
+git pull
+npm ci
+npm run build
+sudo systemctl restart photo-sys-api
+sudo systemctl reload nginx
+```
+
+如果更新包含新的数据库迁移，先备份数据库，再执行新增的迁移 SQL。
+
+## 10. 验证
+
+```bash
+curl -I https://your-domain.example
+curl https://your-domain.example/api/health
+redis-cli -a 'your_redis_password' llen photo-sys:image-generations
+```
+
+浏览器验证：
+
+- 打开 `https://your-domain.example/login`
+- 使用管理员账号登录
+- 后台配置中测试邮件发送
+- 在生成页提交一次生图任务
+- 在历史页确认图片能展示

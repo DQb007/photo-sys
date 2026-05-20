@@ -18,6 +18,7 @@ const envSchema = z.object({
   IMAGE_MODEL: z.string().default('gpt-image-2'),
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  REDIS_PASSWORD: z.string().optional(),
   STORAGE_DIR: z.string().default('./storage'),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
   REQUEST_TIMEOUT_MS: z.coerce.number().default(300000),

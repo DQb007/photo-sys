@@ -1,15 +1,16 @@
-import { Redis } from 'ioredis';
+import { Redis, type RedisOptions } from 'ioredis';
 import { config } from './config.js';
 import { processGeneration } from './generationTask.js';
 
-export const redisConnection = new Redis(config.REDIS_URL, {
-  maxRetriesPerRequest: null
-});
+const redisOptions: RedisOptions = {
+  maxRetriesPerRequest: null,
+  ...(config.REDIS_PASSWORD ? { password: config.REDIS_PASSWORD } : {})
+};
+
+export const redisConnection = new Redis(config.REDIS_URL, redisOptions);
 
 const queueKey = 'photo-sys:image-generations';
-const workerConnection = new Redis(config.REDIS_URL, {
-  maxRetriesPerRequest: null
-});
+const workerConnection = new Redis(config.REDIS_URL, redisOptions);
 
 export async function enqueueGeneration(generationId: number) {
   await redisConnection.rpush(queueKey, JSON.stringify({ generationId }));
