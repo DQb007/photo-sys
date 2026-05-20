@@ -208,7 +208,7 @@ export async function listCreditTransactions(page = 1, pageSize = 20) {
 export async function createGeneration(formData: FormData) {
   const response = await fetch(`${API_BASE_URL}/generations`, {
     method: 'POST',
-    headers: authHeaders(false),
+    headers: authOnlyHeaders(),
     body: formData
   });
   const payload = await parseResponse(response);
@@ -378,6 +378,13 @@ function authHeaders(includeAuth = true) {
   };
   const token = getAuthToken();
   if (includeAuth && token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+function authOnlyHeaders() {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 
