@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { MailCheck, RotateCcw, Save } from 'lucide-react';
+import { AlertTriangle, MailCheck, RotateCcw, Save, X } from 'lucide-react';
 import { getAdminSettings, resetAdminSettings, testAdminEmail, updateAdminSettings, type AppSettings } from '../api';
+
+type ConfirmAction = 'save' | 'reset';
 
 export function AdminSettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -12,6 +14,7 @@ export function AdminSettingsPage() {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   useEffect(() => {
     getAdminSettings()
@@ -24,13 +27,16 @@ export function AdminSettingsPage() {
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!settings) return;
-    if (!window.confirm('确认保存当前配置吗？')) return;
+    setConfirmAction('save');
+  }
 
+  async function confirmSave() {
+    if (!settings) return;
     setError('');
     setMessage('');
     setMailError('');
     setMailMessage('');
+    setConfirmAction(null);
     setIsSaving(true);
     try {
       const payload = await updateAdminSettings(settings);
@@ -44,13 +50,12 @@ export function AdminSettingsPage() {
     }
   }
 
-  async function resetDefaults() {
-    if (!window.confirm('确认恢复默认配置吗？当前配置会被覆盖。')) return;
-
+  async function confirmResetDefaults() {
     setError('');
     setMessage('');
     setMailError('');
     setMailMessage('');
+    setConfirmAction(null);
     try {
       const payload = await resetAdminSettings();
       setSettings(payload.settings);
@@ -58,6 +63,16 @@ export function AdminSettingsPage() {
       setMessage('已恢复默认配置。');
     } catch (err) {
       setError(err instanceof Error ? err.message : '恢复失败');
+    }
+  }
+
+  function submitConfirmAction() {
+    if (confirmAction === 'save') {
+      void confirmSave();
+      return;
+    }
+    if (confirmAction === 'reset') {
+      void confirmResetDefaults();
     }
   }
 
@@ -228,6 +243,41 @@ export function AdminSettingsPage() {
           </button>
         </div>
       </form>
+      {confirmAction && (
+        <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="settings-confirm-title">
+          <div className={`confirmModal settingsConfirmModal ${confirmAction === 'reset' ? 'danger' : ''}`}>
+            <div className="confirmIcon">
+              {confirmAction === 'reset' ? <AlertTriangle size={22} /> : <Save size={22} />}
+            </div>
+            <button className="iconButton modalClose" type="button" onClick={() => setConfirmAction(null)} aria-label="关闭">
+              <X size={18} />
+            </button>
+            <div>
+              <p className="eyebrow">{confirmAction === 'reset' ? 'Danger Zone' : 'Settings'}</p>
+              <h2 id="settings-confirm-title">{confirmAction === 'reset' ? '恢复默认配置？' : '保存当前配置？'}</h2>
+              <p>
+                {confirmAction === 'reset'
+                  ? '这会用系统默认值覆盖当前配置，保存前的修改也会被清除。'
+                  : '保存后，新注册策略和邮件配置会立即生效。测试邮件会使用保存后的配置发送。'}
+              </p>
+            </div>
+            <div className="modalActions">
+              <button className="ghostButton" type="button" onClick={() => setConfirmAction(null)}>
+                取消
+              </button>
+              <button
+                className={confirmAction === 'reset' ? 'dangerButton strong' : 'primaryButton compact'}
+                type="button"
+                disabled={isSaving}
+                onClick={submitConfirmAction}
+              >
+                {confirmAction === 'reset' ? <RotateCcw size={16} /> : <Save size={16} />}
+                {confirmAction === 'reset' ? '确认恢复' : '确认保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -246,5 +296,9 @@ export function AdminSettingsPage() {
       setMailMessage('');
       return { ...current, mail: { ...current.mail, [key]: value } };
     });
+  }
+
+  function resetDefaults() {
+    setConfirmAction('reset');
   }
 }
