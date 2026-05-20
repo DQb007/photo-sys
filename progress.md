@@ -64,14 +64,20 @@
 
 ### Phase 7：验证
 
-- **状态：in_progress**
+- **状态：complete**
 - 已完成：
   - 后端 typecheck 通过。
   - 前端 typecheck 通过。
   - 全量 build 通过。
   - `git diff --check` 通过。
-- 未完成：
-  - 尚未执行真实数据库 API 验证。当前会话没有迁移后的测试数据库、管理员 token 和用户 token 上下文。
+  - API health 通过。
+  - 管理员登录通过。
+  - 普通积分余额接口返回余额和积分配置。
+  - 后台配置接口返回 `credits` 配置。
+  - 后台用户列表返回 `creditBalance`。
+  - 管理员给用户加 1 积分成功，再减 1 积分回滚成功。
+  - 管理员用户积分流水查询返回调整流水。
+  - 0 余额提交生成任务返回 `409` 和 `INSUFFICIENT_CREDITS`，未进入外部生图。
 
 ## 测试结果
 
@@ -81,20 +87,27 @@
 | 前端 typecheck | `npm run typecheck -w apps/web` | 通过 | 通过 | 通过 |
 | 全量 build | `npm run build` | 通过 | 通过 | 通过 |
 | Diff check | `git diff --check` | 无 whitespace/error | 通过 | 通过 |
+| API health | `GET /api/health` | 返回 ok | 返回 ok | 通过 |
+| 管理员登录 | `POST /api/auth/login` | 返回 admin token | 通过 | 通过 |
+| 积分余额 | `GET /api/credits/balance` | 返回余额和 credits 配置 | 通过 | 通过 |
+| 管理员调积分 | 加 1 后减 1 | 余额回滚到原值 | 0 -> 1 -> 0 | 通过 |
+| 积分流水 | `GET /api/admin/users/:id/credits/transactions` | 返回流水 | 返回 2 条验证流水 | 通过 |
+| 余额不足生成 | 0 余额提交生成 | `409 INSUFFICIENT_CREDITS` | 通过 | 通过 |
 
 ## 错误日志
 
 | 时间 | 错误 | 尝试 | 处理 |
 |------|------|------|------|
 | 2026-05-21 | `git add` 被 safe.directory 拦截 | 1 | 使用 `git -c safe.directory=D:/project/ai-code-project/photo-sys ...` 完成提交 |
-| 2026-05-21 | 未执行真实 API 手动验证 | 1 | 记录为剩余风险；需要先执行数据库迁移并准备测试账号/token |
+| 2026-05-21 | PowerShell `Invoke-WebRequest -Form` 不支持 | 1 | 换用 Node `fetch` + `FormData` 验证 multipart 生成接口 |
+| 2026-05-21 | PowerShell 缺少 `System.Net.Http` 类型 | 1 | 放弃该路径，使用 Node 客户端 |
 
 ## 5 问恢复检查
 
 | 问题 | 答案 |
 |------|------|
-| 我在哪？ | Phase 7 验证和提交阶段 |
-| 我要去哪？ | 提交实现变更，并在有数据库上下文后补做真实 API 验证 |
+| 我在哪？ | 积分模块实现和验证完成 |
+| 我要去哪？ | 提交验证记录 |
 | 目标是什么？ | 完成 Photo Sys 积分额度模块 |
 | 我学到了什么？ | 见 `findings.md` |
 | 我做了什么？ | 见本文件上方记录 |
