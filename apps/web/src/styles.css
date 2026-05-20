@@ -1587,24 +1587,29 @@ th {
   font-size: 13px;
 }
 
-.promptAdminModal .modalHeader span {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
 .promptAdminModal {
   width: min(680px, 94vw);
   max-height: min(760px, 88vh);
-  overflow: auto;
+  overflow: hidden;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
-  padding: 18px;
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.promptAdminModal .modalHeader {
+  flex: 0 0 auto;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(222, 216, 206, 0.72);
+  background: #fff;
+}
+
+.promptAdminModal .compactStack {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 18px;
 }
 
 .variableHelp {

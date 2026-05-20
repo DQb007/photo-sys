@@ -294,10 +294,7 @@ export function AdminPromptTemplatesPage() {
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-admin-form-title">
           <div className="promptAdminModal">
             <div className="modalHeader">
-              <div>
-                <h2 id="prompt-admin-form-title">{editingItem ? `编辑 #${editingItem.id}` : '新建模板'}</h2>
-                <span>在正文中使用 {'{变量名}'} 添加用户需要填写的变量</span>
-              </div>
+              <h2 id="prompt-admin-form-title">{editingItem ? `编辑 #${editingItem.id}` : '新建模板'}</h2>
               <button className="iconButton" type="button" onClick={closeFormModal} aria-label="关闭">
                 <X size={18} />
               </button>
