@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { verifyEmail } from '../api';
@@ -8,6 +8,7 @@ export function VerifyEmailPage() {
   const [params] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'succeeded' | 'failed'>('loading');
   const [error, setError] = useState('');
+  const verifiedTokenRef = useRef('');
 
   useEffect(() => {
     const token = params.get('token') || '';
@@ -16,6 +17,8 @@ export function VerifyEmailPage() {
       setError('验证链接缺少 token。');
       return;
     }
+    if (verifiedTokenRef.current === token) return;
+    verifiedTokenRef.current = token;
     verifyEmail(token)
       .then(() => setStatus('succeeded'))
       .catch((err) => {

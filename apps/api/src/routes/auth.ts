@@ -151,7 +151,26 @@ router.post('/verify-email', async (req, res, next) => {
       [tokenHash]
     );
     const token = rows[0];
-    if (!token) throw httpError(400, '验证链接无效或已过期');
+    if (!token) {
+      const [usedRows] = await getPool().query<EmailVerificationTokenRow[]>(
+        `SELECT * FROM email_verification_tokens
+         WHERE token_hash = ? AND used_at IS NOT NULL
+         LIMIT 1`,
+        [tokenHash]
+      );
+      const usedToken = usedRows[0];
+      if (usedToken) {
+        const verifiedUser = await getUserById(usedToken.user_id);
+        if (verifiedUser?.status === 'active' && verifiedUser.email_verified_at) {
+          res.json({
+            ok: true,
+            user: serializeUser(verifiedUser)
+          });
+          return;
+        }
+      }
+      throw httpError(400, '验证链接无效或已过期');
+    }
 
     await getPool().execute('UPDATE users SET status = ?, email_verified_at = NOW() WHERE id = ?', ['active', token.user_id]);
     await getPool().execute('UPDATE email_verification_tokens SET used_at = NOW() WHERE id = ?', [token.id]);
