@@ -1,39 +1,35 @@
-# Progress: Generation Pending Cancellation
+# Progress: Prompt Templates Module
 
 ## Session: 2026-05-21
 
-### Phase 1: Context and Plan Setup
-
-- Status: in_progress
-- User approved implementing pending-only cancellation.
-- Inspected generation route, worker, Redis queue, serializer, generate page, history page, and frontend API layer.
-- Replaced previous redeem-code plan files with cancellation task plan.
-
-### Phase 2-3: Implementation
+### Brainstorming and Spec
 
 - Status: complete
-- Added migration for `generations.status = cancelled` and `credit_transactions.type = generation_cancel_refund`.
-- Updated schema and backend/frontend status/transaction types.
-- Added Redis queue removal helper.
-- Worker now updates `pending -> processing` atomically and skips if the job is no longer pending.
-- Added cancellation refund helper using existing credit transaction service and `credit_refunded_at` idempotency marker.
-- Added `POST /api/generations/:id/cancel`, restricted to pending tasks.
-- Added frontend cancel button on generate page, visible only while pending.
-- Added cancelled status labels/filter in history/admin views.
+- Read recent git history and project structure.
+- Confirmed latest implementation commit before this work was `d05c770`.
+- Used brainstorming flow and visual companion.
+- Initial scope included user submission, then user changed scope: remove user-provided submission logic.
+- Final scope: templates are admin-maintained; users only browse, favorite, copy, and use.
+- Wrote design spec in English, committed as `7502bc7 Add prompt templates design`.
+- User requested Chinese document.
+- Translated design spec to Chinese, committed as `5de358e Translate prompt templates design`.
+- User confirmed Chinese spec.
+
+### Implementation Planning
+
+- Status: in_progress
+- Activated planning-with-files as the available equivalent to the missing writing-plans skill.
+- Replaced old cancellation planning files with prompt templates module plan.
 
 ## Verification Results
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| Git status | Clean | Before cancellation edits. |
-| API typecheck | Passed | `npm run typecheck -w apps/api`. |
-| Web typecheck | Passed | `npm run typecheck -w apps/web`. |
-| Full build | Passed | `npm run build`. |
-| Web lint | Passed with existing warnings | 4 pre-existing warnings remain; none introduced by cancellation changes. |
-| Diff check | Passed | `git diff --check` reported no whitespace errors. |
-| API smoke | Not run | New DB migration must be executed and backend restarted before exercising `cancelled` enum. |
+| Design spec self-review | Passed | Removed user submission from scope; retained only as non-goal/future expansion. |
+| Git status before implementation plan | Clean | Checked after `5de358e`. |
 
 ## Error Log
 
 | Time | Error | Attempt | Resolution |
 | --- | --- | --- | --- |
+| 2026-05-21 | `git add` failed due to dubious ownership | Design commit | Used per-command `git -c safe.directory=...` instead of global config changes. |

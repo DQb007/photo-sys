@@ -1,31 +1,33 @@
-# Findings: Generation Pending Cancellation
+# Findings: Prompt Templates Module
 
 ## Approved Scope
 
-- User wants a way to cancel image generation before the third-party request is sent.
-- Only `pending` tasks can safely be cancelled in the first version.
-- `processing` tasks should not be force-cancelled because the third-party request may already have been sent.
+- Prompt templates are maintained only by administrators.
+- Users only browse active templates, favorite/unfavorite templates, copy rendered prompts, and send rendered prompts to Generate.
+- Users do not create private templates and do not submit templates for approval in v1.
+- Template variables are inferred from placeholders such as `{主体}` or `{scene}`.
+- All variables are required in v1.
+- "My prompts" means favorited templates.
 
 ## Current Code Findings
 
-- Generation statuses are currently `pending`, `processing`, `succeeded`, and `failed`.
-- `POST /api/generations` creates a pending DB row, debits credits, then pushes `{ generationId }` to Redis list `photo-sys:image-generations`.
-- Worker uses `BLPOP` and calls `processGeneration(generationId)`.
-- `processGeneration()` immediately updates the row to `processing`, then calls `generateImages()`.
-- Existing failure refund uses `generations.credit_refunded_at` as idempotency guard.
-- Frontend generate page already persists active generation id in `sessionStorage` and polls while status is pending/processing.
-- History page filters only existing statuses and retries only `failed`.
+- Root `package.json` has workspaces `apps/api` and `apps/web`.
+- API uses Express, route modules under `apps/api/src/routes`, auth middleware `requireUser`, `requireActiveUser`, and `requireAdmin`.
+- Admin routes are mounted under `/api/admin`; existing redeem-code admin routes provide a useful CRUD-style pattern.
+- User generation handoff already exists: `GeneratePage` reads `sessionStorage.reusePrompt` and fills the prompt textarea.
+- Frontend routing and navigation live in `apps/web/src/App.tsx`.
+- Frontend API helpers and shared types live in `apps/web/src/api.ts`.
+- Existing CSS has reusable page, panel, table, modal, button, field, card, and mobile patterns in `apps/web/src/styles.css`.
+- Current UI source text appears as mojibake when read in PowerShell, but the app has been building successfully; preserve existing encoding/style and avoid unnecessary text churn.
 
-## Implementation Notes
+## Design Reference
 
-- Add migration to modify `generations.status` enum and `credit_transactions.type`.
-- Add `generation_cancel_refund` credit transaction type to distinguish user cancellation refund from system failure refund.
-- Add `removeGenerationFromQueue(generationId)` helper using Redis list inspection/removal.
-- Add `isGenerationPending(generationId)` or direct DB status check in worker before external request.
-- Add `POST /api/generations/:id/cancel`.
-- In cancellation API, lock generation row, require owner/admin access and `status = pending`, update status to `cancelled`, set completed/duration/message, remove queue item, refund credits in same transaction where possible.
+- Chinese design spec committed at `docs/superpowers/specs/2026-05-21-prompt-templates-design.md`.
+- Latest design commit: `5de358e Translate prompt templates design`.
 
 ## Risks
 
-- Race: worker may pop the job between status check and queue removal. DB status update to `cancelled` plus worker preflight prevents request if worker has not started processing yet.
-- Race: if worker has already set status to `processing`, cancellation must fail with conflict.
+- UI text encoding display in PowerShell can be misleading; validate with typecheck/build rather than relying on terminal rendering.
+- The admin route namespace already has several modules. Mount order should avoid route conflicts.
+- Variable parsing should be shared or duplicated carefully between frontend and backend. Backend serialization should expose variables; frontend still needs rendering/replacement logic for the modal.
+- MySQL migration enum/status names must match TypeScript union types.
