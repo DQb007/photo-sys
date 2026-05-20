@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -14,6 +14,7 @@ export function AdminUserGenerationsPage() {
   const [items, setItems] = useState<Generation[]>([]);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<{ item: Generation; index: number } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
 
   async function load() {
     setError('');
@@ -32,6 +33,7 @@ export function AdminUserGenerationsPage() {
 
   async function remove(id: number) {
     await deleteGeneration(id);
+    setDeleteTarget(null);
     await load();
   }
 
@@ -87,7 +89,7 @@ export function AdminUserGenerationsPage() {
                     下载
                   </a>
                 )}
-                <button className="dangerButton" onClick={() => void remove(item.id)}>
+                <button className="dangerButton" onClick={() => setDeleteTarget(item)}>
                   <Trash2 size={15} />
                   删除
                 </button>
@@ -116,6 +118,28 @@ export function AdminUserGenerationsPage() {
             doubleTapDelay: 280
           }}
         />
+      )}
+      {deleteTarget && (
+        <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="admin-delete-title">
+          <div className="confirmModal">
+            <div className="modalHeader">
+              <h2 id="admin-delete-title">确认删除</h2>
+              <button className="iconButton" onClick={() => setDeleteTarget(null)} aria-label="关闭">
+                <X size={18} />
+              </button>
+            </div>
+            <p>确定删除这条生成记录吗？关联图片文件也会一起删除。</p>
+            <div className="modalActions">
+              <button className="ghostButton" onClick={() => setDeleteTarget(null)}>
+                取消
+              </button>
+              <button className="dangerButton strong" onClick={() => void remove(deleteTarget.id)}>
+                <Trash2 size={15} />
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
