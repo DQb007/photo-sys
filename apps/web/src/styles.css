@@ -48,6 +48,8 @@ select {
   position: sticky;
   top: 0;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
@@ -107,6 +109,10 @@ select {
   cursor: pointer;
   width: 100%;
   text-align: left;
+}
+
+.logoutButton {
+  margin-top: auto;
 }
 
 .main {
@@ -1104,6 +1110,10 @@ th {
 
   .brand {
     margin-bottom: 16px;
+  }
+
+  .logoutButton {
+    margin-top: 8px;
   }
 
   .main {

@@ -89,11 +89,12 @@ function ProtectedShell() {
               </NavLink>
             </>
           )}
-          <button className="navButton" onClick={() => void auth.signOut()}>
-            <LogOut size={18} />
-            退出
-          </button>
         </nav>
+
+        <button className="navButton logoutButton" onClick={() => void auth.signOut()}>
+          <LogOut size={18} />
+          退出
+        </button>
       </aside>
 
       <main className="main">
