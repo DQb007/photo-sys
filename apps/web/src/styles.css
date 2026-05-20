@@ -808,7 +808,8 @@ code {
   color: var(--muted);
 }
 
-.ghostButton:disabled {
+.ghostButton:disabled,
+.dangerButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

@@ -221,6 +221,10 @@ router.patch('/users/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
     const user = await getAdminTargetUser(stringParam(req.params.id));
     const parsed = userPatchSchema.parse(req.body);
+    if (req.user?.id === user.id && (parsed.role === 'user' || parsed.status === 'disabled')) {
+      throw httpError(409, '不能降级或禁用当前登录管理员');
+    }
+
     if ((parsed.role === 'user' || parsed.status === 'disabled') && user.role === 'admin') {
       await assertNotOnlyActiveAdmin(user.id);
     }
