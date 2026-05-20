@@ -1311,6 +1311,31 @@ th {
     padding: 20px 18px;
   }
 
+  .historyToolbar {
+    display: grid;
+    gap: 12px;
+    align-items: start;
+    justify-content: stretch;
+  }
+
+  .filterGroup {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .filterButton {
+    min-height: 40px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  .queueSummary {
+    justify-self: stretch;
+    text-align: center;
+    white-space: normal;
+  }
+
   .generateGrid,
   .redeemAdminGrid,
   .redeemForm,
