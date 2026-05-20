@@ -57,7 +57,7 @@
 | Full build | Passed | `npm run build`. |
 | Web lint | Passed with existing warnings | 4 pre-existing warnings remain; prompt-template hook naming errors were fixed. |
 | Diff check | Passed | `git diff --check` reported no whitespace errors; only CRLF conversion warnings. |
-| API smoke | Not run | New DB migration must be applied before exercising prompt-template tables. |
+| API smoke | Passed | After user applied migration and restarted backend: login, create template, list active, favorite, list favorites, record use, disable hidden, and soft-delete all passed. Temporary smoke template was deleted. |
 
 ## Error Log
 
