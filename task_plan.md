@@ -1,92 +1,95 @@
-# 任务计划：用户、权限与动态配置管理实施
+# 任务计划：积分额度模块实施
 
 ## 目标
 
-按 `docs/superpowers/specs/2026-05-20-user-permissions-design.md` 实现用户管理、图片权限隔离、邮箱验证、管理员后台、审计日志和数据库动态配置管理。
+按 `docs/superpowers/specs/2026-05-21-credits-design.md` 实现 Photo Sys 积分额度模块：用户余额、积分流水、后台动态计费配置、生成扣积分、失败退款、管理员调整积分、普通用户余额和流水展示。
 
 ## 当前阶段
 
-Phase 7
+Phase 1
 
 ## 阶段
 
 ### Phase 1：计划与代码结构复核
 
-- [x] 确认用户认可设计文档并要求继续。
-- [x] 读取现有后端配置、路由、前端页面和设计文档。
-- [x] 创建实施计划文件。
+- [x] 用户确认积分模块设计文档。
+- [x] 读取现有计划、发现和进度文件，确认上阶段用户权限模块已完成。
+- [x] 创建积分模块实施计划。
 - **状态：complete**
 
-### Phase 2：数据库与后端基础设施
+### Phase 2：数据库与类型基础
 
-- [x] 新增迁移：`users`、`email_verification_tokens`、`audit_logs`、`app_settings`、`generations.user_id`。
-- [x] 新增配置：`JWT_SECRET`、`SETTINGS_ENCRYPTION_KEY`、`PUBLIC_APP_URL`、管理员种子配置。
-- [x] 实现用户、密码哈希、JWT、审计、动态配置和邮件服务基础模块。
-- [x] 实现历史数据归属到 `legacy-owner` 的迁移策略。
-- **状态：complete**
+- [ ] 新增迁移：`users.credit_balance`、`generations.credit_cost`、`generations.credit_refunded_at`、`credit_transactions`。
+- [ ] 更新 `apps/api/db/schema.sql`。
+- [ ] 更新 `apps/api/src/db.ts` 类型：用户余额、生成扣费字段、积分流水行类型。
+- [ ] 确认迁移对既有用户的默认余额为 0，不破坏已有数据。
+- **状态：pending**
 
-### Phase 3：认证与权限 API
+### Phase 3：后端积分服务与动态配置
 
-- [x] 实现 `/api/auth/register`、`verify-email`、`resend-verification`、`login`、`logout`、`me`。
-- [x] 实现认证中间件和管理员中间件。
-- [x] 改造生成接口：写入 `user_id`，按用户归属过滤、查看、重试、删除。
-- [x] 改造文件接口：登录后按生成记录归属校验访问权限。
-- **状态：complete**
+- [ ] 扩展 `settingsService`：新增 `credits.enabled`、`credits.costPerImage`、`credits.initialBalance`、`credits.refundOnFailure`。
+- [ ] 新增积分服务模块，集中处理加减余额、流水、余额不足校验和退款幂等。
+- [ ] 创建用户时按 `credits.initialBalance` 发放初始积分。
+- [ ] 确保所有余额修改都走事务和用户行锁。
+- **状态：pending**
 
-### Phase 4：管理员 API 与动态配置 API
+### Phase 4：生成扣费与失败退款
 
-- [x] 实现 `/api/admin/overview`。
-- [x] 实现 `/api/admin/users`、用户详情、启用禁用、角色修改、重置密码。
-- [x] 实现 `/api/admin/users/:id/generations`。
-- [x] 实现 `/api/admin/audit-logs`。
-- [x] 实现 `/api/admin/settings` 读取、保存、默认值恢复、测试邮件。
-- **状态：complete**
+- [ ] 改造 `POST /api/generations`：按 `count * costPerImage` 扣积分、写 `credit_cost`、写流水。
+- [ ] 改造 `POST /api/generations/:id/retry`：新任务按当前配置重新扣积分。
+- [ ] 改造 `processGeneration()`：生成失败时按配置自动退款，并保证重复执行不会重复退款。
+- [ ] 返回余额不足错误 `409 INSUFFICIENT_CREDITS`。
+- **状态：pending**
 
-### Phase 5：前端认证与普通用户体验
+### Phase 5：积分 API 与管理员接口
 
-- [x] 新增登录、注册、邮箱验证页面。
-- [x] 新增 auth state 和 API token 处理。
-- [x] 保护 `/generate`、`/history`、`/settings` 或迁移设置入口。
-- [x] 调整生成、历史、下载等流程以处理 401、403、邮箱未验证。
-- **状态：complete**
+- [ ] 新增普通用户积分路由：余额和自己的流水分页。
+- [ ] 在 `server.ts` 挂载积分路由。
+- [ ] 新增管理员接口：调整指定用户积分、查看指定用户流水。
+- [ ] 更新管理员用户列表返回 `creditBalance`。
+- [ ] 管理员调整积分写 `credit_transactions` 和 `audit_logs`。
+- **状态：pending**
 
-### Phase 6：管理员前端
+### Phase 6：前端 API 类型与用户体验
 
-- [x] 新增管理员导航入口。
-- [x] 新增概览页。
-- [x] 新增用户管理页。
-- [x] 新增按用户查看生成记录页。
-- [x] 新增审计日志页。
-- [x] 新增动态配置页，包括注册策略、邮件配置和测试邮件。
-- **状态：complete**
+- [ ] 更新 `apps/web/src/api.ts` 用户、管理员用户、配置、积分流水类型和请求函数。
+- [ ] 生成页展示当前余额和预计消耗，处理余额不足错误。
+- [ ] 账号设置页展示余额和最近积分流水。
+- [ ] 后台配置页增加积分规则配置。
+- [ ] 后台用户管理页展示余额并提供调整积分弹窗。
+- **状态：pending**
 
 ### Phase 7：验证、构建与提交
 
-- [x] 运行 typecheck/build。
-- [ ] 手动或脚本验证关键 API 行为。
-- [x] 修复发现的问题。
+- [ ] 运行 `npm run typecheck -w apps/api`。
+- [ ] 运行 `npm run typecheck -w apps/web`。
+- [ ] 运行 `npm run build`。
+- [ ] 手动或脚本验证关键 API：注册初始积分、扣费、余额不足、失败退款、管理员调整。
+- [ ] 修复发现的问题。
 - [ ] 提交实现变更。
-- **状态：in_progress**
+- **状态：pending**
 
 ## 关键问题
 
-1. 当前项目没有测试框架，实施时是否只用 typecheck/build 和手动 API 验证？默认先这样做。
-2. 需要安装新依赖：密码哈希、JWT、邮件发送、可能的加密工具类型定义。网络受限时需要请求用户批准。
-3. 现有前端中文存在终端显示乱码，但文件内容按 UTF-8 保存；后续文档和新增 UI 文案使用中文。
-4. 当前 Git 需要 `-c safe.directory=D:/project/ai-code-project/photo-sys` 才能执行命令。
+1. 当前项目没有测试框架，默认继续使用 typecheck/build 加关键 API 手动验证。
+2. 本模块不需要新增 npm 依赖，优先沿用现有 Express、MySQL、zod 和 React 结构。
+3. 余额修改必须集中在积分服务模块中，避免路由层各自手写 SQL 造成不一致。
+4. 生成扣费需要 MySQL 事务；Redis 入队仍在事务提交后执行，入队失败会保留已扣费的 pending 任务，后续可增加补偿重扫。
+5. 当前 Git 需要 `-c safe.directory=D:/project/ai-code-project/photo-sys` 才能执行提交相关命令。
 
 ## 已做决策
 
 | 决策 | 原因 |
 |------|------|
-| 使用项目内账号密码体系 | 与 Express + MySQL 自部署架构匹配，后续积分系统容易接入 |
-| 使用通用 `app_settings` 配置表 | 后续可以低成本扩展注册、邮件、积分等运营配置 |
-| 邮件密码加密存库并脱敏返回 | 满足管理员动态配置，同时避免明文泄露 |
-| 数据库、Redis、OpenAI Key、JWT 密钥等保留环境变量 | 这些是启动级或核心安全配置，不适合依赖数据库管理 |
-| 普通用户所有图片默认私有 | 与当前权限设计一致，降低一期范围和安全风险 |
+| 使用 `users.credit_balance` + `credit_transactions` | 快速读余额，同时保留完整账本 |
+| 每张图固定扣积分，后台动态配置 | 满足当前需求，避免第一版引入复杂阶梯计价 |
+| 生成失败默认退款 | 外部生成失败不应消耗用户额度 |
+| 普通用户不能自助修改或充值 | 当前范围聚焦基础账本，不混入支付系统 |
+| 管理员调整积分必须填写原因 | 便于追溯和审计 |
+| 失败退款使用 `generations.credit_refunded_at` 幂等保护 | 防止 worker 重试或异常导致重复退款 |
 
 ## 错误记录
 
 | 错误 | 尝试 | 处理 |
 |------|------|------|
-| 无 | 1 | 暂无 |
+| `git add` 被 safe.directory 拦截 | 1 | 使用 `git -c safe.directory=D:/project/ai-code-project/photo-sys ...` |
