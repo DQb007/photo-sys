@@ -81,6 +81,8 @@ export function AdminPromptTemplatesPage() {
     setError('');
   }
 
+  const detectedVariables = parseTemplateVariables(form.promptText);
+
   async function submitTemplate(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -265,8 +267,27 @@ export function AdminPromptTemplatesPage() {
               </label>
               <label className="field">
                 <span>提示词正文</span>
-                <textarea value={form.promptText} onChange={(event) => setForm({ ...form, promptText: event.target.value })} />
+                <textarea
+                  value={form.promptText}
+                  onChange={(event) => setForm({ ...form, promptText: event.target.value })}
+                  placeholder="示例：一张{主体}在{场景}中的照片，使用{风格}风格"
+                />
               </label>
+              <div className="variableHelp">
+                <p>变量写法：在提示词正文中输入 <code>{'{变量名}'}</code>，用户使用模板时会填写这些变量。</p>
+                <div className="variablePreview">
+                  <span>已识别变量</span>
+                  {detectedVariables.length > 0 ? (
+                    <div>
+                      {detectedVariables.map((item) => (
+                        <strong key={item}>{item}</strong>
+                      ))}
+                    </div>
+                  ) : (
+                    <em>暂无变量</em>
+                  )}
+                </div>
+              </div>
               <label className="field">
                 <span>状态</span>
                 <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as PromptTemplateStatus })}>
@@ -323,4 +344,16 @@ function normalizeForm(form: TemplateForm) {
     sortOrder: Number(form.sortOrder) || 0,
     status: form.status
   };
+}
+
+function parseTemplateVariables(promptText: string) {
+  const variables: string[] = [];
+  const seen = new Set<string>();
+  for (const match of promptText.matchAll(/\{\s*([\p{L}\p{N}_-]+)\s*\}/gu)) {
+    const name = match[1]?.trim();
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    variables.push(name);
+  }
+  return variables;
 }

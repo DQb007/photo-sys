@@ -1394,6 +1394,61 @@ th {
   gap: 16px;
 }
 
+.variableHelp {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: #fbfaf6;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.variableHelp p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.variableHelp code {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.variablePreview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.variablePreview > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.variablePreview div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.variablePreview strong {
+  border: 1px solid rgba(31, 111, 91, 0.22);
+  background: #eef4ed;
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.variablePreview em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
 @media (max-width: 900px) {
   .shell {
     display: block;
