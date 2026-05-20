@@ -258,6 +258,102 @@ select:disabled {
   cursor: not-allowed;
 }
 
+.selectField {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.selectLabel {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.selectTrigger {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.selectTrigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectTrigger svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.selectTrigger[aria-expanded="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(31, 111, 91, 0.12);
+}
+
+.selectTrigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.selectTrigger:disabled {
+  color: var(--muted);
+  background: #f3f0e8;
+  cursor: not-allowed;
+}
+
+.selectMenu {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: max-content;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 44px rgba(25, 24, 21, 0.16);
+  padding: 6px;
+}
+
+.selectOption {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.selectOption:hover,
+.selectOption.active {
+  background: #eef4ed;
+  color: var(--accent-strong);
+}
+
 .uploadBox:has(input:disabled) {
   opacity: 0.65;
   cursor: not-allowed;
@@ -1445,12 +1541,17 @@ th {
 }
 
 .promptAdminTable .tableActions input,
-.promptAdminTable .tableActions select {
+.promptAdminTable .tableActions select,
+.promptAdminTable .tableActions .selectTrigger {
   min-height: 42px;
 }
 
 .promptAdminFilters input {
   width: min(260px, 42vw);
+}
+
+.promptAdminFilters .selectField {
+  width: 132px;
 }
 
 .promptAdminTable table {
@@ -1855,6 +1956,7 @@ th {
 
   .promptAdminFilters input,
   .promptAdminFilters select,
+  .promptAdminFilters .selectField,
   .promptAdminFilters button {
     flex: 1 1 100%;
     width: 100%;

@@ -2,10 +2,13 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2, XCircle } from 'lucide-react';
 import { cancelGeneration, createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
 import { useAuth } from '../auth';
+import { SelectField } from '../SelectField';
 import { formatDuration, generationElapsedMs } from '../time';
 
 const sizes = ['1024x1024', '1024x1536', '1536x1024'];
 const qualities = ['auto', 'high', 'medium', 'low'];
+const sizeOptions = sizes.map((item) => ({ label: item, value: item }));
+const qualityOptions = qualities.map((item) => ({ label: item, value: item }));
 const activeGenerationKey = 'activeGenerationId';
 
 export function GeneratePage() {
@@ -185,18 +188,8 @@ export function GeneratePage() {
           </label>
 
           <div className="formRow">
-            <label className="field">
-              <span>尺寸</span>
-              <select value={size} onChange={(event) => setSize(event.target.value)} disabled={isActiveGeneration}>
-                {sizes.map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
-            <label className="field">
-              <span>质量</span>
-              <select value={quality} onChange={(event) => setQuality(event.target.value)} disabled={isActiveGeneration}>
-                {qualities.map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
+            <SelectField label="尺寸" value={size} options={sizeOptions} disabled={isActiveGeneration} onChange={setSize} />
+            <SelectField label="质量" value={quality} options={qualityOptions} disabled={isActiveGeneration} onChange={setQuality} />
             <label className="field">
               <span>数量</span>
               <input

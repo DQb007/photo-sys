@@ -12,6 +12,7 @@ import {
   type RedeemCodeBatch,
   type RedeemPackage
 } from '../api';
+import { SelectField } from '../SelectField';
 
 const emptyPackageForm = {
   name: '',
@@ -42,6 +43,10 @@ export function AdminRedeemCodesPage() {
   const [isCreatingBatch, setIsCreatingBatch] = useState(false);
 
   const activePackages = useMemo(() => packages.filter((item) => item.status === 'active'), [packages]);
+  const packageOptions = useMemo(() => [
+    { label: '请选择套餐', value: '0' },
+    ...activePackages.map((item) => ({ label: `${item.name} · ${item.credits} 积分`, value: String(item.id) }))
+  ], [activePackages]);
   const selectedBatch = batches.find((item) => item.id === selectedBatchId) || null;
 
   const load = useCallback(async (options: { setDefaultPackage?: boolean } = {}) => {
@@ -246,18 +251,12 @@ export function AdminRedeemCodesPage() {
             <span>最多 1000 个/批</span>
           </div>
           <form className="compactStack" onSubmit={submitBatch}>
-            <label className="field">
-              <span>套餐</span>
-              <select
-                value={batchForm.packageId}
-                onChange={(event) => setBatchForm({ ...batchForm, packageId: Number(event.target.value) })}
-              >
-                <option value={0}>请选择套餐</option>
-                {activePackages.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name} · {item.credits} 积分</option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label="套餐"
+              value={String(batchForm.packageId)}
+              options={packageOptions}
+              onChange={(value) => setBatchForm({ ...batchForm, packageId: Number(value) })}
+            />
             <div className="formRow two">
               <label className="field">
                 <span>数量</span>

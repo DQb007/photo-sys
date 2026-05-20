@@ -8,6 +8,7 @@ import {
   type PromptTemplate,
   type PromptTemplateStatus
 } from '../api';
+import { SelectField } from '../SelectField';
 
 const emptyForm = {
   title: '',
@@ -18,6 +19,14 @@ const emptyForm = {
   sortOrder: 0,
   status: 'active' as PromptTemplateStatus
 };
+
+const statusFilterOptions = [
+  { label: '全部状态', value: '' },
+  { label: '启用', value: 'active' },
+  { label: '停用', value: 'disabled' }
+];
+
+const statusOptions = statusFilterOptions.slice(1);
 
 type TemplateForm = typeof emptyForm;
 
@@ -205,11 +214,7 @@ export function AdminPromptTemplatesPage() {
             }}
           >
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模板" />
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="">全部状态</option>
-              <option value="active">启用</option>
-              <option value="disabled">停用</option>
-            </select>
+            <SelectField value={status} options={statusFilterOptions} onChange={setStatus} />
             <button className="ghostButton" type="submit">筛选</button>
           </form>
         </div>
@@ -363,13 +368,12 @@ export function AdminPromptTemplatesPage() {
                   )}
                 </div>
               </div>
-              <label className="field">
-                <span>状态</span>
-                <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as PromptTemplateStatus })}>
-                  <option value="active">启用</option>
-                  <option value="disabled">停用</option>
-                </select>
-              </label>
+              <SelectField
+                label="状态"
+                value={form.status}
+                options={statusOptions}
+                onChange={(value) => setForm({ ...form, status: value as PromptTemplateStatus })}
+              />
               <div className="modalActions">
                 <button className="ghostButton" type="button" onClick={closeFormModal}>
                   取消
