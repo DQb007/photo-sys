@@ -235,7 +235,7 @@ export function PromptLibraryPage() {
         ))}
       </div>
 
-      {items.length > pageSize && (
+      {items.length > 0 && (
         <div className="paginationBar promptPagination">
           <button className="ghostButton" type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
             上一页
