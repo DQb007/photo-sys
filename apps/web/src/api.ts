@@ -156,6 +156,17 @@ export async function logout() {
   return request<{ ok: boolean }>('/auth/logout', { method: 'POST' });
 }
 
+export async function changePassword(input: {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  return request<{ ok: boolean }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
 export async function getMe() {
   return request<{ user: User | null }>('/auth/me');
 }
@@ -272,15 +283,13 @@ export async function updateAdminUser(id: number, patch: Partial<Pick<User, 'rol
 
 export async function resetAdminUserPassword(input: {
   id: number;
-  oldPassword: string;
-  newPassword: string;
+  password: string;
   confirmPassword: string;
 }) {
   return request<{ ok: boolean }>(`/admin/users/${input.id}/reset-password`, {
     method: 'POST',
     body: JSON.stringify({
-      oldPassword: input.oldPassword,
-      newPassword: input.newPassword,
+      password: input.password,
       confirmPassword: input.confirmPassword
     })
   });

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getPool, type EmailVerificationTokenRow } from '../db.js';
 import { httpError } from '../errors.js';
 import { sendVerificationEmail, verificationUrl } from '../mail.js';
-import { verifyPassword } from '../passwords.js';
+import { hashPassword, verifyPassword } from '../passwords.js';
 import { getAppSettings, type AppSettings } from '../settingsService.js';
 import { createAuthToken, createOpaqueToken, hashOpaqueToken } from '../tokens.js';
 import { createUser, getUserByEmail, getUserById, normalizeEmail, serializeUser } from '../users.js';
@@ -29,6 +29,15 @@ const verifyEmailSchema = z.object({
 
 const resendSchema = z.object({
   email: z.string().email()
+});
+
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(200),
+  confirmPassword: z.string().min(8).max(200)
+}).refine((value) => value.newPassword === value.confirmPassword, {
+  message: '两次新密码输入不一致',
+  path: ['confirmPassword']
 });
 
 router.post('/register', async (req, res, next) => {
@@ -193,6 +202,31 @@ router.post('/logout', requireUser, async (req: AuthenticatedRequest, res, next)
       targetType: 'user',
       targetId: req.user?.id || null,
       targetUserId: req.user?.id || null,
+      req
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/change-password', requireUser, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.user) throw httpError(401, '请先登录');
+    const parsed = changePasswordSchema.parse(req.body);
+    const user = await getUserById(req.user.id);
+    if (!user) throw httpError(404, '用户不存在');
+    if (!(await verifyPassword(parsed.oldPassword, user.password_hash))) {
+      throw httpError(422, '旧密码不正确');
+    }
+
+    await getPool().execute('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(parsed.newPassword), user.id]);
+    await writeAuditLog({
+      actor: user,
+      action: 'auth.password_changed',
+      targetType: 'user',
+      targetId: user.id,
+      targetUserId: user.id,
       req
     });
     res.json({ ok: true });

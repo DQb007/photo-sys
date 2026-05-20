@@ -5,8 +5,7 @@ import { listAdminUsers, resetAdminUserPassword, updateAdminUser, type AdminUser
 import { useAuth } from '../auth';
 
 const emptyPasswordForm = {
-  oldPassword: '',
-  newPassword: '',
+  password: '',
   confirmPassword: ''
 };
 
@@ -42,16 +41,12 @@ export function AdminUsersPage() {
   async function resetPassword() {
     if (!passwordTarget) return;
     setPasswordError('');
-    if (!passwordForm.oldPassword) {
-      setPasswordError('请输入旧密码');
-      return;
-    }
-    if (passwordForm.newPassword.length < 8) {
+    if (passwordForm.password.length < 8) {
       setPasswordError('新密码至少 8 位');
       return;
     }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError('两次新密码输入不一致');
+    if (passwordForm.password !== passwordForm.confirmPassword) {
+      setPasswordError('两次密码输入不一致');
       return;
     }
 
@@ -59,8 +54,7 @@ export function AdminUsersPage() {
     try {
       await resetAdminUserPassword({
         id: passwordTarget.id,
-        oldPassword: passwordForm.oldPassword,
-        newPassword: passwordForm.newPassword,
+        password: passwordForm.password,
         confirmPassword: passwordForm.confirmPassword
       });
       closePasswordModal();
@@ -162,21 +156,12 @@ export function AdminUsersPage() {
             </div>
             <div className="passwordFields">
               <label className="field">
-                <span>旧密码</span>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={passwordForm.oldPassword}
-                  onChange={(event) => setPasswordForm({ ...passwordForm, oldPassword: event.target.value })}
-                />
-              </label>
-              <label className="field">
                 <span>新密码</span>
                 <input
                   type="password"
                   autoComplete="new-password"
-                  value={passwordForm.newPassword}
-                  onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
+                  value={passwordForm.password}
+                  onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })}
                 />
               </label>
               <label className="field">

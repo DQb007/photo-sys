@@ -4,7 +4,7 @@ import { requireAdmin, requireUser, type AuthenticatedRequest } from '../authMid
 import { getPool, type GenerationImageRow, type GenerationRow, type UserRole, type UserStatus } from '../db.js';
 import { httpError } from '../errors.js';
 import { sendTestEmail, sendVerificationEmail, verificationUrl } from '../mail.js';
-import { hashPassword, verifyPassword } from '../passwords.js';
+import { hashPassword } from '../passwords.js';
 import { serializeGeneration } from '../serializers.js';
 import { getAppSettings, resetAppSettings, updateAppSettings, type AppSettings } from '../settingsService.js';
 import { getUserById, serializeUser } from '../users.js';
@@ -21,11 +21,10 @@ const userPatchSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
-  oldPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(200),
+  password: z.string().min(8).max(200),
   confirmPassword: z.string().min(8).max(200)
-}).refine((value) => value.newPassword === value.confirmPassword, {
-  message: '两次新密码输入不一致',
+}).refine((value) => value.password === value.confirmPassword, {
+  message: '两次密码输入不一致',
   path: ['confirmPassword']
 });
 
@@ -265,11 +264,7 @@ router.post('/users/:id/reset-password', async (req: AuthenticatedRequest, res, 
   try {
     const user = await getAdminTargetUser(stringParam(req.params.id));
     const parsed = resetPasswordSchema.parse(req.body);
-    if (!(await verifyPassword(parsed.oldPassword, user.password_hash))) {
-      throw httpError(422, '旧密码不正确');
-    }
-
-    await getPool().execute('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(parsed.newPassword), user.id]);
+    await getPool().execute('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(parsed.password), user.id]);
     await writeAuditLog({
       actor: req.user,
       action: 'user.password_reset',
