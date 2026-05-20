@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS generations (
   user_id BIGINT UNSIGNED NOT NULL,
   prompt TEXT NOT NULL,
   model VARCHAR(100) NOT NULL DEFAULT 'gpt-image-2',
-  status ENUM('pending', 'processing', 'succeeded', 'failed') NOT NULL DEFAULT 'pending',
+  status ENUM('pending', 'processing', 'succeeded', 'failed', 'cancelled') NOT NULL DEFAULT 'pending',
   size VARCHAR(50) NULL,
   quality VARCHAR(50) NULL,
   count INT UNSIGNED NOT NULL DEFAULT 1,
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS generations (
 CREATE TABLE IF NOT EXISTS credit_transactions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
-  type ENUM('initial_grant', 'admin_adjustment', 'generation_debit', 'generation_refund', 'redeem_code_credit') NOT NULL,
+  type ENUM('initial_grant', 'admin_adjustment', 'generation_debit', 'generation_refund', 'redeem_code_credit', 'generation_cancel_refund') NOT NULL,
   amount INT NOT NULL,
   balance_after INT UNSIGNED NOT NULL,
   generation_id BIGINT UNSIGNED NULL,

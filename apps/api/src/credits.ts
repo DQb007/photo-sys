@@ -188,6 +188,33 @@ export async function refundGenerationCreditsIfNeeded(generationId: number) {
   }
 }
 
+export async function refundCancelledGenerationCreditsInConnection(
+  connection: PoolConnection,
+  generationId: number,
+  actorUserId?: number | null
+) {
+  const generation = await lockGenerationForRefund(connection, generationId);
+  if (generation.credit_cost <= 0 || generation.credit_refunded_at) {
+    return null;
+  }
+
+  const result = await applyCreditTransactionInConnection(connection, {
+    userId: generation.user_id,
+    type: 'generation_cancel_refund',
+    amount: generation.credit_cost,
+    generationId: generation.id,
+    actorUserId: actorUserId || null,
+    reason: '取消生成退还积分',
+    metadata: { generationId: generation.id }
+  });
+
+  await connection.execute(
+    'UPDATE generations SET credit_refunded_at = CURRENT_TIMESTAMP WHERE id = ? AND credit_refunded_at IS NULL',
+    [generation.id]
+  );
+  return result;
+}
+
 async function lockUserForCredits(connection: PoolConnection, userId: number) {
   const [rows] = await connection.query<UserRow[]>(
     'SELECT * FROM users WHERE id = ? FOR UPDATE',

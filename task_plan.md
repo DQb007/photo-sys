@@ -1,94 +1,70 @@
-# Task Plan: Redeem Code Credits Module
+# Task Plan: Generation Pending Cancellation
 
 ## Goal
 
-Implement the approved redeem-code credits feature from `docs/superpowers/specs/2026-05-21-redeem-codes-design.md`.
+Implement pending-only generation cancellation.
 
-Admins can manage credit packages, generate one-time redeem codes in batches, inspect batches/codes, and disable unused codes. Regular users can redeem a code to add credits. Successful redemptions must update the user credit balance, write `credit_transactions`, and record audit logs where appropriate.
+When a generation is still `pending`, the user can cancel it. A successful cancellation removes the job from Redis before it reaches the worker, marks the generation as `cancelled`, refunds the deducted credits, and prevents any third-party image request. Once a generation is `processing`, the first version does not allow cancellation.
 
 ## Current Phase
 
-Phase 7
+Phase 4
 
 ## Phases
 
-### Phase 1: Context and Plan Setup
+### Phase 1: Context and Data Model
 
-- [x] User approved the written redeem-code design.
-- [x] Restore existing project context and git state.
-- [x] Replace previous credits-module plan files with redeem-code implementation plan.
-- [x] Re-read relevant backend/frontend code before editing.
+- [x] Confirm scope: only `pending` can be cancelled.
+- [x] Inspect generation route, worker, Redis queue, serializer, and frontend generation/history pages.
+- [x] Replace previous plan with cancellation implementation plan.
+- [x] Add `cancelled` generation status to migrations, schema, and types.
 - **Status:** complete
 
-### Phase 2: Database and Backend Types
+### Phase 2: Queue and Backend Cancellation
 
-- [x] Add migration for `redeem_packages`, `redeem_code_batches`, `redeem_codes`, and `credit_transactions.type`.
-- [x] Update full schema.
-- [x] Extend backend DB row types.
-- [x] Confirm migration is compatible with existing credits schema.
+- [x] Add Redis queue removal helper.
+- [x] Add worker preflight check so non-pending jobs are skipped before third-party request.
+- [x] Add credit refund helper for cancellation.
+- [x] Add `POST /api/generations/:id/cancel` API.
+- [x] Audit successful cancellations.
 - **Status:** complete
 
-### Phase 3: Backend Services and User APIs
+### Phase 3: Frontend User Flow
 
-- [x] Add redeem-code service for code normalization, hashing, generation, and redemption transaction.
-- [x] Add user route `POST /api/redeem-codes/redeem`.
-- [x] Mount user route in server.
-- [x] Reuse existing credit transaction logic where possible.
+- [x] Extend frontend `GenerationStatus`.
+- [x] Add `cancelGeneration` API helper.
+- [x] Add cancel button on generate page for pending jobs only.
+- [x] Refresh credit balance after cancellation.
+- [x] Include cancelled status in history filters and labels.
 - **Status:** complete
 
-### Phase 4: Admin APIs
-
-- [x] Add package list/create/update APIs.
-- [x] Add batch generation and batch list/detail APIs.
-- [x] Add batch code list API without plaintext codes.
-- [x] Add active unused code disable API.
-- [x] Add audit logs for batch creation, redemption, and disable operations.
-- **Status:** complete
-
-### Phase 5: Frontend API and User UI
-
-- [x] Extend `apps/web/src/api.ts` types and API functions.
-- [x] Add redeem-code input to the account settings page.
-- [x] Refresh credit balance and transactions after successful redeem.
-- [x] Show clear errors for invalid/used/expired/disabled codes.
-- **Status:** complete
-
-### Phase 6: Admin UI
-
-- [x] Add route and sidebar/nav entry for redeem-code management.
-- [x] Build package management controls.
-- [x] Build batch generation form with optional expiry and note.
-- [x] Show generated plaintext codes immediately with copy-all support.
-- [x] Show batch list and codes/status details.
-- **Status:** complete
-
-### Phase 7: Verification and Commit
+### Phase 4: Verification and Commit
 
 - [x] Run API typecheck.
 - [x] Run web typecheck.
 - [x] Run full build.
 - [x] Run lint if practical.
-- [x] Verify key API paths with scripts or documented manual checks.
+- [x] Run API smoke check for pending cancellation if practical.
 - [x] Commit implementation.
 - **Status:** complete
 
 ## Key Constraints
 
-1. Store only code hashes in the database. Plaintext codes may appear only in the batch generation response.
-2. Redemption must be transactional and lock the redeem code/user rows to prevent duplicate redemption.
-3. Existing credit balance modifications should remain centralized in the credits service where practical.
-4. Existing project has no dedicated test framework; use typecheck/build and targeted API verification.
-5. Use `git -c safe.directory=D:/project/ai-code-project/photo-sys ...` for git commands in this repo.
+1. Cancellation must not claim to stop jobs already in `processing`.
+2. Cancellation success means third-party request has not been sent.
+3. Worker must check DB status before calling `generateImages`.
+4. Cancellation must refund generation credits exactly once.
+5. Existing project has no dedicated test framework; use typecheck/build and targeted API verification.
 
 ## Decisions
 
 | Decision | Reason |
 | --- | --- |
-| Package + batch + code model | Supports dynamic sellable packages and batch tracking. |
-| Code format `PS-XXXX-XXXX-XXXX` | Human-readable and suitable for third-party sales. |
-| SHA-256 hash storage | Avoids persisting usable plaintext codes. |
-| Snapshot credits at batch generation | Later package edits do not alter already sold/generated codes. |
-| First version has no payment/order integration | User confirmed codes are generated internally and sold externally. |
+| Add `cancelled` status | Keeps user cancellation distinct from system failure. |
+| Allow cancellation only from `pending` | This is the only phase where we can guarantee no third-party request. |
+| Refund through credit transaction service | Keeps credit ledger consistent. |
+| Remove matching Redis queue payloads | Prevents queued jobs from reaching worker after cancellation. |
+| Worker preflight checks status | Handles races where queue removal misses a job already popped or duplicated. |
 
 ## Error Log
 

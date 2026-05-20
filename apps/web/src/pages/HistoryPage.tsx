@@ -88,7 +88,8 @@ export function HistoryPage() {
             { label: '成功', value: 'succeeded' },
             { label: '失败', value: 'failed' },
             { label: '生成中', value: 'processing' },
-            { label: '排队中', value: 'pending' }
+            { label: '排队中', value: 'pending' },
+            { label: '已取消', value: 'cancelled' }
           ].map((filter) => (
             <button
               key={filter.label}

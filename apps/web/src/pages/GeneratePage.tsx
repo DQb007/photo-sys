@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2 } from 'lucide-react';
-import { createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
+import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2, XCircle } from 'lucide-react';
+import { cancelGeneration, createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
 import { useAuth } from '../auth';
 import { formatDuration, generationElapsedMs } from '../time';
 
@@ -22,6 +22,7 @@ export function GeneratePage() {
   const [costPerImage, setCostPerImage] = useState(1);
   const [creditsEnabled, setCreditsEnabled] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const [isCancelling, setIsCancelling] = useState(false);
   const isActiveGeneration = Boolean(generation && ['pending', 'processing'].includes(generation.status));
   const estimatedCreditCost = creditsEnabled ? count * costPerImage : 0;
 
@@ -116,6 +117,25 @@ export function GeneratePage() {
       if (typed.generation) setGeneration(typed.generation);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function cancelActiveGeneration() {
+    if (!generation || generation.status !== 'pending') return;
+    setError('');
+    setIsCancelling(true);
+    try {
+      const payload = await cancelGeneration(generation.id);
+      setGeneration(payload.generation);
+      sessionStorage.removeItem(activeGenerationKey);
+      const balancePayload = await getCreditBalance();
+      setCreditBalance(balancePayload.balance);
+      setCostPerImage(balancePayload.credits.costPerImage);
+      setCreditsEnabled(balancePayload.credits.enabled);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '取消生成失败');
+    } finally {
+      setIsCancelling(false);
     }
   }
 
@@ -249,6 +269,13 @@ export function GeneratePage() {
             {isActiveGeneration ? '任务生成中' : isLoading ? '提交中' : '开始生成'}
           </button>
 
+          {generation?.status === 'pending' && (
+            <button className="dangerButton fullWidth" type="button" disabled={isCancelling} onClick={() => void cancelActiveGeneration()}>
+              {isCancelling ? <Loader2 className="spin" size={16} /> : <XCircle size={16} />}
+              {isCancelling ? '取消中' : '取消生成'}
+            </button>
+          )}
+
           {generation && !isActiveGeneration && (
             <button className="ghostButton fullWidth" type="button" onClick={startNewTask}>
               <PlusCircle size={16} />
@@ -276,6 +303,16 @@ export function GeneratePage() {
               <div>
                 <strong>{generation.status === 'pending' ? '排队中' : '生成中'}</strong>
                 <span>已耗时 {elapsedLabel}</span>
+              </div>
+            </div>
+          )}
+
+          {generation?.status === 'cancelled' && (
+            <div className="progressBox cancelled">
+              <XCircle size={20} />
+              <div>
+                <strong>已取消</strong>
+                <span>本次任务未发送到第三方生成接口。</span>
               </div>
             </div>
           )}

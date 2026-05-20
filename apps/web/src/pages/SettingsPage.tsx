@@ -184,7 +184,8 @@ function creditTypeLabel(type: CreditTransaction['type']) {
     admin_adjustment: '管理员调整',
     generation_debit: '生成扣费',
     generation_refund: '失败退款',
-    redeem_code_credit: '兑换码充值'
+    redeem_code_credit: '兑换码充值',
+    generation_cancel_refund: '取消退款'
   };
   return labels[type];
 }

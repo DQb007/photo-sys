@@ -25,7 +25,7 @@ export async function pingDatabase() {
   }
 }
 
-export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
+export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
 export type UserRole = 'user' | 'admin';
 export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
 export type CreditTransactionType =
@@ -33,7 +33,8 @@ export type CreditTransactionType =
   | 'admin_adjustment'
   | 'generation_debit'
   | 'generation_refund'
-  | 'redeem_code_credit';
+  | 'redeem_code_credit'
+  | 'generation_cancel_refund';
 export type RedeemPackageStatus = 'active' | 'disabled';
 export type RedeemCodeStatus = 'active' | 'disabled' | 'redeemed';
 

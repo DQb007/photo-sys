@@ -472,6 +472,10 @@ textarea {
   color: var(--accent);
 }
 
+.progressBox.cancelled {
+  color: var(--danger);
+}
+
 .progressBox strong,
 .progressBox span {
   display: block;

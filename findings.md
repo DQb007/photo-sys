@@ -1,42 +1,31 @@
-# Findings: Redeem Code Credits Module
+# Findings: Generation Pending Cancellation
 
 ## Approved Scope
 
-- Photo Sys generates redeem codes internally.
-- Admins dynamically configure credit packages.
-- Admins generate redeem-code batches from a package.
-- Generated codes use the package name/credits snapshot from generation time.
-- Optional batch expiry is supported. Empty expiry means long-term valid.
-- Each code is one-time use.
-- Regular users redeem codes in the account settings area.
-- Successful redeem adds credits and writes credit transaction history.
+- User wants a way to cancel image generation before the third-party request is sent.
+- Only `pending` tasks can safely be cancelled in the first version.
+- `processing` tasks should not be force-cancelled because the third-party request may already have been sent.
 
-## Design Document
+## Current Code Findings
 
-- Spec: `docs/superpowers/specs/2026-05-21-redeem-codes-design.md`
-- Spec commit: `91b151e Add redeem codes design`
+- Generation statuses are currently `pending`, `processing`, `succeeded`, and `failed`.
+- `POST /api/generations` creates a pending DB row, debits credits, then pushes `{ generationId }` to Redis list `photo-sys:image-generations`.
+- Worker uses `BLPOP` and calls `processGeneration(generationId)`.
+- `processGeneration()` immediately updates the row to `processing`, then calls `generateImages()`.
+- Existing failure refund uses `generations.credit_refunded_at` as idempotency guard.
+- Frontend generate page already persists active generation id in `sessionStorage` and polls while status is pending/processing.
+- History page filters only existing statuses and retries only `failed`.
 
-## Current Project Structure
+## Implementation Notes
 
-- Backend: `apps/api`, Express, MySQL, Redis, zod, TypeScript.
-- Frontend: `apps/web`, Vite, React, React Router, lucide-react.
-- Current credits service: `apps/api/src/credits.ts`.
-- Current admin routes: `apps/api/src/routes/admin.ts`.
-- Current user credits routes: `apps/api/src/routes/credits.ts`.
-- Server route mounting: `apps/api/src/server.ts`.
-- Frontend API layer: `apps/web/src/api.ts`.
-- User settings page: `apps/web/src/pages/SettingsPage.tsx`.
-- App routes/sidebar: `apps/web/src/App.tsx`.
-
-## Implementation Notes To Validate
-
-- Existing `credit_transactions.type` is likely an enum and must be extended safely.
-- Need to inspect current `addCredits`/`debitCredits` helpers before deciding whether redeem service calls them or inserts credit transactions itself inside one wider transaction.
-- Need to inspect existing admin route file size. If it is large, prefer a separate admin redeem route module and mount it under `/api/admin`.
-- Need to inspect frontend admin navigation pattern before adding the new page.
+- Add migration to modify `generations.status` enum and `credit_transactions.type`.
+- Add `generation_cancel_refund` credit transaction type to distinguish user cancellation refund from system failure refund.
+- Add `removeGenerationFromQueue(generationId)` helper using Redis list inspection/removal.
+- Add `isGenerationPending(generationId)` or direct DB status check in worker before external request.
+- Add `POST /api/generations/:id/cancel`.
+- In cancellation API, lock generation row, require owner/admin access and `status = pending`, update status to `cancelled`, set completed/duration/message, remove queue item, refund credits in same transaction where possible.
 
 ## Risks
 
-- Batch generation inserts up to 1000 codes; transaction should remain acceptable for first version.
-- Copy-all plaintext codes are only available immediately after creation. UI must make that clear without storing plaintext.
-- Redemption error messages for normal users should be useful but not leak excessive code-state details beyond the approved UX.
+- Race: worker may pop the job between status check and queue removal. DB status update to `cancelled` plus worker preflight prevents request if worker has not started processing yet.
+- Race: if worker has already set status to `processing`, cancellation must fail with conflict.

@@ -15,6 +15,22 @@ export async function enqueueGeneration(generationId: number) {
   await redisConnection.rpush(queueKey, JSON.stringify({ generationId }));
 }
 
+export async function removeGenerationFromQueue(generationId: number) {
+  const items = await redisConnection.lrange(queueKey, 0, -1);
+  let removed = 0;
+  for (const item of items) {
+    try {
+      const payload = JSON.parse(item) as { generationId?: unknown };
+      if (payload.generationId === generationId) {
+        removed += await redisConnection.lrem(queueKey, 1, item);
+      }
+    } catch {
+      // Ignore malformed queue items here; the worker already skips them.
+    }
+  }
+  return removed;
+}
+
 export async function getQueueSummary() {
   const waiting = await redisConnection.llen(queueKey);
   return { waiting };

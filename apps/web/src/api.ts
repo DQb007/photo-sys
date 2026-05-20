@@ -1,7 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const tokenKey = 'photoSysAuthToken';
 
-export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
+export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
 export type UserRole = 'user' | 'admin';
 export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
 
@@ -97,7 +97,13 @@ export interface AdminUser extends User {
 export interface CreditTransaction {
   id: number;
   userId: number;
-  type: 'initial_grant' | 'admin_adjustment' | 'generation_debit' | 'generation_refund' | 'redeem_code_credit';
+  type:
+    | 'initial_grant'
+    | 'admin_adjustment'
+    | 'generation_debit'
+    | 'generation_refund'
+    | 'redeem_code_credit'
+    | 'generation_cancel_refund';
   amount: number;
   balanceAfter: number;
   generationId: number | null;
@@ -290,6 +296,13 @@ export async function getGeneration(id: number) {
 export async function retryGeneration(id: number) {
   const payload = await request<{ generation: Generation }>(`/generations/${id}/retry`, { method: 'POST' });
   return withFileTokens(payload.generation);
+}
+
+export async function cancelGeneration(id: number) {
+  const payload = await request<{ generation: Generation; removedQueueItems: number }>(`/generations/${id}/cancel`, {
+    method: 'POST'
+  });
+  return { ...payload, generation: withFileTokens(payload.generation) };
 }
 
 export async function getGenerationSummary() {

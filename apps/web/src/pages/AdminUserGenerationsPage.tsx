@@ -150,7 +150,8 @@ function statusLabel(status: Generation['status']) {
     pending: '等待中',
     processing: '处理中',
     succeeded: '成功',
-    failed: '失败'
+    failed: '失败',
+    cancelled: '已取消'
   };
   return labels[status];
 }

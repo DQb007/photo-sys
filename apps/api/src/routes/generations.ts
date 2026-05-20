@@ -10,13 +10,14 @@ import {
   makeUploadFilename,
 } from '../storage.js';
 import { serializeGeneration } from '../serializers.js';
-import { enqueueGeneration, getQueueSummary } from '../queue.js';
+import { enqueueGeneration, getQueueSummary, removeGenerationFromQueue } from '../queue.js';
 import { requireActiveUser, requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
 import { httpError } from '../errors.js';
 import { writeAuditLog } from '../audit.js';
 import {
   calculateGenerationCreditCost,
-  debitGenerationCreditsInConnection
+  debitGenerationCreditsInConnection,
+  refundCancelledGenerationCreditsInConnection
 } from '../credits.js';
 import { getAppSettings, type AppSettings } from '../settingsService.js';
 
@@ -132,7 +133,7 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
       conditions.push('user_id = ?');
       params.push(Number(req.query.userId));
     }
-    if (['pending', 'processing', 'succeeded', 'failed'].includes(status)) {
+    if (['pending', 'processing', 'succeeded', 'failed', 'cancelled'].includes(status)) {
       conditions.push('status = ?');
       params.push(status);
     }
@@ -258,6 +259,74 @@ router.post('/:id/retry', requireActiveUser, async (req: AuthenticatedRequest, r
     });
     const generation = await getGenerationById(generationId, req.user);
     res.status(202).json({ generation: serializeGeneration(generation) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/:id/cancel', requireActiveUser, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.user) throw httpError(401, '请先登录');
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      res.status(400).json({ error: 'Invalid generation id' });
+      return;
+    }
+
+    const pool = getPool();
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [rows] = await connection.query<GenerationRow[]>(
+        'SELECT * FROM generations WHERE id = ? AND deleted_at IS NULL FOR UPDATE',
+        [id]
+      );
+      const generation = rows[0];
+      if (!generation) throw httpError(404, 'Generation not found');
+      if (req.user.role !== 'admin' && generation.user_id !== req.user.id) {
+        throw httpError(403, '无权取消该生成任务');
+      }
+      if (generation.status !== 'pending') {
+        throw httpError(409, '任务已开始生成，无法取消', 'GENERATION_NOT_PENDING');
+      }
+
+      const completedAt = new Date();
+      await connection.execute(
+        `UPDATE generations
+         SET status = 'cancelled', completed_at = ?, duration_ms = ?, error_message = ?
+         WHERE id = ? AND status = 'pending'`,
+        [
+          completedAt,
+          generation.created_at ? completedAt.getTime() - generation.created_at.getTime() : null,
+          '用户取消生成',
+          generation.id
+        ]
+      );
+      const refund = await refundCancelledGenerationCreditsInConnection(connection, generation.id, req.user.id);
+      await connection.commit();
+
+      const removedQueueItems = await removeGenerationFromQueue(generation.id);
+      await writeAuditLog({
+        actor: req.user,
+        action: 'generation.cancelled',
+        targetType: 'generation',
+        targetId: generation.id,
+        targetUserId: generation.user_id,
+        metadata: {
+          creditRefunded: refund?.balanceAfter == null ? 0 : generation.credit_cost,
+          removedQueueItems
+        },
+        req
+      });
+
+      const updated = await getGenerationById(generation.id, req.user);
+      res.json({ generation: serializeGeneration(updated), removedQueueItems });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     next(error);
   }

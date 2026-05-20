@@ -8,12 +8,15 @@ export async function processGeneration(generationId: number) {
   const pool = getPool();
   const startedAt = new Date();
 
-  await pool.execute(
+  const [startResult] = await pool.execute(
     `UPDATE generations
      SET status = 'processing', started_at = ?, completed_at = NULL, duration_ms = NULL, error_message = NULL
-     WHERE id = ? AND deleted_at IS NULL`,
+     WHERE id = ? AND status = 'pending' AND deleted_at IS NULL`,
     [startedAt, generationId]
   );
+  if (Number((startResult as { affectedRows?: number }).affectedRows || 0) < 1) {
+    return;
+  }
 
   try {
     const generation = await getGeneration(generationId);
