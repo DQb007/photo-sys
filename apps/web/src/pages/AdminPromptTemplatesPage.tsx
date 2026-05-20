@@ -49,6 +49,12 @@ export function AdminPromptTemplatesPage() {
   const totalUsageCount = items.reduce((sum, item) => sum + item.usageCount, 0);
   const totalVariables = items.reduce((sum, item) => sum + item.variables.length, 0);
 
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(''), 2200);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -179,7 +185,7 @@ export function AdminPromptTemplatesPage() {
       </header>
 
       {error && <div className="errorBox">{error}</div>}
-      {message && <div className="hintBox">{message}</div>}
+      {message && <div className="toastNotice" role="status">{message}</div>}
 
       <section className="promptAdminStats" aria-label="提示词模板统计">
         <div className="panel statCard">
