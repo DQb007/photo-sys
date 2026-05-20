@@ -16,9 +16,9 @@ const defaults = {
     smtpSecure: false,
     smtpUser: '',
     smtpPassword: '',
-    fromName: 'Photo Sys',
+    fromName: '炫步 AI',
     fromAddress: '',
-    verificationSubject: '验证你的 Photo Sys 邮箱',
+    verificationSubject: '验证你的炫步 AI 邮箱',
     verificationTemplate: [
       '你好，',
       '',

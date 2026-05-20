@@ -35,7 +35,7 @@ export async function sendVerificationEmail(input: {
     to: input.email,
     subject: settings.mail.verificationSubject,
     text: renderTemplate(settings.mail.verificationTemplate, {
-      appName: 'Photo Sys',
+      appName: '炫步 AI',
       email: input.email,
       verificationUrl: input.verificationUrl,
       expiresHours: String(settings.registration.verificationTokenTtlHours)
@@ -66,8 +66,8 @@ export async function sendTestEmail(to: string) {
   await transporter.sendMail({
     from: formatFrom(settings),
     to,
-    subject: 'Photo Sys 测试邮件',
-    text: '这是一封 Photo Sys 配置测试邮件。'
+    subject: '炫步 AI 测试邮件',
+    text: '这是一封炫步 AI 配置测试邮件。'
   });
 }
 

@@ -18,6 +18,9 @@ import { AdminRedeemCodesPage } from './pages/AdminRedeemCodesPage';
 import { PromptLibraryPage } from './pages/PromptLibraryPage';
 import { AdminPromptTemplatesPage } from './pages/AdminPromptTemplatesPage';
 
+const appName = '炫步 AI';
+const brandIconSrc = '/brand-icon.jpg';
+
 export function App() {
   return (
     <AuthProvider>
@@ -55,8 +58,11 @@ function ProtectedShell() {
           <Menu size={20} />
         </button>
         <div className="mobileBrand">
-          <strong>Photo Sys</strong>
-          <span>{auth.user.email}</span>
+          <img className="mobileBrandIcon" src={brandIconSrc} alt="" />
+          <div>
+            <strong>{appName}</strong>
+            <span>{auth.user.email}</span>
+          </div>
         </div>
       </header>
 
@@ -67,10 +73,10 @@ function ProtectedShell() {
       <aside className={isSidebarOpen ? 'sidebar mobileOpen' : 'sidebar'}>
         <div className="brand">
           <div className="brandMark">
-            <Activity size={22} />
+            <img src={brandIconSrc} alt="" />
           </div>
           <div>
-            <strong>Photo Sys</strong>
+            <strong>{appName}</strong>
             <span>{auth.user.email}</span>
           </div>
           <button className="iconButton sidebarClose" type="button" onClick={() => setIsSidebarOpen(false)} aria-label="关闭菜单">
