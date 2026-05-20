@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, Trash2 } from 'lucide-react';
+import Lightbox from 'yet-another-react-lightbox';
+import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import 'yet-another-react-lightbox/styles.css';
 import { deleteGeneration, downloadUrl, getAdminUserGenerations, type Generation, type User } from '../api';
 
 export function AdminUserGenerationsPage() {
@@ -9,6 +13,7 @@ export function AdminUserGenerationsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [items, setItems] = useState<Generation[]>([]);
   const [error, setError] = useState('');
+  const [preview, setPreview] = useState<{ item: Generation; index: number } | null>(null);
 
   async function load() {
     setError('');
@@ -50,9 +55,15 @@ export function AdminUserGenerationsPage() {
             <div className="adminThumbGrid">
               {item.images.length ? (
                 item.images.slice(0, 4).map((image, index) => (
-                  <a href={image.url} target="_blank" rel="noreferrer" key={image.id} aria-label={`查看第 ${index + 1} 张图片`}>
+                  <button
+                    className="adminThumbButton"
+                    type="button"
+                    key={image.id}
+                    onClick={() => setPreview({ item, index })}
+                    aria-label={`查看第 ${index + 1} 张图片`}
+                  >
                     <img src={image.url} alt={`${item.prompt} - ${index + 1}`} />
-                  </a>
+                  </button>
                 ))
               ) : (
                 <div className="thumbFallback">{item.status}</div>
@@ -85,6 +96,27 @@ export function AdminUserGenerationsPage() {
           </article>
         ))}
       </div>
+      {preview && (
+        <Lightbox
+          open
+          close={() => setPreview(null)}
+          index={preview.index}
+          slides={preview.item.images.map((image, index) => ({
+            src: image.url,
+            alt: `${preview.item.prompt} - ${index + 1}`,
+            download: downloadUrl(image.url)
+          }))}
+          plugins={[Zoom, DownloadPlugin]}
+          carousel={{ finite: true }}
+          controller={{ closeOnBackdropClick: true }}
+          zoom={{
+            maxZoomPixelRatio: 4,
+            scrollToZoom: true,
+            zoomInMultiplier: 1.25,
+            doubleTapDelay: 280
+          }}
+        />
+      )}
     </div>
   );
 }
