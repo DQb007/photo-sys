@@ -179,7 +179,7 @@ h2 {
   display: grid;
   grid-template-columns: minmax(320px, 470px) minmax(0, 1fr);
   gap: 22px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .panel {
@@ -193,6 +193,11 @@ h2 {
 .resultPanel,
 .settingsPanel {
   padding: 20px;
+}
+
+.resultPanel {
+  display: flex;
+  flex-direction: column;
 }
 
 .field {
@@ -407,6 +412,11 @@ textarea {
   place-items: center;
   text-align: center;
   color: var(--muted);
+}
+
+.resultPanel .emptyState {
+  flex: 1;
+  min-height: 0;
 }
 
 .imageGrid {
