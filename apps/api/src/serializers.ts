@@ -21,6 +21,8 @@ export function serializeGeneration(row: GenerationWithImages) {
     startedAt: row.started_at,
     completedAt: row.completed_at,
     durationMs: row.duration_ms,
+    deletedAt: row.deleted_at,
+    deletedBy: row.deleted_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     images: row.images?.map((image) => ({

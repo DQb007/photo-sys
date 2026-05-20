@@ -10,7 +10,7 @@ export async function processGeneration(generationId: number) {
   await pool.execute(
     `UPDATE generations
      SET status = 'processing', started_at = ?, completed_at = NULL, duration_ms = NULL, error_message = NULL
-     WHERE id = ?`,
+     WHERE id = ? AND deleted_at IS NULL`,
     [startedAt, generationId]
   );
 
@@ -49,7 +49,7 @@ export async function processGeneration(generationId: number) {
     await pool.execute(
       `UPDATE generations
        SET status = 'succeeded', completed_at = ?, duration_ms = ?, error_message = NULL
-       WHERE id = ?`,
+       WHERE id = ? AND deleted_at IS NULL`,
       [completedAt, completedAt.getTime() - startedAt.getTime(), generationId]
     );
   } catch (error) {
@@ -58,7 +58,7 @@ export async function processGeneration(generationId: number) {
     await pool.execute(
       `UPDATE generations
        SET status = 'failed', completed_at = ?, duration_ms = ?, error_message = ?
-       WHERE id = ?`,
+       WHERE id = ? AND deleted_at IS NULL`,
       [completedAt, completedAt.getTime() - startedAt.getTime(), message, generationId]
     );
     throw error;
@@ -66,7 +66,7 @@ export async function processGeneration(generationId: number) {
 }
 
 async function getGeneration(id: number) {
-  const [rows] = await getPool().query<GenerationRow[]>('SELECT * FROM generations WHERE id = ?', [id]);
+  const [rows] = await getPool().query<GenerationRow[]>('SELECT * FROM generations WHERE id = ? AND deleted_at IS NULL', [id]);
   const row = rows[0];
   if (!row) throw new Error(`Generation ${id} not found`);
   return row;
@@ -91,4 +91,3 @@ function mimeTypeFromPath(path: string) {
   if (lower.endsWith('.webp')) return 'image/webp';
   return 'image/png';
 }
-

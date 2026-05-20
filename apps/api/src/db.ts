@@ -43,6 +43,8 @@ export interface GenerationRow extends RowDataPacket {
   started_at: Date | null;
   completed_at: Date | null;
   duration_ms: number | null;
+  deleted_at: Date | null;
+  deleted_by: number | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -81,16 +81,23 @@ CREATE TABLE IF NOT EXISTS generations (
   started_at TIMESTAMP NULL,
   completed_at TIMESTAMP NULL,
   duration_ms INT UNSIGNED NULL,
+  deleted_at TIMESTAMP NULL,
+  deleted_by BIGINT UNSIGNED NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   INDEX idx_generations_user_created_at (user_id, created_at),
   INDEX idx_generations_created_at (created_at),
   INDEX idx_generations_status (status),
+  INDEX idx_generations_deleted_at (deleted_at),
   CONSTRAINT fk_generations_user
     FOREIGN KEY (user_id)
     REFERENCES users (id)
-    ON DELETE RESTRICT
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_generations_deleted_by
+    FOREIGN KEY (deleted_by)
+    REFERENCES users (id)
+    ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS generation_images (

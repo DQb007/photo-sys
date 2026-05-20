@@ -54,10 +54,13 @@ router.get('/overview', async (_req, res, next) => {
       'SELECT status, COUNT(*) AS total FROM users GROUP BY status'
     );
     const [generationRows] = await getPool().query<Array<{ status: string; total: number } & import('mysql2').RowDataPacket>>(
-      'SELECT status, COUNT(*) AS total FROM generations GROUP BY status'
+      'SELECT status, COUNT(*) AS total FROM generations WHERE deleted_at IS NULL GROUP BY status'
     );
     const [imageRows] = await getPool().query<Array<{ total: number } & import('mysql2').RowDataPacket>>(
-      'SELECT COUNT(*) AS total FROM generation_images'
+      `SELECT COUNT(*) AS total
+       FROM generation_images gi
+       INNER JOIN generations g ON g.id = gi.generation_id
+       WHERE g.deleted_at IS NULL`
     );
     res.json({
       users: Object.fromEntries(userRows.map((row) => [row.status, Number(row.total)])),
@@ -178,7 +181,7 @@ router.get('/users', async (req, res, next) => {
         SUM(CASE WHEN g.status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
         COUNT(gi.id) AS image_count
        FROM users u
-       LEFT JOIN generations g ON g.user_id = u.id
+       LEFT JOIN generations g ON g.user_id = u.id AND g.deleted_at IS NULL
        LEFT JOIN generation_images gi ON gi.generation_id = g.id
        ${where}
        GROUP BY u.id
@@ -304,7 +307,7 @@ router.get('/users/:id/generations', async (req, res, next) => {
   try {
     const user = await getAdminTargetUser(req.params.id);
     const [rows] = await getPool().query<GenerationRow[]>(
-      'SELECT * FROM generations WHERE user_id = ? ORDER BY created_at DESC LIMIT 100',
+      'SELECT * FROM generations WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 100',
       [user.id]
     );
     const ids = rows.map((row) => row.id);

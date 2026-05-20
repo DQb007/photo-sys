@@ -99,7 +99,7 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
     const status = typeof req.query.status === 'string' ? req.query.status : '';
     const offset = (page - 1) * pageSize;
 
-    const conditions: string[] = [];
+    const conditions: string[] = ['deleted_at IS NULL'];
     const params: Array<string | number> = [];
     if (req.user.role !== 'admin') {
       conditions.push('user_id = ?');
@@ -149,7 +149,7 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
 router.get('/meta/summary', async (req: AuthenticatedRequest, res, next) => {
   try {
     if (!req.user) throw httpError(401, '请先登录');
-    const where = req.user.role === 'admin' ? '' : 'WHERE user_id = ?';
+    const where = req.user.role === 'admin' ? 'WHERE deleted_at IS NULL' : 'WHERE user_id = ? AND deleted_at IS NULL';
     const params = req.user.role === 'admin' ? [] : [req.user.id];
     const [statusRows] = await getPool().query<Array<{ status: string; total: number } & import('mysql2').RowDataPacket>>(
       `SELECT status, COUNT(*) AS total FROM generations ${where} GROUP BY status`,
@@ -227,17 +227,14 @@ router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
     }
 
     const generation = await getGenerationById(id, req.user);
-    const files = [
-      ...parseReferenceImagePaths(generation.reference_image_path),
-      ...(generation.images || []).map((image) => image.file_path)
-    ];
+    await getPool().execute(
+      'UPDATE generations SET deleted_at = CURRENT_TIMESTAMP, deleted_by = ? WHERE id = ? AND deleted_at IS NULL',
+      [req.user?.id || null, id]
+    );
 
-    await getPool().execute('DELETE FROM generations WHERE id = ?', [id]);
-
-    await Promise.all(files.map((file) => deleteStoredFile(file).catch(() => undefined)));
     await writeAuditLog({
       actor: req.user,
-      action: 'generation.deleted',
+      action: 'generation.soft_deleted',
       targetType: 'generation',
       targetId: id,
       targetUserId: generation.user_id,
@@ -250,7 +247,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
 });
 
 async function getGenerationById(id: number, user?: AuthenticatedRequest['user']) {
-  const [rows] = await getPool().query<GenerationRow[]>('SELECT * FROM generations WHERE id = ?', [id]);
+  const [rows] = await getPool().query<GenerationRow[]>('SELECT * FROM generations WHERE id = ? AND deleted_at IS NULL', [id]);
   const row = rows[0];
   if (!row) {
     const error = new Error('Generation not found');
@@ -287,19 +284,6 @@ function getUploadedFiles(files: Express.Multer.File[] | { [fieldname: string]: 
   if (!files) return [];
   if (Array.isArray(files)) return files;
   return Object.values(files).flat();
-}
-
-function parseReferenceImagePaths(value: string | null) {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    if (Array.isArray(parsed)) {
-      return parsed.filter((item): item is string => typeof item === 'string');
-    }
-  } catch {
-    return [value];
-  }
-  return [value];
 }
 
 export { router as generationsRouter };
