@@ -9,6 +9,7 @@ import { serializeGeneration } from '../serializers.js';
 import { getAppSettings, resetAppSettings, updateAppSettings, type AppSettings } from '../settingsService.js';
 import { getUserById, serializeUser } from '../users.js';
 import { writeAuditLog } from '../audit.js';
+import { applyCreditTransaction, listCreditTransactions, serializeCreditTransaction } from '../credits.js';
 import { createOpaqueToken, hashOpaqueToken } from '../tokens.js';
 
 const router = express.Router();
@@ -49,7 +50,20 @@ const settingsPatchSchema = z.object({
     fromAddress: z.string().optional(),
     verificationSubject: z.string().optional(),
     verificationTemplate: z.string().optional()
+  }).optional(),
+  credits: z.object({
+    enabled: z.boolean().optional(),
+    costPerImage: z.number().int().min(0).max(100000).optional(),
+    initialBalance: z.number().int().min(0).max(1000000).optional(),
+    refundOnFailure: z.boolean().optional()
   }).optional()
+});
+
+const creditAdjustmentSchema = z.object({
+  amount: z.number().int().min(-1000000).max(1000000).refine((value) => value !== 0, {
+    message: '积分调整数量不能为 0'
+  }),
+  reason: z.string().trim().min(1).max(500)
 });
 
 router.get('/overview', async (_req, res, next) => {
@@ -172,6 +186,7 @@ router.get('/users', async (req, res, next) => {
       status: UserStatus;
       email_verified_at: Date | null;
       last_login_at: Date | null;
+      credit_balance: number;
       created_at: Date;
       updated_at: Date;
       generation_count: number;
@@ -202,6 +217,7 @@ router.get('/users', async (req, res, next) => {
         status: row.status,
         emailVerifiedAt: row.email_verified_at,
         lastLoginAt: row.last_login_at,
+        creditBalance: Number(row.credit_balance || 0),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         generationCount: Number(row.generation_count || 0),
@@ -274,6 +290,51 @@ router.post('/users/:id/reset-password', async (req: AuthenticatedRequest, res, 
       req
     });
     res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/users/:id/credits/adjust', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const user = await getAdminTargetUser(stringParam(req.params.id));
+    const parsed = creditAdjustmentSchema.parse(req.body);
+    const result = await applyCreditTransaction({
+      userId: user.id,
+      type: 'admin_adjustment',
+      amount: parsed.amount,
+      actorUserId: req.user?.id || null,
+      reason: parsed.reason
+    });
+    await writeAuditLog({
+      actor: req.user,
+      action: 'credits.admin_adjusted',
+      targetType: 'user',
+      targetId: user.id,
+      targetUserId: user.id,
+      metadata: { amount: parsed.amount, reason: parsed.reason },
+      req
+    });
+    res.json({
+      balance: result.balanceAfter,
+      transaction: serializeCreditTransaction(result.transaction)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/users/:id/credits/transactions', async (req, res, next) => {
+  try {
+    const user = await getAdminTargetUser(stringParam(req.params.id));
+    const page = Number(req.query.page || 1);
+    const pageSize = Number(req.query.pageSize || 20);
+    const result = await listCreditTransactions(user.id, page, pageSize);
+    res.json({
+      user: serializeUser(user),
+      ...result,
+      items: result.items.map(serializeCreditTransaction)
+    });
   } catch (error) {
     next(error);
   }

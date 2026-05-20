@@ -1,6 +1,6 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { KeyRound } from 'lucide-react';
-import { changePassword } from '../api';
+import { changePassword, getCreditBalance, listCreditTransactions, type CreditTransaction } from '../api';
 
 const emptyPasswordForm = {
   oldPassword: '',
@@ -13,6 +13,17 @@ export function SettingsPage() {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [creditItems, setCreditItems] = useState<CreditTransaction[]>([]);
+
+  useEffect(() => {
+    getCreditBalance()
+      .then((payload) => setCreditBalance(payload.balance))
+      .catch(() => undefined);
+    listCreditTransactions(1, 10)
+      .then((payload) => setCreditItems(payload.items))
+      .catch(() => undefined);
+  }, []);
 
   async function submitPassword(event: FormEvent) {
     event.preventDefault();
@@ -92,6 +103,38 @@ export function SettingsPage() {
           {isChangingPassword ? '修改中' : '修改密码'}
         </button>
       </form>
+
+      <section className="panel settingsPanel creditSettingsPanel">
+        <div className="panelTitle">
+          <h2>积分余额</h2>
+          <span>{creditBalance ?? '-'} 积分</span>
+        </div>
+        <div className="creditList">
+          {creditItems.length === 0 && <div className="emptyLine">暂无积分流水</div>}
+          {creditItems.map((item) => (
+            <div className="creditItem" key={item.id}>
+              <div>
+                <strong>{creditTypeLabel(item.type)}</strong>
+                <span>{item.reason || '-'}</span>
+              </div>
+              <div>
+                <strong>{item.amount > 0 ? `+${item.amount}` : item.amount}</strong>
+                <span>余额 {item.balanceAfter}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
+}
+
+function creditTypeLabel(type: CreditTransaction['type']) {
+  const labels: Record<CreditTransaction['type'], string> = {
+    initial_grant: '初始发放',
+    admin_adjustment: '管理员调整',
+    generation_debit: '生成扣费',
+    generation_refund: '失败退款'
+  };
+  return labels[type];
 }

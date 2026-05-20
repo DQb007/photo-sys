@@ -27,6 +27,12 @@ const defaults = {
       '',
       '该链接将在 {{expiresHours}} 小时后过期。'
     ].join('\n')
+  },
+  credits: {
+    enabled: true,
+    costPerImage: 1,
+    initialBalance: 0,
+    refundOnFailure: true
   }
 };
 
@@ -50,6 +56,12 @@ const settingsSchema = z.object({
     fromAddress: z.string(),
     verificationSubject: z.string(),
     verificationTemplate: z.string()
+  }),
+  credits: z.object({
+    enabled: z.boolean(),
+    costPerImage: z.number().int().min(0).max(100000),
+    initialBalance: z.number().int().min(0).max(1000000),
+    refundOnFailure: z.boolean()
   })
 });
 
@@ -75,7 +87,11 @@ const definitions: Record<string, {
   'mail.fromName': { category: 'mail', type: 'string', description: '发件人名称' },
   'mail.fromAddress': { category: 'mail', type: 'string', description: '发件邮箱' },
   'mail.verificationSubject': { category: 'mail', type: 'string', description: '验证邮件标题' },
-  'mail.verificationTemplate': { category: 'mail', type: 'string', description: '验证邮件模板' }
+  'mail.verificationTemplate': { category: 'mail', type: 'string', description: '验证邮件模板' },
+  'credits.enabled': { category: 'credits', type: 'boolean', description: 'Enable credit charging' },
+  'credits.costPerImage': { category: 'credits', type: 'number', description: 'Credits charged per image' },
+  'credits.initialBalance': { category: 'credits', type: 'number', description: 'Initial credits for new users' },
+  'credits.refundOnFailure': { category: 'credits', type: 'boolean', description: 'Refund credits when generation fails' }
 };
 
 let cache: { value: AppSettings; expiresAt: number } | null = null;
@@ -95,6 +111,7 @@ export async function getAppSettings(options: { includeSecrets?: boolean; fresh?
 export type AppSettingsPatch = {
   registration?: Partial<AppSettings['registration']>;
   mail?: Partial<AppSettings['mail']>;
+  credits?: Partial<AppSettings['credits']>;
 };
 
 export async function updateAppSettings(
@@ -207,7 +224,11 @@ function flattenSettings(settings: AppSettings) {
     'mail.fromName': settings.mail.fromName,
     'mail.fromAddress': settings.mail.fromAddress,
     'mail.verificationSubject': settings.mail.verificationSubject,
-    'mail.verificationTemplate': settings.mail.verificationTemplate
+    'mail.verificationTemplate': settings.mail.verificationTemplate,
+    'credits.enabled': settings.credits.enabled,
+    'credits.costPerImage': settings.credits.costPerImage,
+    'credits.initialBalance': settings.credits.initialBalance,
+    'credits.refundOnFailure': settings.credits.refundOnFailure
   };
 }
 
@@ -228,6 +249,10 @@ function mergeSettingsPatch(current: AppSettings, patch: AppSettingsPatch): AppS
     mail: {
       ...current.mail,
       ...(patch.mail || {})
+    },
+    credits: {
+      ...current.credits,
+      ...(patch.credits || {})
     }
   };
 }

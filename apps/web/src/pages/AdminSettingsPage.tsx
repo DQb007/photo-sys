@@ -232,6 +232,48 @@ export function AdminSettingsPage() {
           {mailMessage && <div className="hintBox">{mailMessage}</div>}
         </section>
 
+        <section className="panel formPanel">
+          <div className="panelTitle"><h2>积分规则</h2></div>
+          <label className="toggleRow">
+            <span>启用积分扣费</span>
+            <input
+              type="checkbox"
+              checked={settings.credits.enabled}
+              onChange={(event) => setCredits('enabled', event.target.checked)}
+            />
+          </label>
+          <div className="formRow two">
+            <label className="field">
+              <span>每张图片消耗积分</span>
+              <input
+                type="number"
+                min={0}
+                max={100000}
+                value={settings.credits.costPerImage}
+                onChange={(event) => setCredits('costPerImage', Number(event.target.value))}
+              />
+            </label>
+            <label className="field">
+              <span>新用户初始积分</span>
+              <input
+                type="number"
+                min={0}
+                max={1000000}
+                value={settings.credits.initialBalance}
+                onChange={(event) => setCredits('initialBalance', Number(event.target.value))}
+              />
+            </label>
+          </div>
+          <label className="toggleRow">
+            <span>生成失败自动退还积分</span>
+            <input
+              type="checkbox"
+              checked={settings.credits.refundOnFailure}
+              onChange={(event) => setCredits('refundOnFailure', event.target.checked)}
+            />
+          </label>
+        </section>
+
         <div className="stickyActions">
           <button className="ghostButton" type="button" onClick={() => void resetDefaults()}>
             <RotateCcw size={16} />
@@ -288,6 +330,15 @@ export function AdminSettingsPage() {
       setMailError('');
       setMailMessage('');
       return { ...current, mail: { ...current.mail, [key]: value } };
+    });
+  }
+
+  function setCredits<K extends keyof AppSettings['credits']>(key: K, value: AppSettings['credits'][K]) {
+    setSettings((current) => {
+      if (!current) return current;
+      setIsDirty(true);
+      setMessage('');
+      return { ...current, credits: { ...current.credits, [key]: value } };
     });
   }
 

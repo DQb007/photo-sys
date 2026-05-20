@@ -13,6 +13,7 @@ export interface User {
   status: UserStatus;
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
+  creditBalance: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -78,6 +79,12 @@ export interface AppSettings {
     verificationSubject: string;
     verificationTemplate: string;
   };
+  credits: {
+    enabled: boolean;
+    costPerImage: number;
+    initialBalance: number;
+    refundOnFailure: boolean;
+  };
 }
 
 export interface AdminUser extends User {
@@ -85,6 +92,19 @@ export interface AdminUser extends User {
   succeededCount: number;
   failedCount: number;
   imageCount: number;
+}
+
+export interface CreditTransaction {
+  id: number;
+  userId: number;
+  type: 'initial_grant' | 'admin_adjustment' | 'generation_debit' | 'generation_refund';
+  amount: number;
+  balanceAfter: number;
+  generationId: number | null;
+  actorUserId: number | null;
+  reason: string | null;
+  metadata: unknown;
+  createdAt: string;
 }
 
 export interface AuditLog {
@@ -169,6 +189,20 @@ export async function changePassword(input: {
 
 export async function getMe() {
   return request<{ user: User | null }>('/auth/me');
+}
+
+export async function getCreditBalance() {
+  return request<{ balance: number; credits: AppSettings['credits'] }>('/credits/balance');
+}
+
+export async function listCreditTransactions(page = 1, pageSize = 20) {
+  return request<{
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    items: CreditTransaction[];
+  }>(`/credits/transactions?page=${page}&pageSize=${pageSize}`);
 }
 
 export async function createGeneration(formData: FormData) {
@@ -293,6 +327,27 @@ export async function resetAdminUserPassword(input: {
       confirmPassword: input.confirmPassword
     })
   });
+}
+
+export async function adjustAdminUserCredits(input: { id: number; amount: number; reason: string }) {
+  return request<{ balance: number; transaction: CreditTransaction }>(`/admin/users/${input.id}/credits/adjust`, {
+    method: 'POST',
+    body: JSON.stringify({
+      amount: input.amount,
+      reason: input.reason
+    })
+  });
+}
+
+export async function listAdminUserCreditTransactions(id: number, page = 1, pageSize = 20) {
+  return request<{
+    user: User;
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    items: CreditTransaction[];
+  }>(`/admin/users/${id}/credits/transactions?page=${page}&pageSize=${pageSize}`);
 }
 
 export async function getAdminUserGenerations(id: number) {

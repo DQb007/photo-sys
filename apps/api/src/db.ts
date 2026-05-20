@@ -28,6 +28,7 @@ export async function pingDatabase() {
 export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
 export type UserRole = 'user' | 'admin';
 export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
+export type CreditTransactionType = 'initial_grant' | 'admin_adjustment' | 'generation_debit' | 'generation_refund';
 
 export interface GenerationRow extends RowDataPacket {
   id: number;
@@ -38,6 +39,8 @@ export interface GenerationRow extends RowDataPacket {
   size: string | null;
   quality: string | null;
   count: number;
+  credit_cost: number;
+  credit_refunded_at: Date | null;
   reference_image_path: string | null;
   error_message: string | null;
   started_at: Date | null;
@@ -68,8 +71,22 @@ export interface UserRow extends RowDataPacket {
   status: UserStatus;
   email_verified_at: Date | null;
   last_login_at: Date | null;
+  credit_balance: number;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface CreditTransactionRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  type: CreditTransactionType;
+  amount: number;
+  balance_after: number;
+  generation_id: number | null;
+  actor_user_id: number | null;
+  reason: string | null;
+  metadata_json: unknown;
+  created_at: Date;
 }
 
 export interface EmailVerificationTokenRow extends RowDataPacket {

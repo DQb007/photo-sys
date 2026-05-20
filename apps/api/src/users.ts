@@ -1,6 +1,8 @@
 import { config } from './config.js';
+import { grantInitialCredits } from './credits.js';
 import { getPool, type UserRole, type UserRow, type UserStatus } from './db.js';
 import { hashPassword } from './passwords.js';
+import { getAppSettings, type AppSettings } from './settingsService.js';
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -15,6 +17,7 @@ export function serializeUser(user: UserRow) {
     status: user.status,
     emailVerifiedAt: user.email_verified_at,
     lastLoginAt: user.last_login_at,
+    creditBalance: user.credit_balance,
     createdAt: user.created_at,
     updatedAt: user.updated_at
   };
@@ -38,6 +41,7 @@ export async function createUser(input: {
   status?: UserStatus;
   emailVerifiedAt?: Date | null;
 }) {
+  const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
   const [result] = await getPool().execute(
     `INSERT INTO users (email, display_name, password_hash, role, status, email_verified_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -50,7 +54,9 @@ export async function createUser(input: {
       input.emailVerifiedAt || null
     ]
   );
-  return getUserById(Number((result as { insertId: number }).insertId));
+  const userId = Number((result as { insertId: number }).insertId);
+  await grantInitialCredits(userId, settings.credits.initialBalance);
+  return getUserById(userId);
 }
 
 export async function ensureAdminSeed() {

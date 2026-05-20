@@ -14,6 +14,11 @@ import { enqueueGeneration, getQueueSummary } from '../queue.js';
 import { requireActiveUser, requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
 import { httpError } from '../errors.js';
 import { writeAuditLog } from '../audit.js';
+import {
+  calculateGenerationCreditCost,
+  debitGenerationCreditsInConnection
+} from '../credits.js';
+import { getAppSettings, type AppSettings } from '../settingsService.js';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -48,26 +53,45 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
     if (!req.user) throw httpError(401, '请先登录');
     const parsed = createGenerationSchema.parse(req.body);
     const pool = getPool();
+    const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
+    const creditCost = calculateGenerationCreditCost(parsed.count, settings);
     const referenceImagePaths = uploadedFiles.map((file) =>
       path.relative(config.storageDir, file.path).replaceAll('\\', '/')
     );
     const referenceImagePath = referenceImagePaths.length ? JSON.stringify(referenceImagePaths) : null;
 
-    const [result] = await pool.execute(
-      `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, reference_image_path)
-       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)`,
-      [
-        req.user.id,
-        parsed.prompt,
-        config.IMAGE_MODEL,
-        emptyToNull(parsed.size),
-        emptyToNull(parsed.quality),
-        parsed.count,
-        referenceImagePath
-      ]
-    );
-
-    const generationId = Number((result as { insertId: number }).insertId);
+    const connection = await pool.getConnection();
+    let generationId: number;
+    try {
+      await connection.beginTransaction();
+      const [result] = await connection.execute(
+        `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, credit_cost, reference_image_path)
+         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
+        [
+          req.user.id,
+          parsed.prompt,
+          config.IMAGE_MODEL,
+          emptyToNull(parsed.size),
+          emptyToNull(parsed.quality),
+          parsed.count,
+          creditCost,
+          referenceImagePath
+        ]
+      );
+      generationId = Number((result as { insertId: number }).insertId);
+      await debitGenerationCreditsInConnection(connection, {
+        userId: req.user.id,
+        generationId,
+        creditCost,
+        count: parsed.count
+      });
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
 
     await enqueueGeneration(generationId);
     await writeAuditLog({
@@ -76,7 +100,7 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
       targetType: 'generation',
       targetId: generationId,
       targetUserId: req.user.id,
-      metadata: { count: parsed.count },
+      metadata: { count: parsed.count, creditCost },
       req
     });
 
@@ -187,20 +211,41 @@ router.post('/:id/retry', requireActiveUser, async (req: AuthenticatedRequest, r
     }
 
     const original = await getGenerationById(id, req.user);
-    const [result] = await getPool().execute(
-      `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, reference_image_path)
-       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)`,
-      [
-        original.user_id,
-        original.prompt,
-        original.model,
-        original.size,
-        original.quality,
-        original.count,
-        original.reference_image_path
-      ]
-    );
-    const generationId = Number((result as { insertId: number }).insertId);
+    const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
+    const creditCost = calculateGenerationCreditCost(original.count, settings);
+    const pool = getPool();
+    const connection = await pool.getConnection();
+    let generationId: number;
+    try {
+      await connection.beginTransaction();
+      const [result] = await connection.execute(
+        `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, credit_cost, reference_image_path)
+         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
+        [
+          original.user_id,
+          original.prompt,
+          original.model,
+          original.size,
+          original.quality,
+          original.count,
+          creditCost,
+          original.reference_image_path
+        ]
+      );
+      generationId = Number((result as { insertId: number }).insertId);
+      await debitGenerationCreditsInConnection(connection, {
+        userId: original.user_id,
+        generationId,
+        creditCost,
+        count: original.count
+      });
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
     await enqueueGeneration(generationId);
     await writeAuditLog({
       actor: req.user,
@@ -208,7 +253,7 @@ router.post('/:id/retry', requireActiveUser, async (req: AuthenticatedRequest, r
       targetType: 'generation',
       targetId: generationId,
       targetUserId: original.user_id,
-      metadata: { originalGenerationId: id },
+      metadata: { originalGenerationId: id, creditCost },
       req
     });
     const generation = await getGenerationById(generationId, req.user);

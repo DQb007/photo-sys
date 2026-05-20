@@ -6,7 +6,7 @@
 
 ## 当前阶段
 
-Phase 1
+Phase 7
 
 ## 阶段
 
@@ -19,55 +19,55 @@ Phase 1
 
 ### Phase 2：数据库与类型基础
 
-- [ ] 新增迁移：`users.credit_balance`、`generations.credit_cost`、`generations.credit_refunded_at`、`credit_transactions`。
-- [ ] 更新 `apps/api/db/schema.sql`。
-- [ ] 更新 `apps/api/src/db.ts` 类型：用户余额、生成扣费字段、积分流水行类型。
-- [ ] 确认迁移对既有用户的默认余额为 0，不破坏已有数据。
-- **状态：pending**
+- [x] 新增迁移：`users.credit_balance`、`generations.credit_cost`、`generations.credit_refunded_at`、`credit_transactions`。
+- [x] 更新 `apps/api/db/schema.sql`。
+- [x] 更新 `apps/api/src/db.ts` 类型：用户余额、生成扣费字段、积分流水行类型。
+- [x] 确认迁移对既有用户的默认余额为 0，不破坏已有数据。
+- **状态：complete**
 
 ### Phase 3：后端积分服务与动态配置
 
-- [ ] 扩展 `settingsService`：新增 `credits.enabled`、`credits.costPerImage`、`credits.initialBalance`、`credits.refundOnFailure`。
-- [ ] 新增积分服务模块，集中处理加减余额、流水、余额不足校验和退款幂等。
-- [ ] 创建用户时按 `credits.initialBalance` 发放初始积分。
-- [ ] 确保所有余额修改都走事务和用户行锁。
-- **状态：pending**
+- [x] 扩展 `settingsService`：新增 `credits.enabled`、`credits.costPerImage`、`credits.initialBalance`、`credits.refundOnFailure`。
+- [x] 新增积分服务模块，集中处理加减余额、流水、余额不足校验和退款幂等。
+- [x] 创建用户时按 `credits.initialBalance` 发放初始积分。
+- [x] 确保所有余额修改都走事务和用户行锁。
+- **状态：complete**
 
 ### Phase 4：生成扣费与失败退款
 
-- [ ] 改造 `POST /api/generations`：按 `count * costPerImage` 扣积分、写 `credit_cost`、写流水。
-- [ ] 改造 `POST /api/generations/:id/retry`：新任务按当前配置重新扣积分。
-- [ ] 改造 `processGeneration()`：生成失败时按配置自动退款，并保证重复执行不会重复退款。
-- [ ] 返回余额不足错误 `409 INSUFFICIENT_CREDITS`。
-- **状态：pending**
+- [x] 改造 `POST /api/generations`：按 `count * costPerImage` 扣积分、写 `credit_cost`、写流水。
+- [x] 改造 `POST /api/generations/:id/retry`：新任务按当前配置重新扣积分。
+- [x] 改造 `processGeneration()`：生成失败时按配置自动退款，并保证重复执行不会重复退款。
+- [x] 返回余额不足错误 `409 INSUFFICIENT_CREDITS`。
+- **状态：complete**
 
 ### Phase 5：积分 API 与管理员接口
 
-- [ ] 新增普通用户积分路由：余额和自己的流水分页。
-- [ ] 在 `server.ts` 挂载积分路由。
-- [ ] 新增管理员接口：调整指定用户积分、查看指定用户流水。
-- [ ] 更新管理员用户列表返回 `creditBalance`。
-- [ ] 管理员调整积分写 `credit_transactions` 和 `audit_logs`。
-- **状态：pending**
+- [x] 新增普通用户积分路由：余额和自己的流水分页。
+- [x] 在 `server.ts` 挂载积分路由。
+- [x] 新增管理员接口：调整指定用户积分、查看指定用户流水。
+- [x] 更新管理员用户列表返回 `creditBalance`。
+- [x] 管理员调整积分写 `credit_transactions` 和 `audit_logs`。
+- **状态：complete**
 
 ### Phase 6：前端 API 类型与用户体验
 
-- [ ] 更新 `apps/web/src/api.ts` 用户、管理员用户、配置、积分流水类型和请求函数。
-- [ ] 生成页展示当前余额和预计消耗，处理余额不足错误。
-- [ ] 账号设置页展示余额和最近积分流水。
-- [ ] 后台配置页增加积分规则配置。
-- [ ] 后台用户管理页展示余额并提供调整积分弹窗。
-- **状态：pending**
+- [x] 更新 `apps/web/src/api.ts` 用户、管理员用户、配置、积分流水类型和请求函数。
+- [x] 生成页展示当前余额和预计消耗，处理余额不足错误。
+- [x] 账号设置页展示余额和最近积分流水。
+- [x] 后台配置页增加积分规则配置。
+- [x] 后台用户管理页展示余额并提供调整积分弹窗。
+- **状态：complete**
 
 ### Phase 7：验证、构建与提交
 
-- [ ] 运行 `npm run typecheck -w apps/api`。
-- [ ] 运行 `npm run typecheck -w apps/web`。
-- [ ] 运行 `npm run build`。
+- [x] 运行 `npm run typecheck -w apps/api`。
+- [x] 运行 `npm run typecheck -w apps/web`。
+- [x] 运行 `npm run build`。
 - [ ] 手动或脚本验证关键 API：注册初始积分、扣费、余额不足、失败退款、管理员调整。
-- [ ] 修复发现的问题。
+- [x] 修复发现的问题。
 - [ ] 提交实现变更。
-- **状态：pending**
+- **状态：in_progress**
 
 ## 关键问题
 
@@ -93,3 +93,4 @@ Phase 1
 | 错误 | 尝试 | 处理 |
 |------|------|------|
 | `git add` 被 safe.directory 拦截 | 1 | 使用 `git -c safe.directory=D:/project/ai-code-project/photo-sys ...` |
+| 未执行真实 API 手动验证 | 1 | 当前会话没有数据库迁移/测试账号上下文；已用 typecheck 和 build 验证静态正确性 |

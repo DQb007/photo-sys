@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KeyRound, RefreshCcw, Shield, UserX, X } from 'lucide-react';
-import { listAdminUsers, resetAdminUserPassword, updateAdminUser, type AdminUser } from '../api';
+import { Coins, KeyRound, RefreshCcw, Shield, UserX, X } from 'lucide-react';
+import { adjustAdminUserCredits, listAdminUsers, resetAdminUserPassword, updateAdminUser, type AdminUser } from '../api';
 import { useAuth } from '../auth';
 
 const emptyPasswordForm = {
   password: '',
   confirmPassword: ''
+};
+
+const emptyCreditForm = {
+  amount: 0,
+  reason: ''
 };
 
 export function AdminUsersPage() {
@@ -18,6 +23,10 @@ export function AdminUsersPage() {
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
   const [passwordError, setPasswordError] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [creditTarget, setCreditTarget] = useState<AdminUser | null>(null);
+  const [creditForm, setCreditForm] = useState(emptyCreditForm);
+  const [creditError, setCreditError] = useState('');
+  const [isAdjustingCredit, setIsAdjustingCredit] = useState(false);
 
   async function load() {
     setError('');
@@ -65,6 +74,34 @@ export function AdminUsersPage() {
     }
   }
 
+  async function adjustCredits() {
+    if (!creditTarget) return;
+    setCreditError('');
+    if (!Number.isInteger(creditForm.amount) || creditForm.amount === 0) {
+      setCreditError('请输入非 0 的整数积分');
+      return;
+    }
+    if (!creditForm.reason.trim()) {
+      setCreditError('请填写调整原因');
+      return;
+    }
+
+    setIsAdjustingCredit(true);
+    try {
+      await adjustAdminUserCredits({
+        id: creditTarget.id,
+        amount: creditForm.amount,
+        reason: creditForm.reason.trim()
+      });
+      closeCreditModal();
+      await load();
+    } catch (err) {
+      setCreditError(err instanceof Error ? err.message : '调整积分失败');
+    } finally {
+      setIsAdjustingCredit(false);
+    }
+  }
+
   return (
     <div className="page">
       <header className="pageHeader">
@@ -89,6 +126,7 @@ export function AdminUsersPage() {
               <th>用户</th>
               <th>角色</th>
               <th>状态</th>
+              <th>积分</th>
               <th>生成</th>
               <th>图片</th>
               <th>操作</th>
@@ -104,6 +142,7 @@ export function AdminUsersPage() {
                   <td><strong>{user.email}</strong><span>{user.displayName || '-'}</span></td>
                   <td>{user.role}</td>
                   <td>{user.status}</td>
+                  <td>{user.creditBalance}</td>
                   <td>{user.generationCount} / 成功 {user.succeededCount} / 失败 {user.failedCount}</td>
                   <td>{user.imageCount}</td>
                   <td className="tableActions">
@@ -128,6 +167,10 @@ export function AdminUsersPage() {
                     <button className="ghostButton" onClick={() => openPasswordModal(user)}>
                       <KeyRound size={14} />
                       重置密码
+                    </button>
+                    <button className="ghostButton" onClick={() => openCreditModal(user)}>
+                      <Coins size={14} />
+                      调整积分
                     </button>
                     <Link className="ghostButton" to={`/admin/users/${user.id}/generations`}>
                       生成记录
@@ -186,6 +229,51 @@ export function AdminUsersPage() {
           </form>
         </div>
       )}
+      {creditTarget && (
+        <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="credit-adjust-title">
+          <form className="confirmModal passwordResetModal" onSubmit={(event) => {
+            event.preventDefault();
+            void adjustCredits();
+          }}>
+            <div className="modalHeader">
+              <div>
+                <h2 id="credit-adjust-title">调整积分</h2>
+                <span>{creditTarget.email} · 当前 {creditTarget.creditBalance}</span>
+              </div>
+              <button className="iconButton" type="button" onClick={closeCreditModal} aria-label="关闭">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="passwordFields">
+              <label className="field">
+                <span>调整数量</span>
+                <input
+                  type="number"
+                  step={1}
+                  value={creditForm.amount}
+                  onChange={(event) => setCreditForm({ ...creditForm, amount: Number(event.target.value) })}
+                />
+              </label>
+              <label className="field">
+                <span>原因</span>
+                <input
+                  value={creditForm.reason}
+                  onChange={(event) => setCreditForm({ ...creditForm, reason: event.target.value })}
+                />
+              </label>
+            </div>
+            {creditError && <div className="inlineError">{creditError}</div>}
+            <div className="modalActions">
+              <button className="ghostButton" type="button" onClick={closeCreditModal}>
+                取消
+              </button>
+              <button className="primaryButton compact" type="submit" disabled={isAdjustingCredit}>
+                确认调整
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 
@@ -199,5 +287,17 @@ export function AdminUsersPage() {
     setPasswordTarget(null);
     setPasswordForm(emptyPasswordForm);
     setPasswordError('');
+  }
+
+  function openCreditModal(user: AdminUser) {
+    setCreditTarget(user);
+    setCreditForm(emptyCreditForm);
+    setCreditError('');
+  }
+
+  function closeCreditModal() {
+    setCreditTarget(null);
+    setCreditForm(emptyCreditForm);
+    setCreditError('');
   }
 }

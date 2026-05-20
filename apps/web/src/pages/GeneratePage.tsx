@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2 } from 'lucide-react';
-import { createGeneration, downloadUrl, getGeneration, type Generation } from '../api';
+import { createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
+import { useAuth } from '../auth';
 import { formatDuration, generationElapsedMs } from '../time';
 
 const sizes = ['1024x1024', '1024x1536', '1536x1024'];
@@ -8,6 +9,7 @@ const qualities = ['auto', 'high', 'medium', 'low'];
 const activeGenerationKey = 'activeGenerationId';
 
 export function GeneratePage() {
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState(sizes[0]);
   const [quality, setQuality] = useState(qualities[0]);
@@ -16,8 +18,12 @@ export function GeneratePage() {
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [creditBalance, setCreditBalance] = useState(user?.creditBalance ?? 0);
+  const [costPerImage, setCostPerImage] = useState(1);
+  const [creditsEnabled, setCreditsEnabled] = useState(true);
   const [now, setNow] = useState(Date.now());
   const isActiveGeneration = Boolean(generation && ['pending', 'processing'].includes(generation.status));
+  const estimatedCreditCost = creditsEnabled ? count * costPerImage : 0;
 
   const previewUrl = useMemo(() => {
     return referenceImages.map((file) => ({
@@ -48,6 +54,16 @@ export function GeneratePage() {
         });
     }
   }, []);
+
+  useEffect(() => {
+    getCreditBalance()
+      .then((payload) => {
+        setCreditBalance(payload.balance);
+        setCostPerImage(payload.credits.costPerImage);
+        setCreditsEnabled(payload.credits.enabled);
+      })
+      .catch(() => undefined);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!generation || !['pending', 'processing'].includes(generation.status)) return;
@@ -87,6 +103,13 @@ export function GeneratePage() {
       setGeneration(nextGeneration);
       restoreFormFromGeneration(nextGeneration);
       sessionStorage.setItem(activeGenerationKey, String(nextGeneration.id));
+      getCreditBalance()
+        .then((payload) => {
+          setCreditBalance(payload.balance);
+          setCostPerImage(payload.credits.costPerImage);
+          setCreditsEnabled(payload.credits.enabled);
+        })
+        .catch(() => undefined);
     } catch (err) {
       const typed = err as Error & { generation?: Generation };
       setError(typed.message);
@@ -125,7 +148,7 @@ export function GeneratePage() {
         </div>
         <div className="statusPill">
           <Sparkles size={16} />
-          gpt-image-2
+          {creditsEnabled ? `${creditBalance} 积分` : '积分未启用'}
         </div>
       </header>
 
@@ -215,6 +238,11 @@ export function GeneratePage() {
           ) : null}
 
           {error && <div className="errorBox">{error}</div>}
+
+          <div className="creditSummary">
+            <span>当前余额 {creditBalance}</span>
+            <strong>预计消耗 {estimatedCreditCost}</strong>
+          </div>
 
           <button className="primaryButton" type="submit" disabled={isLoading || isActiveGeneration}>
             {isLoading ? <Loader2 className="spin" size={18} /> : <Wand2 size={18} />}

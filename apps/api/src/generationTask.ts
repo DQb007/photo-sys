@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { refundGenerationCreditsIfNeeded } from './credits.js';
 import { getPool, type GenerationRow } from './db.js';
 import { generateImages } from './relay.js';
 import { resolveStorageKey, saveGeneratedImage } from './storage.js';
@@ -61,6 +62,9 @@ export async function processGeneration(generationId: number) {
        WHERE id = ? AND deleted_at IS NULL`,
       [completedAt, completedAt.getTime() - startedAt.getTime(), message, generationId]
     );
+    await refundGenerationCreditsIfNeeded(generationId).catch((refundError) => {
+      console.error(`Generation job ${generationId} credit refund failed`, refundError);
+    });
     throw error;
   }
 }

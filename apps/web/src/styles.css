@@ -308,6 +308,27 @@ textarea {
   font-size: 13px;
 }
 
+.creditSummary {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.creditSummary span,
+.creditSummary strong {
+  font-size: 13px;
+}
+
+.creditSummary span {
+  color: var(--muted);
+}
+
 .primaryButton,
 .ghostButton,
 .dangerButton {
@@ -756,6 +777,39 @@ code {
 
 .passwordSettingsPanel .primaryButton {
   margin-top: 4px;
+}
+
+.creditSettingsPanel {
+  margin-top: 18px;
+}
+
+.creditList {
+  display: grid;
+  gap: 10px;
+}
+
+.creditItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.creditItem:last-child {
+  border-bottom: 0;
+}
+
+.creditItem span,
+.emptyLine {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.creditItem > div:last-child {
+  text-align: right;
 }
 
 .settingsConfirmModal h2 {
