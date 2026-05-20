@@ -39,7 +39,7 @@ export function AdminSettingsPage() {
     setConfirmAction(null);
     setIsSaving(true);
     try {
-      const payload = await updateAdminSettings(settings);
+      const payload = await updateAdminSettings(settingsPayload(settings));
       setSettings(payload.settings);
       setIsDirty(false);
       setMessage('配置已保存。');
@@ -294,4 +294,18 @@ export function AdminSettingsPage() {
   function resetDefaults() {
     setConfirmAction('reset');
   }
+}
+
+function settingsPayload(settings: AppSettings): AppSettings {
+  if (settings.mail.smtpPassword !== '********') {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    mail: {
+      ...settings.mail,
+      smtpPassword: ''
+    }
+  };
 }

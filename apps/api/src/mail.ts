@@ -1,13 +1,17 @@
 import nodemailer from 'nodemailer';
 import { config, isProduction } from './config.js';
 import { httpError } from './errors.js';
-import { getAppSettings, mailConfigComplete, type AppSettings } from './settingsService.js';
+import { getAppSettings, mailConfigComplete, mailPasswordWasRedacted, type AppSettings } from './settingsService.js';
 
 export async function sendVerificationEmail(input: {
   email: string;
   verificationUrl: string;
 }) {
   const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
+  if (mailPasswordWasRedacted(settings)) {
+    throw httpError(422, 'SMTP 密码需要重新填写后保存');
+  }
+
   if (!mailConfigComplete(settings)) {
     if (isProduction()) {
       throw httpError(503, '邮件服务未配置，请联系管理员');
@@ -41,6 +45,10 @@ export async function sendVerificationEmail(input: {
 
 export async function sendTestEmail(to: string) {
   const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
+  if (mailPasswordWasRedacted(settings)) {
+    throw httpError(422, 'SMTP 密码需要重新填写后保存');
+  }
+
   if (!mailConfigComplete(settings)) {
     throw httpError(422, '邮件配置不完整');
   }

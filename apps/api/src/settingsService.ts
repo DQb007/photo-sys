@@ -30,6 +30,8 @@ const defaults = {
   }
 };
 
+const redactedSecret = '********';
+
 const settingsSchema = z.object({
   registration: z.object({
     enabled: z.boolean(),
@@ -106,7 +108,7 @@ export async function updateAppSettings(
   for (const [key, value] of Object.entries(entries)) {
     const definition = definitions[key];
     if (!definition) continue;
-    if (definition.isSecret && value === '') continue;
+    if (definition.isSecret && (value === '' || value === redactedSecret)) continue;
 
     await getPool().execute(
       `INSERT INTO app_settings
@@ -145,7 +147,15 @@ export function mailConfigComplete(settings: AppSettings) {
   return Boolean(settings.mail.smtpHost
     && settings.mail.smtpPort
     && settings.mail.fromAddress
-    && (settings.mail.smtpUser ? settings.mail.smtpPassword : true));
+    && (settings.mail.smtpUser ? validMailPassword(settings.mail.smtpPassword) : true));
+}
+
+export function mailPasswordWasRedacted(settings: AppSettings) {
+  return settings.mail.smtpPassword === redactedSecret;
+}
+
+function validMailPassword(value: string) {
+  return Boolean(value && value !== redactedSecret);
 }
 
 function applyRows(rows: AppSettingRow[]) {
@@ -163,7 +173,7 @@ function redactSettings(settings: AppSettings) {
     ...settings,
     mail: {
       ...settings.mail,
-      smtpPassword: settings.mail.smtpPassword ? '********' : ''
+      smtpPassword: settings.mail.smtpPassword ? redactedSecret : ''
     }
   };
 }
