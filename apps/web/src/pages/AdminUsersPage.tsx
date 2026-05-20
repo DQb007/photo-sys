@@ -1,14 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KeyRound, RefreshCcw, Shield, UserX } from 'lucide-react';
+import { KeyRound, RefreshCcw, Shield, UserX, X } from 'lucide-react';
 import { listAdminUsers, resetAdminUserPassword, updateAdminUser, type AdminUser } from '../api';
 import { useAuth } from '../auth';
+
+const emptyPasswordForm = {
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+};
 
 export function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
+  const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
+  const [passwordError, setPasswordError] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   async function load() {
     setError('');
@@ -29,10 +39,36 @@ export function AdminUsersPage() {
     await load();
   }
 
-  async function resetPassword(id: number) {
-    const password = window.prompt('请输入新密码，至少 8 位');
-    if (!password) return;
-    await resetAdminUserPassword(id, password);
+  async function resetPassword() {
+    if (!passwordTarget) return;
+    setPasswordError('');
+    if (!passwordForm.oldPassword) {
+      setPasswordError('请输入旧密码');
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError('新密码至少 8 位');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('两次新密码输入不一致');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      await resetAdminUserPassword({
+        id: passwordTarget.id,
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword
+      });
+      closePasswordModal();
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : '重置密码失败');
+    } finally {
+      setIsResettingPassword(false);
+    }
   }
 
   return (
@@ -95,7 +131,7 @@ export function AdminUsersPage() {
                       <UserX size={14} />
                       {user.status === 'disabled' ? '启用' : '禁用'}
                     </button>
-                    <button className="ghostButton" onClick={() => void resetPassword(user.id)}>
+                    <button className="ghostButton" onClick={() => openPasswordModal(user)}>
                       <KeyRound size={14} />
                       重置密码
                     </button>
@@ -109,6 +145,74 @@ export function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      {passwordTarget && (
+        <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="password-reset-title">
+          <form className="confirmModal passwordResetModal" onSubmit={(event) => {
+            event.preventDefault();
+            void resetPassword();
+          }}>
+            <div className="modalHeader">
+              <div>
+                <h2 id="password-reset-title">重置密码</h2>
+                <span>{passwordTarget.email}</span>
+              </div>
+              <button className="iconButton" type="button" onClick={closePasswordModal} aria-label="关闭">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="passwordFields">
+              <label className="field">
+                <span>旧密码</span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={passwordForm.oldPassword}
+                  onChange={(event) => setPasswordForm({ ...passwordForm, oldPassword: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>新密码</span>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordForm.newPassword}
+                  onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>确认新密码</span>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })}
+                />
+              </label>
+            </div>
+            {passwordError && <div className="inlineError">{passwordError}</div>}
+            <div className="modalActions">
+              <button className="ghostButton" type="button" onClick={closePasswordModal}>
+                取消
+              </button>
+              <button className="primaryButton compact" type="submit" disabled={isResettingPassword}>
+                确认重置
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
+
+  function openPasswordModal(user: AdminUser) {
+    setPasswordTarget(user);
+    setPasswordForm(emptyPasswordForm);
+    setPasswordError('');
+  }
+
+  function closePasswordModal() {
+    setPasswordTarget(null);
+    setPasswordForm(emptyPasswordForm);
+    setPasswordError('');
+  }
 }

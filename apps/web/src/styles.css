@@ -736,6 +736,24 @@ code {
   padding: 22px;
 }
 
+.passwordResetModal {
+  width: min(440px, calc(100vw - 32px));
+  padding: 22px;
+}
+
+.passwordResetModal .modalHeader span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.passwordFields {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 12px;
+}
+
 .settingsConfirmModal h2 {
   margin: 0 34px 0 0;
   font-size: 18px;

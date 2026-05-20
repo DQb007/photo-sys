@@ -270,10 +270,19 @@ export async function updateAdminUser(id: number, patch: Partial<Pick<User, 'rol
   });
 }
 
-export async function resetAdminUserPassword(id: number, password: string) {
-  return request<{ ok: boolean }>(`/admin/users/${id}/reset-password`, {
+export async function resetAdminUserPassword(input: {
+  id: number;
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) {
+  return request<{ ok: boolean }>(`/admin/users/${input.id}/reset-password`, {
     method: 'POST',
-    body: JSON.stringify({ password })
+    body: JSON.stringify({
+      oldPassword: input.oldPassword,
+      newPassword: input.newPassword,
+      confirmPassword: input.confirmPassword
+    })
   });
 }
 
