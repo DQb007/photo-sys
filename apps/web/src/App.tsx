@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AdminStatusPage } from './pages/AdminStatusPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
@@ -62,13 +63,17 @@ function ProtectedShell() {
           </NavLink>
           <NavLink to="/settings">
             <Settings size={18} />
-            运行状态
+            账号设置
           </NavLink>
           {auth.user.role === 'admin' && (
             <>
               <NavLink to="/admin/overview">
                 <Shield size={18} />
                 后台概览
+              </NavLink>
+              <NavLink to="/admin/status">
+                <Activity size={18} />
+                运行状态
               </NavLink>
               <NavLink to="/admin/settings">
                 <SlidersHorizontal size={18} />
@@ -98,6 +103,7 @@ function ProtectedShell() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin/overview" element={<AdminOnly><AdminOverviewPage /></AdminOnly>} />
+          <Route path="/admin/status" element={<AdminOnly><AdminStatusPage /></AdminOnly>} />
           <Route path="/admin/settings" element={<AdminOnly><AdminSettingsPage /></AdminOnly>} />
           <Route path="/admin/users" element={<AdminOnly><AdminUsersPage /></AdminOnly>} />
           <Route path="/admin/users/:id/generations" element={<AdminOnly><AdminUserGenerationsPage /></AdminOnly>} />
