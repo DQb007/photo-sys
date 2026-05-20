@@ -17,6 +17,7 @@ export function PromptLibraryPage() {
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
   const [activeTemplate, setActiveTemplate] = useState<PromptTemplate | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -40,6 +41,15 @@ export function PromptLibraryPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!previewImage) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setPreviewImage(null);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [previewImage]);
 
   const renderedPrompt = useMemo(() => {
     if (!activeTemplate) return '';
@@ -171,7 +181,14 @@ export function PromptLibraryPage() {
         {items.map((item) => (
           <article className="promptTemplateCard" key={item.id}>
             {item.exampleImageUrl ? (
-              <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+              <button
+                className="promptExampleButton"
+                type="button"
+                onClick={() => setPreviewImage({ title: item.title, url: item.exampleImageUrl || '' })}
+              >
+                <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+                <span>查看大图</span>
+              </button>
             ) : (
               <div className="promptExamplePlaceholder">
                 <Sparkles size={24} />
@@ -260,6 +277,21 @@ export function PromptLibraryPage() {
                 使用并跳转生图
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {previewImage && (
+        <div className="modalBackdrop imagePreviewBackdrop" role="dialog" aria-modal="true" aria-label={`${previewImage.title} 示例图`}>
+          <button className="imagePreviewScrim" type="button" aria-label="关闭预览" onClick={() => setPreviewImage(null)} />
+          <div className="imagePreviewModal">
+            <div className="modalHeader">
+              <h2>{previewImage.title}</h2>
+              <button className="iconButton" type="button" onClick={() => setPreviewImage(null)} aria-label="关闭">
+                <X size={18} />
+              </button>
+            </div>
+            <img src={previewImage.url} alt={`${previewImage.title} 示例图`} />
           </div>
         </div>
       )}

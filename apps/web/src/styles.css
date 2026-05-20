@@ -1398,13 +1398,50 @@ th {
   padding: 16px;
 }
 
-.promptExampleImage {
+.promptExampleButton {
+  position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 8px;
   border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fbfaf6;
+  padding: 0;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.promptExampleButton span {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 999px;
+  background: rgba(25, 24, 21, 0.78);
+  color: #fff;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.promptExampleButton:hover span,
+.promptExampleButton:focus-visible span {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.promptExampleImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.promptExampleButton:focus-visible {
+  outline: none;
+  border: 1px solid var(--line);
+  box-shadow: 0 0 0 3px rgba(31, 111, 91, 0.14);
 }
 
 .promptExamplePlaceholder {
@@ -1489,6 +1526,41 @@ th {
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--line);
+  background: #fbfaf6;
+}
+
+.imagePreviewBackdrop {
+  z-index: 90;
+}
+
+.imagePreviewScrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-out;
+}
+
+.imagePreviewModal {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 94vw);
+  max-height: 90vh;
+  display: grid;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  padding: 14px;
+}
+
+.imagePreviewModal img {
+  display: block;
+  width: 100%;
+  max-height: calc(90vh - 82px);
+  object-fit: contain;
+  border-radius: 6px;
   background: #fbfaf6;
 }
 
