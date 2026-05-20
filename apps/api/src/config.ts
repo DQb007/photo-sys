@@ -22,7 +22,7 @@ const envSchema = z.object({
   MAX_UPLOAD_MB: z.coerce.number().default(10),
   REQUEST_TIMEOUT_MS: z.coerce.number().default(300000),
   JWT_SECRET: z.string().optional(),
-  JWT_EXPIRES_IN: z.string().default('12h'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
   SETTINGS_ENCRYPTION_KEY: z.string().optional(),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
