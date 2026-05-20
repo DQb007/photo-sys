@@ -56,6 +56,14 @@
 - Removed the split prompt admin grid that caused the overlap.
 - Web typecheck, lint, and web build passed.
 
+### Phase 7: Admin Prompt Management Visual Polish
+
+- Status: complete
+- User asked to beautify the prompt management page.
+- Reworked the admin list presentation with summary cards, richer template cells, prompt previews, status pills, variable badges, compact usage/sort/date display, and a better empty state.
+- Kept the admin workflow unchanged: list-first page, create/edit modal, status toggle, and delete confirmation modal.
+- Web typecheck, lint, and web build passed.
+
 ## Verification Results
 
 | Check | Result | Notes |
@@ -71,6 +79,9 @@
 | Admin UI layout fix typecheck | Passed | `npm run typecheck -w apps/web`. |
 | Admin UI layout fix lint | Passed with existing warnings | `npm run lint -w apps/web`; 4 pre-existing warnings remain. |
 | Admin UI layout fix build | Passed | `npm run build -w apps/web`. |
+| Admin UI polish typecheck | Passed | `npm run typecheck -w apps/web`. |
+| Admin UI polish lint | Passed with existing warnings | `npm run lint -w apps/web`; same 4 pre-existing warnings remain. |
+| Admin UI polish build | Passed | `npm run build -w apps/web`. |
 
 ## Error Log
 

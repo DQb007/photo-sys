@@ -72,6 +72,17 @@ Complete
 - [x] Run web build.
 - **Status:** complete
 
+### Phase 7: Admin Prompt Management Visual Polish
+
+- [x] Add summary cards for template counts, status counts, variables, and usage.
+- [x] Improve table hierarchy with prompt previews, category/description metadata, status pills, and compact metrics.
+- [x] Improve empty-state presentation.
+- [x] Keep create/edit/delete behavior unchanged.
+- [x] Run web typecheck.
+- [x] Run web lint.
+- [x] Run web build.
+- **Status:** complete
+
 ## Key Constraints
 
 1. Users cannot create, submit, or request public prompt templates in this version.
@@ -92,6 +103,7 @@ Complete
 | Reuse `sessionStorage.reusePrompt` | Generate page already supports this path from History reuse. |
 | No audit log for user use events | Usage may be frequent; aggregate `usage_count` is enough for v1. |
 | Admin prompt management is list-first | Avoids cramped split-pane overlap and matches operational admin workflow. |
+| Prompt management polish stays operational | Admins need faster scanning and safer actions, not a decorative landing-style page. |
 
 ## Error Log
 

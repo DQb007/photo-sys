@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Edit3, Plus, RefreshCcw, Save, Trash2, X, XCircle } from 'lucide-react';
+import { Edit3, FileText, Plus, RefreshCcw, Save, Tags, Trash2, X, XCircle } from 'lucide-react';
 import {
   createAdminPromptTemplate,
   deleteAdminPromptTemplate,
@@ -33,6 +33,11 @@ export function AdminPromptTemplatesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const activeCount = items.filter((item) => item.status === 'active').length;
+  const disabledCount = items.filter((item) => item.status === 'disabled').length;
+  const totalUsageCount = items.reduce((sum, item) => sum + item.usageCount, 0);
+  const totalVariables = items.reduce((sum, item) => sum + item.variables.length, 0);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -146,8 +151,9 @@ export function AdminPromptTemplatesPage() {
 
   return (
     <div className="page">
-      <header className="pageHeader">
+      <header className="pageHeader promptAdminHeader">
         <div>
+          <p className="eyebrow">Prompt templates</p>
           <h1>提示词管理</h1>
         </div>
         <div className="pageHeaderActions">
@@ -165,13 +171,38 @@ export function AdminPromptTemplatesPage() {
       {error && <div className="errorBox">{error}</div>}
       {message && <div className="hintBox">{message}</div>}
 
+      <section className="promptAdminStats" aria-label="提示词模板统计">
+        <div className="panel statCard">
+          <span>模板总数</span>
+          <strong>{items.length}</strong>
+        </div>
+        <div className="panel statCard">
+          <span>启用中</span>
+          <strong>{activeCount}</strong>
+        </div>
+        <div className="panel statCard">
+          <span>已停用</span>
+          <strong>{disabledCount}</strong>
+        </div>
+        <div className="panel statCard">
+          <span>变量 / 使用</span>
+          <strong>{totalVariables} / {totalUsageCount}</strong>
+        </div>
+      </section>
+
       <section className="panel tablePanel promptAdminTable">
         <div className="tableHeader">
-          <h2>模板列表</h2>
-          <form className="tableActions" onSubmit={(event) => {
-            event.preventDefault();
-            void load();
-          }}>
+          <div>
+            <h2>模板列表</h2>
+            <span>维护用户可选择、可收藏、可套用的提示词模板</span>
+          </div>
+          <form
+            className="tableActions promptAdminFilters"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void load();
+            }}
+          >
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模板" />
             <select value={status} onChange={(event) => setStatus(event.target.value)}>
               <option value="">全部状态</option>
@@ -197,17 +228,37 @@ export function AdminPromptTemplatesPage() {
             {items.map((item) => (
               <tr key={item.id}>
                 <td>
-                  <strong>{item.title}</strong>
-                  <span>{item.category || '未分类'}</span>
-                  {item.description && <span>{item.description}</span>}
+                  <div className="templateTitleCell">
+                    <strong>{item.title}</strong>
+                    <div className="templateMetaLine">
+                      <span><Tags size={12} />{item.category || '未分类'}</span>
+                      {item.description && <span><FileText size={12} />{item.description}</span>}
+                    </div>
+                    <p>{item.promptText}</p>
+                  </div>
                 </td>
-                <td>{item.status === 'active' ? '启用' : '停用'}</td>
-                <td>{item.variables.length}</td>
-                <td>{item.usageCount}</td>
-                <td>{item.sortOrder}</td>
-                <td>{new Date(item.updatedAt).toLocaleString()}</td>
                 <td>
-                  <div className="tableActions">
+                  <span className={item.status === 'active' ? 'adminStatusPill active' : 'adminStatusPill disabled'}>
+                    {item.status === 'active' ? '启用' : '停用'}
+                  </span>
+                </td>
+                <td>
+                  <div className="variableCountPill">
+                    <strong>{item.variables.length}</strong>
+                    <span>变量</span>
+                  </div>
+                </td>
+                <td>
+                  <div className="usageMetric">{item.usageCount}</div>
+                </td>
+                <td>
+                  <code className="sortCode">{item.sortOrder}</code>
+                </td>
+                <td>
+                  <span className="tableDate">{new Date(item.updatedAt).toLocaleString()}</span>
+                </td>
+                <td>
+                  <div className="tableActions promptRowActions">
                     <button className="ghostButton" type="button" onClick={() => openEditModal(item)}>
                       <Edit3 size={14} />
                       编辑
@@ -226,7 +277,13 @@ export function AdminPromptTemplatesPage() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={7}>{isLoading ? '加载中...' : '暂无模板'}</td>
+                <td colSpan={7}>
+                  <div className="emptyTableState">
+                    <FileText size={24} />
+                    <strong>{isLoading ? '加载中...' : '暂无模板'}</strong>
+                    <span>{isLoading ? '正在读取提示词模板' : '点击右上角“新建模板”创建第一条提示词'}</span>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>
@@ -237,7 +294,10 @@ export function AdminPromptTemplatesPage() {
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-admin-form-title">
           <div className="promptAdminModal">
             <div className="modalHeader">
-              <h2 id="prompt-admin-form-title">{editingItem ? `编辑 #${editingItem.id}` : '新建模板'}</h2>
+              <div>
+                <h2 id="prompt-admin-form-title">{editingItem ? `编辑 #${editingItem.id}` : '新建模板'}</h2>
+                <span>在正文中使用 {'{变量名}'} 添加用户需要填写的变量</span>
+              </div>
               <button className="iconButton" type="button" onClick={closeFormModal} aria-label="关闭">
                 <X size={18} />
               </button>
@@ -270,11 +330,11 @@ export function AdminPromptTemplatesPage() {
                 <textarea
                   value={form.promptText}
                   onChange={(event) => setForm({ ...form, promptText: event.target.value })}
-                  placeholder="示例：一张{主体}在{场景}中的照片，使用{风格}风格"
+                  placeholder="示例: 一张{主体}在{场景}中的照片, 使用{风格}风格"
                 />
               </label>
               <div className="variableHelp">
-                <p>变量写法：在提示词正文中输入 <code>{'{变量名}'}</code>，用户使用模板时会填写这些变量。</p>
+                <p>变量写法: 在提示词正文中输入 <code>{'{变量名}'}</code>, 用户使用模板时会填写这些变量。</p>
                 <div className="variablePreview">
                   <span>已识别变量</span>
                   {detectedVariables.length > 0 ? (
@@ -318,7 +378,7 @@ export function AdminPromptTemplatesPage() {
                 <X size={18} />
               </button>
             </div>
-            <p>是否删除“{deleteTarget.title}”？删除后用户侧将不可见。</p>
+            <p>是否删除“{deleteTarget.title}”? 删除后用户侧将不可见。</p>
             <div className="modalActions">
               <button className="ghostButton" type="button" onClick={() => setDeleteTarget(null)}>
                 取消
