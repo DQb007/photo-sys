@@ -17,7 +17,7 @@ export function PromptLibraryPage() {
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
   const [activeTemplate, setActiveTemplate] = useState<PromptTemplate | null>(null);
-  const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<PromptTemplate | null>(null);
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -43,13 +43,13 @@ export function PromptLibraryPage() {
   }, [load]);
 
   useEffect(() => {
-    if (!previewImage) return;
+    if (!previewTemplate) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setPreviewImage(null);
+      if (event.key === 'Escape') setPreviewTemplate(null);
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [previewImage]);
+  }, [previewTemplate]);
 
   const renderedPrompt = useMemo(() => {
     if (!activeTemplate) return '';
@@ -184,7 +184,7 @@ export function PromptLibraryPage() {
               <button
                 className="promptExampleButton"
                 type="button"
-                onClick={() => setPreviewImage({ title: item.title, url: item.exampleImageUrl || '' })}
+                onClick={() => setPreviewTemplate(item)}
               >
                 <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
                 <span>查看大图</span>
@@ -281,17 +281,44 @@ export function PromptLibraryPage() {
         </div>
       )}
 
-      {previewImage && (
-        <div className="modalBackdrop imagePreviewBackdrop" role="dialog" aria-modal="true" aria-label={`${previewImage.title} 示例图`}>
-          <button className="imagePreviewScrim" type="button" aria-label="关闭预览" onClick={() => setPreviewImage(null)} />
-          <div className="imagePreviewModal">
+      {previewTemplate && (
+        <div className="modalBackdrop promptPreviewBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title">
+          <button className="promptPreviewScrim" type="button" aria-label="关闭预览" onClick={() => setPreviewTemplate(null)} />
+          <div className="promptPreviewModal">
             <div className="modalHeader">
-              <h2>{previewImage.title}</h2>
-              <button className="iconButton" type="button" onClick={() => setPreviewImage(null)} aria-label="关闭">
+              <div>
+                <span>{previewTemplate.category || '未分类'}</span>
+                <h2 id="prompt-preview-title">{previewTemplate.title}</h2>
+              </div>
+              <button className="iconButton" type="button" onClick={() => setPreviewTemplate(null)} aria-label="关闭">
                 <X size={18} />
               </button>
             </div>
-            <img src={previewImage.url} alt={`${previewImage.title} 示例图`} />
+            <div className="promptPreviewLayout">
+              <section className="promptPreviewText">
+                {previewTemplate.description && <p>{previewTemplate.description}</p>}
+                <div className="promptPreviewMeta">
+                  <span>{previewTemplate.variables.length} 个变量</span>
+                  <span>使用 {previewTemplate.usageCount}</span>
+                </div>
+                <div className="promptPreviewPrompt">
+                  <div className="panelTitle">
+                    <h2>提示词正文</h2>
+                  </div>
+                  <p>{previewTemplate.promptText}</p>
+                </div>
+                <button className="primaryButton compact" type="button" onClick={() => {
+                  openUseModal(previewTemplate);
+                  setPreviewTemplate(null);
+                }}>
+                  <Sparkles size={16} />
+                  使用模板
+                </button>
+              </section>
+              <section className="promptPreviewImagePanel">
+                <img src={previewTemplate.exampleImageUrl || ''} alt={`${previewTemplate.title} 示例图`} />
+              </section>
+            </div>
           </div>
         </div>
       )}
