@@ -5,8 +5,11 @@ import { config } from './config.js';
 import { filesRouter } from './routes/files.js';
 import { generationsRouter } from './routes/generations.js';
 import { settingsRouter } from './routes/settings.js';
+import { authRouter } from './routes/auth.js';
+import { adminRouter } from './routes/admin.js';
 import { startGenerationWorker } from './queue.js';
 import { ensureStorageDirs } from './storage.js';
+import { ensureAdminSeed } from './users.js';
 
 const app = express();
 
@@ -20,6 +23,8 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/generations', generationsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/files', filesRouter);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -32,6 +37,7 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 });
 
 await ensureStorageDirs();
+await ensureAdminSeed();
 startGenerationWorker();
 
 app.listen(config.PORT, () => {

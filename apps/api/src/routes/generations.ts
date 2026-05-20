@@ -11,6 +11,9 @@ import {
 } from '../storage.js';
 import { serializeGeneration } from '../serializers.js';
 import { enqueueGeneration, getQueueSummary } from '../queue.js';
+import { requireActiveUser, requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
+import { httpError } from '../errors.js';
+import { writeAuditLog } from '../audit.js';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -29,6 +32,8 @@ const upload = multer({
 
 const router = express.Router();
 
+router.use(requireUser);
+
 const createGenerationSchema = z.object({
   prompt: z.string().trim().min(1, '请输入提示词').max(8000),
   size: z.string().trim().max(50).optional().or(z.literal('')),
@@ -36,10 +41,11 @@ const createGenerationSchema = z.object({
   count: z.coerce.number().int().min(1).max(4).default(1)
 });
 
-router.post('/', upload.array('referenceImages', 4), async (req, res, next) => {
+router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (req: AuthenticatedRequest, res, next) => {
   const uploadedFiles = getUploadedFiles(req.files);
 
   try {
+    if (!req.user) throw httpError(401, '请先登录');
     const parsed = createGenerationSchema.parse(req.body);
     const pool = getPool();
     const referenceImagePaths = uploadedFiles.map((file) =>
@@ -48,9 +54,10 @@ router.post('/', upload.array('referenceImages', 4), async (req, res, next) => {
     const referenceImagePath = referenceImagePaths.length ? JSON.stringify(referenceImagePaths) : null;
 
     const [result] = await pool.execute(
-      `INSERT INTO generations (prompt, model, status, size, quality, count, reference_image_path)
-       VALUES (?, ?, 'pending', ?, ?, ?, ?)`,
+      `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, reference_image_path)
+       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)`,
       [
+        req.user.id,
         parsed.prompt,
         config.IMAGE_MODEL,
         emptyToNull(parsed.size),
@@ -63,8 +70,17 @@ router.post('/', upload.array('referenceImages', 4), async (req, res, next) => {
     const generationId = Number((result as { insertId: number }).insertId);
 
     await enqueueGeneration(generationId);
+    await writeAuditLog({
+      actor: req.user,
+      action: 'generation.created',
+      targetType: 'generation',
+      targetId: generationId,
+      targetUserId: req.user.id,
+      metadata: { count: parsed.count },
+      req
+    });
 
-    const generation = await getGenerationById(generationId);
+    const generation = await getGenerationById(generationId, req.user);
     res.status(202).json({ generation: serializeGeneration(generation) });
   } catch (error) {
     await Promise.all(uploadedFiles.map((file) => {
@@ -75,15 +91,28 @@ router.post('/', upload.array('referenceImages', 4), async (req, res, next) => {
   }
 });
 
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: AuthenticatedRequest, res, next) => {
   try {
+    if (!req.user) throw httpError(401, '请先登录');
     const page = Math.max(Number(req.query.page || 1), 1);
     const pageSize = Math.min(Math.max(Number(req.query.pageSize || 12), 1), 50);
     const status = typeof req.query.status === 'string' ? req.query.status : '';
     const offset = (page - 1) * pageSize;
 
-    const where = ['pending', 'processing', 'succeeded', 'failed'].includes(status) ? 'WHERE status = ?' : '';
-    const params = where ? [status] : [];
+    const conditions: string[] = [];
+    const params: Array<string | number> = [];
+    if (req.user.role !== 'admin') {
+      conditions.push('user_id = ?');
+      params.push(req.user.id);
+    } else if (typeof req.query.userId === 'string' && Number.isInteger(Number(req.query.userId))) {
+      conditions.push('user_id = ?');
+      params.push(Number(req.query.userId));
+    }
+    if (['pending', 'processing', 'succeeded', 'failed'].includes(status)) {
+      conditions.push('status = ?');
+      params.push(status);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const [countRows] = await getPool().query<Array<{ total: number } & import('mysql2').RowDataPacket>>(
       `SELECT COUNT(*) AS total FROM generations ${where}`,
@@ -117,10 +146,14 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.get('/meta/summary', async (_req, res, next) => {
+router.get('/meta/summary', async (req: AuthenticatedRequest, res, next) => {
   try {
+    if (!req.user) throw httpError(401, '请先登录');
+    const where = req.user.role === 'admin' ? '' : 'WHERE user_id = ?';
+    const params = req.user.role === 'admin' ? [] : [req.user.id];
     const [statusRows] = await getPool().query<Array<{ status: string; total: number } & import('mysql2').RowDataPacket>>(
-      'SELECT status, COUNT(*) AS total FROM generations GROUP BY status'
+      `SELECT status, COUNT(*) AS total FROM generations ${where} GROUP BY status`,
+      params
     );
     const statusCounts = Object.fromEntries(statusRows.map((row) => [row.status, Number(row.total)]));
     const queue = await getQueueSummary();
@@ -130,7 +163,7 @@ router.get('/meta/summary', async (_req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id < 1) {
@@ -138,14 +171,14 @@ router.get('/:id', async (req, res, next) => {
       return;
     }
 
-    const generation = await getGenerationById(id);
+    const generation = await getGenerationById(id, req.user);
     res.json({ generation: serializeGeneration(generation) });
   } catch (error) {
     next(error);
   }
 });
 
-router.post('/:id/retry', async (req, res, next) => {
+router.post('/:id/retry', requireActiveUser, async (req: AuthenticatedRequest, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id < 1) {
@@ -153,11 +186,12 @@ router.post('/:id/retry', async (req, res, next) => {
       return;
     }
 
-    const original = await getGenerationById(id);
+    const original = await getGenerationById(id, req.user);
     const [result] = await getPool().execute(
-      `INSERT INTO generations (prompt, model, status, size, quality, count, reference_image_path)
-       VALUES (?, ?, 'pending', ?, ?, ?, ?)`,
+      `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, reference_image_path)
+       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)`,
       [
+        original.user_id,
         original.prompt,
         original.model,
         original.size,
@@ -168,14 +202,23 @@ router.post('/:id/retry', async (req, res, next) => {
     );
     const generationId = Number((result as { insertId: number }).insertId);
     await enqueueGeneration(generationId);
-    const generation = await getGenerationById(generationId);
+    await writeAuditLog({
+      actor: req.user,
+      action: 'generation.retried',
+      targetType: 'generation',
+      targetId: generationId,
+      targetUserId: original.user_id,
+      metadata: { originalGenerationId: id },
+      req
+    });
+    const generation = await getGenerationById(generationId, req.user);
     res.status(202).json({ generation: serializeGeneration(generation) });
   } catch (error) {
     next(error);
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id < 1) {
@@ -183,7 +226,7 @@ router.delete('/:id', async (req, res, next) => {
       return;
     }
 
-    const generation = await getGenerationById(id);
+    const generation = await getGenerationById(id, req.user);
     const files = [
       ...parseReferenceImagePaths(generation.reference_image_path),
       ...(generation.images || []).map((image) => image.file_path)
@@ -192,19 +235,31 @@ router.delete('/:id', async (req, res, next) => {
     await getPool().execute('DELETE FROM generations WHERE id = ?', [id]);
 
     await Promise.all(files.map((file) => deleteStoredFile(file).catch(() => undefined)));
+    await writeAuditLog({
+      actor: req.user,
+      action: 'generation.deleted',
+      targetType: 'generation',
+      targetId: id,
+      targetUserId: generation.user_id,
+      req
+    });
     res.status(204).send();
   } catch (error) {
     next(error);
   }
 });
 
-async function getGenerationById(id: number) {
+async function getGenerationById(id: number, user?: AuthenticatedRequest['user']) {
   const [rows] = await getPool().query<GenerationRow[]>('SELECT * FROM generations WHERE id = ?', [id]);
   const row = rows[0];
   if (!row) {
     const error = new Error('Generation not found');
     (error as Error & { status?: number }).status = 404;
     throw error;
+  }
+  if (!user) throw httpError(401, '请先登录');
+  if (user.role !== 'admin' && row.user_id !== user.id) {
+    throw httpError(403, '无权访问该生成记录');
   }
 
   const [images] = await getPool().query<GenerationImageRow[]>(

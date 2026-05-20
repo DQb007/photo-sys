@@ -67,44 +67,21 @@ CREATE TABLE IF NOT EXISTS app_settings (
   INDEX idx_app_settings_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS generations (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id BIGINT UNSIGNED NOT NULL,
-  prompt TEXT NOT NULL,
-  model VARCHAR(100) NOT NULL DEFAULT 'gpt-image-2',
-  status ENUM('pending', 'processing', 'succeeded', 'failed') NOT NULL DEFAULT 'pending',
-  size VARCHAR(50) NULL,
-  quality VARCHAR(50) NULL,
-  count INT UNSIGNED NOT NULL DEFAULT 1,
-  reference_image_path VARCHAR(500) NULL,
-  error_message TEXT NULL,
-  started_at TIMESTAMP NULL,
-  completed_at TIMESTAMP NULL,
-  duration_ms INT UNSIGNED NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  INDEX idx_generations_user_created_at (user_id, created_at),
-  INDEX idx_generations_created_at (created_at),
-  INDEX idx_generations_status (status),
-  CONSTRAINT fk_generations_user
+INSERT INTO users (email, display_name, password_hash, role, status, email_verified_at)
+VALUES ('legacy-owner@local.invalid', 'Legacy Owner', '!', 'admin', 'disabled', NOW())
+ON DUPLICATE KEY UPDATE email = email;
+
+ALTER TABLE generations
+  ADD COLUMN user_id BIGINT UNSIGNED NULL AFTER id;
+
+UPDATE generations
+SET user_id = (SELECT id FROM users WHERE email = 'legacy-owner@local.invalid')
+WHERE user_id IS NULL;
+
+ALTER TABLE generations
+  MODIFY user_id BIGINT UNSIGNED NOT NULL,
+  ADD INDEX idx_generations_user_created_at (user_id, created_at),
+  ADD CONSTRAINT fk_generations_user
     FOREIGN KEY (user_id)
     REFERENCES users (id)
-    ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS generation_images (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  generation_id BIGINT UNSIGNED NOT NULL,
-  file_path VARCHAR(500) NOT NULL,
-  mime_type VARCHAR(100) NOT NULL,
-  width INT UNSIGNED NULL,
-  height INT UNSIGNED NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  INDEX idx_generation_images_generation_id (generation_id),
-  CONSTRAINT fk_generation_images_generation
-    FOREIGN KEY (generation_id)
-    REFERENCES generations (id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ON DELETE RESTRICT;

@@ -26,9 +26,12 @@ export async function pingDatabase() {
 }
 
 export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
+export type UserRole = 'user' | 'admin';
+export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
 
 export interface GenerationRow extends RowDataPacket {
   id: number;
+  user_id: number;
   prompt: string;
   model: string;
   status: GenerationStatus;
@@ -52,4 +55,39 @@ export interface GenerationImageRow extends RowDataPacket {
   width: number | null;
   height: number | null;
   created_at: Date;
+}
+
+export interface UserRow extends RowDataPacket {
+  id: number;
+  email: string;
+  display_name: string | null;
+  password_hash: string;
+  role: UserRole;
+  status: UserStatus;
+  email_verified_at: Date | null;
+  last_login_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface EmailVerificationTokenRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  token_hash: string;
+  expires_at: Date;
+  used_at: Date | null;
+  created_at: Date;
+}
+
+export interface AppSettingRow extends RowDataPacket {
+  id: number;
+  setting_key: string;
+  setting_value: string | null;
+  value_type: 'string' | 'number' | 'boolean' | 'json' | 'secret';
+  category: string;
+  is_secret: 0 | 1;
+  description: string | null;
+  updated_by: number | null;
+  created_at: Date;
+  updated_at: Date;
 }

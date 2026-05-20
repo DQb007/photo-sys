@@ -6,7 +6,7 @@
 
 ## 当前阶段
 
-Phase 1
+Phase 7
 
 ## 阶段
 
@@ -19,53 +19,54 @@ Phase 1
 
 ### Phase 2：数据库与后端基础设施
 
-- [ ] 新增迁移：`users`、`email_verification_tokens`、`audit_logs`、`app_settings`、`generations.user_id`。
-- [ ] 新增配置：`JWT_SECRET`、`SETTINGS_ENCRYPTION_KEY`、`PUBLIC_APP_URL`、管理员种子配置。
-- [ ] 实现用户、密码哈希、JWT、审计、动态配置和邮件服务基础模块。
-- [ ] 实现历史数据归属到 `legacy-owner` 的迁移策略。
-- **状态：pending**
+- [x] 新增迁移：`users`、`email_verification_tokens`、`audit_logs`、`app_settings`、`generations.user_id`。
+- [x] 新增配置：`JWT_SECRET`、`SETTINGS_ENCRYPTION_KEY`、`PUBLIC_APP_URL`、管理员种子配置。
+- [x] 实现用户、密码哈希、JWT、审计、动态配置和邮件服务基础模块。
+- [x] 实现历史数据归属到 `legacy-owner` 的迁移策略。
+- **状态：complete**
 
 ### Phase 3：认证与权限 API
 
-- [ ] 实现 `/api/auth/register`、`verify-email`、`resend-verification`、`login`、`logout`、`me`。
-- [ ] 实现认证中间件和管理员中间件。
-- [ ] 改造生成接口：写入 `user_id`，按用户归属过滤、查看、重试、删除。
-- [ ] 改造文件接口：登录后按生成记录归属校验访问权限。
-- **状态：pending**
+- [x] 实现 `/api/auth/register`、`verify-email`、`resend-verification`、`login`、`logout`、`me`。
+- [x] 实现认证中间件和管理员中间件。
+- [x] 改造生成接口：写入 `user_id`，按用户归属过滤、查看、重试、删除。
+- [x] 改造文件接口：登录后按生成记录归属校验访问权限。
+- **状态：complete**
 
 ### Phase 4：管理员 API 与动态配置 API
 
-- [ ] 实现 `/api/admin/overview`。
-- [ ] 实现 `/api/admin/users`、用户详情、启用禁用、角色修改、重置密码、重发验证邮件。
-- [ ] 实现 `/api/admin/users/:id/generations`。
-- [ ] 实现 `/api/admin/audit-logs`。
-- [ ] 实现 `/api/admin/settings` 读取、保存、默认值恢复、测试邮件。
-- **状态：pending**
+- [x] 实现 `/api/admin/overview`。
+- [x] 实现 `/api/admin/users`、用户详情、启用禁用、角色修改、重置密码。
+- [x] 实现 `/api/admin/users/:id/generations`。
+- [x] 实现 `/api/admin/audit-logs`。
+- [x] 实现 `/api/admin/settings` 读取、保存、默认值恢复、测试邮件。
+- **状态：complete**
 
 ### Phase 5：前端认证与普通用户体验
 
-- [ ] 新增登录、注册、邮箱验证页面。
-- [ ] 新增 auth state 和 API token 处理。
-- [ ] 保护 `/generate`、`/history`、`/settings` 或迁移设置入口。
-- [ ] 调整生成、历史、下载等流程以处理 401、403、邮箱未验证。
-- **状态：pending**
+- [x] 新增登录、注册、邮箱验证页面。
+- [x] 新增 auth state 和 API token 处理。
+- [x] 保护 `/generate`、`/history`、`/settings` 或迁移设置入口。
+- [x] 调整生成、历史、下载等流程以处理 401、403、邮箱未验证。
+- **状态：complete**
 
 ### Phase 6：管理员前端
 
-- [ ] 新增管理员导航入口。
-- [ ] 新增概览页。
-- [ ] 新增用户管理页和按用户查看生成记录页。
-- [ ] 新增审计日志页。
-- [ ] 新增动态配置页，包括注册策略、邮件配置和测试邮件。
-- **状态：pending**
+- [x] 新增管理员导航入口。
+- [x] 新增概览页。
+- [x] 新增用户管理页。
+- [x] 新增按用户查看生成记录页。
+- [x] 新增审计日志页。
+- [x] 新增动态配置页，包括注册策略、邮件配置和测试邮件。
+- **状态：complete**
 
 ### Phase 7：验证、构建与提交
 
-- [ ] 运行 typecheck/build。
+- [x] 运行 typecheck/build。
 - [ ] 手动或脚本验证关键 API 行为。
-- [ ] 修复发现的问题。
+- [x] 修复发现的问题。
 - [ ] 提交实现变更。
-- **状态：pending**
+- **状态：in_progress**
 
 ## 关键问题
 

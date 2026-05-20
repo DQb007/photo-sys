@@ -8,6 +8,7 @@ export interface GenerationWithImages extends GenerationRow {
 export function serializeGeneration(row: GenerationWithImages) {
   return {
     id: row.id,
+    userId: row.user_id,
     prompt: row.prompt,
     model: row.model,
     status: row.status,
