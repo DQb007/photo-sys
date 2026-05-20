@@ -128,7 +128,7 @@ export function AdminUserGenerationsPage() {
                 <X size={18} />
               </button>
             </div>
-            <p>确定删除这条生成记录吗？记录会从列表隐藏，数据库数据和图片文件会保留。</p>
+            <p>删除后将从列表隐藏。</p>
             <div className="modalActions">
               <button className="ghostButton" onClick={() => setDeleteTarget(null)}>
                 取消
