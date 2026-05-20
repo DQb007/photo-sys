@@ -10,6 +10,7 @@ export interface PromptTemplateInput {
   title: string;
   description?: string | null;
   promptText: string;
+  exampleImageUrl?: string | null;
   category?: string | null;
   status?: PromptTemplateStatus;
   sortOrder?: number;
@@ -51,6 +52,7 @@ export function serializePromptTemplate(row: PromptTemplateWithFavorite) {
     title: row.title,
     description: row.description,
     promptText: row.prompt_text,
+    exampleImageUrl: row.example_image_url,
     category: row.category,
     status: row.status,
     sortOrder: row.sort_order,
@@ -131,12 +133,13 @@ export async function listAdminPromptTemplates(options: AdminPromptTemplateListO
 export async function createPromptTemplate(input: PromptTemplateInput, actorUserId: number | null) {
   const [result] = await getPool().execute<ResultSetHeader>(
     `INSERT INTO prompt_templates
-      (title, description, prompt_text, category, status, sort_order, created_by, updated_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (title, description, prompt_text, example_image_url, category, status, sort_order, created_by, updated_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.title,
       input.description || null,
       input.promptText,
+      input.exampleImageUrl || null,
       input.category || null,
       input.status || 'active',
       input.sortOrder ?? 0,
@@ -154,6 +157,7 @@ export async function updatePromptTemplate(id: number, input: Partial<PromptTemp
      SET title = COALESCE(?, title),
          description = CASE WHEN ? THEN ? ELSE description END,
          prompt_text = COALESCE(?, prompt_text),
+         example_image_url = CASE WHEN ? THEN ? ELSE example_image_url END,
          category = CASE WHEN ? THEN ? ELSE category END,
          status = COALESCE(?, status),
          sort_order = COALESCE(?, sort_order),
@@ -164,6 +168,8 @@ export async function updatePromptTemplate(id: number, input: Partial<PromptTemp
       input.description !== undefined,
       input.description || null,
       input.promptText ?? null,
+      input.exampleImageUrl !== undefined,
+      input.exampleImageUrl || null,
       input.category !== undefined,
       input.category || null,
       input.status ?? null,

@@ -14,6 +14,7 @@ const emptyForm = {
   category: '',
   description: '',
   promptText: '',
+  exampleImageUrl: '',
   sortOrder: 0,
   status: 'active' as PromptTemplateStatus
 };
@@ -71,6 +72,7 @@ export function AdminPromptTemplatesPage() {
       category: item.category || '',
       description: item.description || '',
       promptText: item.promptText,
+      exampleImageUrl: item.exampleImageUrl || '',
       sortOrder: item.sortOrder,
       status: item.status
     });
@@ -153,7 +155,6 @@ export function AdminPromptTemplatesPage() {
     <div className="page">
       <header className="pageHeader promptAdminHeader">
         <div>
-          <p className="eyebrow">Prompt templates</p>
           <h1>提示词管理</h1>
         </div>
         <div className="pageHeaderActions">
@@ -216,11 +217,11 @@ export function AdminPromptTemplatesPage() {
           <thead>
             <tr>
               <th>模板</th>
+              <th>示例图</th>
               <th>状态</th>
               <th>变量</th>
               <th>使用</th>
               <th>排序</th>
-              <th>更新</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -238,6 +239,13 @@ export function AdminPromptTemplatesPage() {
                   </div>
                 </td>
                 <td>
+                  {item.exampleImageUrl ? (
+                    <img className="templateExampleThumb" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+                  ) : (
+                    <span className="mutedDash">未设置</span>
+                  )}
+                </td>
+                <td>
                   <span className={item.status === 'active' ? 'adminStatusPill active' : 'adminStatusPill disabled'}>
                     {item.status === 'active' ? '启用' : '停用'}
                   </span>
@@ -253,9 +261,6 @@ export function AdminPromptTemplatesPage() {
                 </td>
                 <td>
                   <code className="sortCode">{item.sortOrder}</code>
-                </td>
-                <td>
-                  <span className="tableDate">{new Date(item.updatedAt).toLocaleString()}</span>
                 </td>
                 <td>
                   <div className="tableActions promptRowActions">
@@ -330,6 +335,19 @@ export function AdminPromptTemplatesPage() {
                   placeholder="示例: 一张{主体}在{场景}中的照片, 使用{风格}风格"
                 />
               </label>
+              <label className="field">
+                <span>示例图片 URL</span>
+                <input
+                  value={form.exampleImageUrl}
+                  onChange={(event) => setForm({ ...form, exampleImageUrl: event.target.value })}
+                  placeholder="填写这条模板生成出的示例图片地址"
+                />
+              </label>
+              {form.exampleImageUrl && (
+                <div className="exampleImagePreview">
+                  <img src={form.exampleImageUrl} alt="示例图片预览" />
+                </div>
+              )}
               <div className="variableHelp">
                 <p>变量写法: 在提示词正文中输入 <code>{'{变量名}'}</code>, 用户使用模板时会填写这些变量。</p>
                 <div className="variablePreview">
@@ -398,6 +416,7 @@ function normalizeForm(form: TemplateForm) {
     category: form.category.trim(),
     description: form.description.trim(),
     promptText: form.promptText.trim(),
+    exampleImageUrl: form.exampleImageUrl.trim(),
     sortOrder: Number(form.sortOrder) || 0,
     status: form.status
   };

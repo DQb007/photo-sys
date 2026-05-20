@@ -207,6 +207,7 @@ CREATE TABLE IF NOT EXISTS prompt_templates (
   title VARCHAR(160) NOT NULL,
   description VARCHAR(500) NULL,
   prompt_text TEXT NOT NULL,
+  example_image_url VARCHAR(1000) NULL,
   category VARCHAR(80) NULL,
   status ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
   sort_order INT NOT NULL DEFAULT 0,

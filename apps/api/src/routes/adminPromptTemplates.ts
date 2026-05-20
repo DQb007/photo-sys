@@ -19,6 +19,7 @@ const promptTemplateCreateSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(500).optional().or(z.literal('')),
   promptText: z.string().trim().min(1).max(8000),
+  exampleImageUrl: z.string().trim().max(1000).url().optional().or(z.literal('')),
   category: z.string().trim().max(80).optional().or(z.literal('')),
   status: z.enum(['active', 'disabled']).optional(),
   sortOrder: z.number().int().min(-1000000).max(1000000).optional()
@@ -28,6 +29,7 @@ const promptTemplatePatchSchema = z.object({
   title: z.string().trim().min(1).max(160).optional(),
   description: z.string().trim().max(500).optional().or(z.literal('')),
   promptText: z.string().trim().min(1).max(8000).optional(),
+  exampleImageUrl: z.string().trim().max(1000).url().optional().or(z.literal('')),
   category: z.string().trim().max(80).optional().or(z.literal('')),
   status: z.enum(['active', 'disabled']).optional(),
   sortOrder: z.number().int().min(-1000000).max(1000000).optional()
@@ -50,6 +52,7 @@ router.post('/prompt-templates', async (req: AuthenticatedRequest, res, next) =>
     const item = await createPromptTemplate({
       ...parsed,
       description: parsed.description || null,
+      exampleImageUrl: parsed.exampleImageUrl || null,
       category: parsed.category || null,
       sortOrder: parsed.sortOrder ?? 0
     }, req.user?.id || null);
@@ -75,6 +78,7 @@ router.patch('/prompt-templates/:id', async (req: AuthenticatedRequest, res, nex
     const item = await updatePromptTemplate(id, {
       ...parsed,
       description: parsed.description === undefined ? undefined : parsed.description || null,
+      exampleImageUrl: parsed.exampleImageUrl === undefined ? undefined : parsed.exampleImageUrl || null,
       category: parsed.category === undefined ? undefined : parsed.category || null
     }, req.user?.id || null);
     const statusAction = statusAuditAction(before.status, item.status);

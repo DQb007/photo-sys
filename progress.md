@@ -64,6 +64,16 @@
 - Kept the admin workflow unchanged: list-first page, create/edit modal, status toggle, and delete confirmation modal.
 - Web typecheck, lint, and web build passed.
 
+### Phase 8: Prompt Template Example Images
+
+- Status: complete
+- User asked to remove the English eyebrow, remove the low-value updated-at table column, and add generated example images to templates.
+- Added optional `example_image_url` storage and API serialization.
+- Added an admin form field and preview for the example image URL.
+- Added admin table thumbnails and removed the updated-at column.
+- Added user prompt library card and modal image display.
+- Added migration `apps/api/db/migrations/2026-05-21-prompt-template-example-image.sql` for existing databases.
+
 ## Verification Results
 
 | Check | Result | Notes |
@@ -82,6 +92,8 @@
 | Admin UI polish typecheck | Passed | `npm run typecheck -w apps/web`. |
 | Admin UI polish lint | Passed with existing warnings | `npm run lint -w apps/web`; same 4 pre-existing warnings remain. |
 | Admin UI polish build | Passed | `npm run build -w apps/web`. |
+| Example image API typecheck | Passed | `npm run typecheck -w apps/api`. |
+| Example image web typecheck | Passed | `npm run typecheck -w apps/web`. |
 
 ## Error Log
 

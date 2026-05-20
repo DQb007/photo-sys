@@ -83,6 +83,18 @@ Complete
 - [x] Run web build.
 - **Status:** complete
 
+### Phase 8: Prompt Template Example Images
+
+- [x] Remove the English eyebrow above Prompt Management.
+- [x] Remove the updated-at column from the admin template table.
+- [x] Add an optional example image URL field to prompt templates.
+- [x] Show example image thumbnails in admin prompt management.
+- [x] Show example images in the user prompt library cards and use modal.
+- [x] Add a database migration for existing deployments.
+- [x] Run API typecheck.
+- [x] Run web typecheck.
+- **Status:** complete
+
 ## Key Constraints
 
 1. Users cannot create, submit, or request public prompt templates in this version.
@@ -104,6 +116,7 @@ Complete
 | No audit log for user use events | Usage may be frequent; aggregate `usage_count` is enough for v1. |
 | Admin prompt management is list-first | Avoids cramped split-pane overlap and matches operational admin workflow. |
 | Prompt management polish stays operational | Admins need faster scanning and safer actions, not a decorative landing-style page. |
+| Example image is stored as a URL | Keeps v1 simple and lets admins reuse generated image URLs without adding a picker workflow yet. |
 
 ## Error Log
 

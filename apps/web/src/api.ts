@@ -158,6 +158,7 @@ export interface PromptTemplate {
   title: string;
   description: string | null;
   promptText: string;
+  exampleImageUrl: string | null;
   category: string | null;
   status: PromptTemplateStatus;
   sortOrder: number;
@@ -526,6 +527,7 @@ export async function createAdminPromptTemplate(input: {
   title: string;
   description?: string;
   promptText: string;
+  exampleImageUrl?: string;
   category?: string;
   status?: PromptTemplateStatus;
   sortOrder?: number;
@@ -540,6 +542,7 @@ export async function updateAdminPromptTemplate(id: number, input: Partial<{
   title: string;
   description: string;
   promptText: string;
+  exampleImageUrl: string;
   category: string;
   status: PromptTemplateStatus;
   sortOrder: number;

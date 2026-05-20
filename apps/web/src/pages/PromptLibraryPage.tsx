@@ -170,6 +170,9 @@ export function PromptLibraryPage() {
       <div className={isLoading ? 'promptTemplateGrid refreshing' : 'promptTemplateGrid'}>
         {items.map((item) => (
           <article className="promptTemplateCard" key={item.id}>
+            {item.exampleImageUrl && (
+              <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+            )}
             <div className="promptCardHeader">
               <div>
                 <h2>{item.title}</h2>
@@ -212,6 +215,9 @@ export function PromptLibraryPage() {
             </div>
 
             {activeTemplate.description && <p className="modalIntro">{activeTemplate.description}</p>}
+            {activeTemplate.exampleImageUrl && (
+              <img className="promptModalExampleImage" src={activeTemplate.exampleImageUrl} alt={`${activeTemplate.title} 示例图`} />
+            )}
 
             {activeTemplate.variables.length > 0 ? (
               <div className="variableGrid">

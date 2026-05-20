@@ -139,6 +139,7 @@ export interface PromptTemplateRow extends RowDataPacket {
   title: string;
   description: string | null;
   prompt_text: string;
+  example_image_url: string | null;
   category: string | null;
   status: PromptTemplateStatus;
   sort_order: number;
