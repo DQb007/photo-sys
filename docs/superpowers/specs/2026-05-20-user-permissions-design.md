@@ -12,11 +12,10 @@
 
 - 权限模型：普通用户只能查看、下载、重试和删除自己的图片生成记录。
 - 管理员权限：管理员可以管理用户，并查看、删除、重试所有生成记录。
-- 注册方式：允许公开注册。
-- 邮箱验证：注册后发送一次性邮箱验证链接，验证后账号才可用。
+- 注册和邮箱验证策略：通过数据库中的动态配置控制，默认开放注册且要求邮箱验证。
 - 管理员初始化：通过环境变量种子创建或更新第一个管理员账号。
 - 图片分享：本阶段不做公开分享，也不做登录用户内共享。所有生成记录和文件均为私有。
-- 管理后台范围：包括用户管理、按用户查看生成记录、轻量概览指标和审计日志列表。
+- 管理后台范围：包括用户管理、动态配置管理、按用户查看生成记录、轻量概览指标和审计日志列表。
 - 认证方式：项目内置邮箱密码登录，API 使用 JWT 鉴权。
 
 ## 架构
@@ -28,9 +27,10 @@
 - `auth`：注册、邮箱验证、登录、登出、当前用户、重发验证邮件。
 - `users`：用户持久化、密码哈希、角色和状态校验、管理员种子。
 - `mail`：基于 SMTP 发送验证邮件，开发环境可降级为打印验证链接。
+- `settings`：从数据库读取业务开关和邮件配置，支持缓存、校验、脱敏和审计。
 - `permissions`：生成记录归属和管理员检查的复用工具。
 - `audit`：用户和管理员关键操作的轻量审计事件。
-- `admin`：受保护的用户管理、统计、按用户查看生成记录和审计日志接口。
+- `admin`：受保护的用户管理、配置管理、统计、按用户查看生成记录和审计日志接口。
 
 新增前端路由：
 
@@ -38,6 +38,7 @@
 - `/register`
 - `/verify-email`
 - `/admin/overview`
+- `/admin/settings`
 - `/admin/users`
 - `/admin/users/:id/generations`
 - `/admin/audit-logs`
@@ -46,7 +47,11 @@
 
 ## 用户模型与认证
 
-用户使用邮箱、密码和可选昵称注册。注册时，后端创建角色为 `user`、状态为 `pending_email_verification` 的用户，保存安全密码哈希，创建一次性验证 token，并发送验证邮件。数据库只保存发送链接中 token 的哈希值。验证 token 建议 24 小时过期，并在成功使用后失效。
+用户使用邮箱、密码和可选昵称注册。注册是否开放由动态配置 `registration.enabled` 控制。关闭公开注册后，注册接口返回明确错误，只有管理员仍可通过后台创建或启用用户。
+
+注册时，后端创建角色为 `user` 的用户，保存安全密码哈希。若动态配置 `registration.emailVerificationRequired` 为开启，用户状态为 `pending_email_verification`，后端创建一次性验证 token 并发送验证邮件。数据库只保存发送链接中 token 的哈希值。验证 token 的有效期由动态配置控制，默认 24 小时，并在成功使用后失效。
+
+若 `registration.emailVerificationRequired` 关闭，新注册用户直接进入 `active` 状态，可以立即登录和创建任务。这个开关只允许管理员修改，修改操作必须写入审计日志。
 
 用户点击验证链接后，状态变为 `active`。只有 `active` 用户可以登录和创建生成任务。如果未验证用户尝试登录，API 返回明确错误，让前端展示重新发送验证邮件的操作。
 
@@ -79,16 +84,22 @@ ADMIN_NAME=Administrator
 
 ## 邮箱验证
 
-生产环境注册要求邮件配置完整：
+生产环境注册要求邮件配置完整。邮件配置从数据库动态配置中读取，管理员可以在后台配置 SMTP。环境变量只保留无法或不适合动态化的启动级配置。
 
-```env
-PUBLIC_APP_URL=https://photo.example.com
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=mailer@example.com
-SMTP_PASS=replace_me
-MAIL_FROM="Photo Sys <mailer@example.com>"
-```
+邮件相关动态配置包括：
+
+- `mail.smtpHost`
+- `mail.smtpPort`
+- `mail.smtpSecure`
+- `mail.smtpUser`
+- `mail.smtpPassword`
+- `mail.fromName`
+- `mail.fromAddress`
+- `mail.verificationSubject`
+- `mail.verificationTemplate`
+- `registration.verificationTokenTtlHours`
+
+`PUBLIC_APP_URL` 建议保留为环境变量或部署配置，因为它和站点访问域名、反向代理部署强相关。若后续希望也在后台修改，可以单独加 `site.publicAppUrl` 配置，但必须在部署说明中明确优先级。
 
 验证链接指向前端，例如：
 
@@ -98,9 +109,105 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 
 前端把 token 提交给后端验证接口。后端对原始 token 做哈希，查找未过期且未使用的匹配 token，激活用户，失效该 token，并写入审计日志。
 
-开发环境中，如果 SMTP 未配置，后端可以把验证链接打印到日志。生产环境中，SMTP 配置缺失时应禁止注册，并返回清晰的运维错误。
+开发环境中，如果 SMTP 未配置，后端可以把验证链接打印到日志。生产环境中，若 `registration.emailVerificationRequired` 开启但 SMTP 配置缺失，应禁止注册，并返回清晰的运维错误。管理员配置页需要展示邮件配置是否完整，并提供发送测试邮件功能。
 
 重复使用已存在邮箱注册时，应避免泄露账号是否存在。API 可以返回通用提示；如果账号处于未验证状态，可以触发重新发送验证邮件流程。
+
+## 动态配置管理
+
+业务开关和邮件配置保存到数据库，由管理员在后台动态配置。数据库、Redis、OpenAI API Key、存储目录、JWT 密钥等启动级和核心安全配置继续保留在环境变量中。
+
+### 配置表
+
+新增通用配置表 `app_settings`：
+
+- `id`
+- `setting_key`：唯一配置键，例如 `registration.enabled`。
+- `setting_value`：字符串形式保存配置值。
+- `value_type`：`string`、`number`、`boolean`、`json` 或 `secret`。
+- `category`：例如 `registration`、`mail`。
+- `is_secret`：是否为敏感值。
+- `description`
+- `updated_by`
+- `created_at`
+- `updated_at`
+
+后端通过 `settingsService` 统一读取、校验、缓存和写入配置。业务代码不直接查询 `app_settings`，而是读取经过 schema 校验和默认值合并后的配置对象。
+
+### 配置范围
+
+第一版动态配置包括：
+
+- `registration.enabled`：是否开放公开注册，默认 `true`。
+- `registration.emailVerificationRequired`：注册是否必须验证邮箱，默认 `true`。
+- `registration.resendVerificationEnabled`：是否允许用户重发验证邮件，默认 `true`。
+- `registration.verificationTokenTtlHours`：验证链接有效期，默认 `24`。
+- `registration.defaultUserStatusWhenVerificationDisabled`：关闭邮箱验证时的新用户状态，默认 `active`。
+- `mail.smtpHost`
+- `mail.smtpPort`
+- `mail.smtpSecure`
+- `mail.smtpUser`
+- `mail.smtpPassword`
+- `mail.fromName`
+- `mail.fromAddress`
+- `mail.verificationSubject`
+- `mail.verificationTemplate`
+
+仍保留在环境变量中的配置：
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `OPENAI_BASE_URL`
+- `OPENAI_API_KEY`
+- `IMAGE_MODEL`
+- `STORAGE_DIR`
+- `MAX_UPLOAD_MB`
+- `REQUEST_TIMEOUT_MS`
+- `JWT_SECRET`
+- `PUBLIC_BASE_URL`
+- `FRONTEND_ORIGIN`
+- `PUBLIC_APP_URL`
+
+### 敏感配置处理
+
+`mail.smtpPassword` 作为敏感配置保存。数据库中不保存明文，后端使用应用级加密密钥加密后保存。加密密钥必须来自环境变量，例如 `SETTINGS_ENCRYPTION_KEY`，不能保存在数据库里。
+
+接口返回敏感配置时只返回状态，例如：
+
+- `configured: true`
+- `maskedValue: "********"`
+
+管理员更新邮件密码时：
+
+- 密码字段留空表示保留原值。
+- 输入新密码才覆盖旧值。
+- 保存后再次读取不会返回明文。
+
+配置修改必须写入审计日志，记录修改者、配置键、修改时间和是否修改了敏感项。审计日志不得记录敏感值的新旧内容。
+
+### 管理员配置页面
+
+新增 `/admin/settings` 页面，分为两个区域：
+
+- 注册策略：公开注册开关、邮箱验证开关、重发验证邮件开关、验证链接有效期。
+- 邮件配置：SMTP host、port、secure、user、password、发件人名称、发件邮箱、验证邮件标题和模板。
+
+页面需要提供：
+
+- 保存配置。
+- 重置为默认值。
+- 发送测试邮件。
+- 展示当前配置是否完整。
+- 展示最近修改人和修改时间。
+
+邮件模板需要支持有限变量，例如：
+
+- `{{appName}}`
+- `{{email}}`
+- `{{verificationUrl}}`
+- `{{expiresHours}}`
+
+模板变量由后端安全替换，不执行任意脚本。
 
 ## 数据模型
 
@@ -146,6 +253,21 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 
 审计元数据应保持小而明确，不得包含密码、API Key、原始验证 token 或其他敏感信息。
 
+### `app_settings`
+
+- `id`
+- `setting_key`
+- `setting_value`
+- `value_type`
+- `category`
+- `is_secret`
+- `description`
+- `updated_by`
+- `created_at`
+- `updated_at`
+
+动态配置由 `settingsService` 统一读写。敏感值在写入前加密，读取接口默认只返回脱敏状态。
+
 ### 现有表调整
 
 `generations` 新增：
@@ -165,6 +287,8 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 - `audit_logs.actor_user_id`
 - `audit_logs.target_user_id`
 - `audit_logs.action`
+- `app_settings.setting_key`
+- `app_settings.category`
 
 ## 历史数据迁移
 
@@ -237,6 +361,27 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 
 需要包含自我保护规则：管理员不能禁用或降级系统中唯一一个活跃管理员账号。
 
+### 配置管理
+
+`/admin/settings` 允许管理员动态管理注册策略和邮件配置。该页面替代当前只读运行配置页中和注册、邮箱相关的部分。运行级状态仍可保留在设置页或概览页中，但数据库、Redis、OpenAI、存储目录等核心配置只展示状态，不提供数据库写入式修改。
+
+注册策略区域包括：
+
+- 是否开放公开注册。
+- 注册是否必须邮箱验证。
+- 是否允许重发验证邮件。
+- 验证链接有效期。
+
+邮件配置区域包括：
+
+- SMTP 主机、端口、是否使用 TLS。
+- SMTP 用户名。
+- SMTP 密码，保存时加密，展示时脱敏。
+- 发件人名称和邮箱。
+- 验证邮件标题和模板。
+
+页面提供保存、恢复默认值、发送测试邮件和配置完整性提示。保存配置和发送测试邮件都需要写入审计日志。测试邮件不能把 SMTP 密码或验证 token 返回给前端。
+
 ### 按用户查看生成记录
 
 `/admin/users/:id/generations` 允许管理员查看某个用户的生成历史，使用与普通历史页一致的预览和删除交互，但数据范围限定为选中用户。
@@ -266,6 +411,8 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 - 修改角色。
 - 重置密码。
 - 重新发送验证邮件。
+- 配置已更新。
+- 测试邮件已发送或发送失败。
 
 ## API 范围
 
@@ -294,6 +441,10 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 ### 管理员接口
 
 - `GET /api/admin/overview`
+- `GET /api/admin/settings`
+- `PATCH /api/admin/settings`
+- `POST /api/admin/settings/test-email`
+- `POST /api/admin/settings/reset-defaults`
 - `GET /api/admin/users`
 - `GET /api/admin/users/:id`
 - `PATCH /api/admin/users/:id`
@@ -304,9 +455,9 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 
 ## 前端行为
 
-未登录访问受保护路由时跳转到 `/login`。登录成功后保存 token 和当前用户状态，并跳转到 `/generate`。注册成功后展示“请检查邮箱”的页面。邮箱验证成功后跳转到登录页；如果实现选择验证后直接返回 token，也可以自动登录。
+未登录访问受保护路由时跳转到 `/login`。登录成功后保存 token 和当前用户状态，并跳转到 `/generate`。如果当前动态配置要求邮箱验证，注册成功后展示“请检查邮箱”的页面；如果关闭邮箱验证，注册成功后可以直接跳转到登录页或自动登录。邮箱验证成功后跳转到登录页；如果实现选择验证后直接返回 token，也可以自动登录。
 
-主导航只对管理员显示管理入口。现有 `/settings` 页面保持登录后访问。如果该页展示运维配置，建议设为管理员专用；如果只展示非敏感状态，也可以对普通用户开放有限信息，具体实现时根据页面内容决定。
+主导航只对管理员显示管理入口。现有 `/settings` 页面建议并入或重构为管理员配置页 `/admin/settings`。普通用户不应看到 SMTP、注册策略等系统配置入口。
 
 前端 API 层统一处理：
 
@@ -328,6 +479,8 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 
 邮件发送失败等运维错误需要便于管理员诊断，但不能暴露 SMTP 密码或原始 token。
 
+动态配置读取失败时，后端应使用代码内默认值作为兜底，但敏感配置没有默认值。若注册要求邮箱验证而邮件配置不可用，注册流程必须失败并提示管理员配置邮件服务。
+
 ## 安全要求
 
 - 邮箱标准化并建立唯一索引。
@@ -340,12 +493,16 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 - 注册和重发验证邮件流程避免账号枚举。
 - CORS 与前端来源配置需要符合部署模型。
 - 管理员操作必须写入审计日志。
+- 敏感动态配置必须加密保存并脱敏返回。
+- `SETTINGS_ENCRYPTION_KEY` 必须来自环境变量，并在生产环境强制配置。
 
 ## 测试策略
 
 后端测试覆盖：
 
 - 注册新用户会创建待验证用户和验证 token。
+- 关闭公开注册后，匿名注册被拒绝。
+- 关闭邮箱验证后，新注册用户直接进入 `active` 状态。
 - 验证邮件链接可以激活账号。
 - 过期或重复使用的验证 token 会失败。
 - 待验证用户可以重新发送验证邮件。
@@ -361,6 +518,10 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 - 文件路由允许所有者和管理员访问。
 - 路径穿越请求被拒绝。
 - 关键操作写入审计日志。
+- 管理员可以读取、更新动态配置。
+- SMTP 密码保存后不会通过接口明文返回。
+- 邮件配置不完整时，测试邮件返回可诊断错误。
+- 注册要求邮箱验证但邮件配置不完整时，注册失败且不产生可登录用户。
 - 历史迁移会把旧记录归属到 `legacy-owner`。
 
 前端测试或手动验证覆盖：
@@ -371,6 +532,9 @@ MAIL_FROM="Photo Sys <mailer@example.com>"
 - 管理员导航只对管理员显示。
 - 历史页只展示当前用户记录。
 - 管理员用户列表筛选和操作可用。
+- 管理员配置页可修改注册策略和邮件配置。
+- 邮件密码字段展示为已配置状态，留空保存不会清除原密码。
+- 测试邮件操作可显示成功或失败。
 - 管理员按用户查看生成记录可用。
 - 审计日志筛选渲染符合预期。
 
