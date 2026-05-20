@@ -1379,7 +1379,7 @@ th {
 
 .promptTemplateGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 18px;
 }
 
@@ -1400,11 +1400,28 @@ th {
 
 .promptExampleImage {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--line);
   background: #fbfaf6;
+}
+
+.promptExamplePlaceholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: #fbfaf6;
+  color: var(--muted);
+}
+
+.promptExamplePlaceholder span {
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .promptCardHeader {
@@ -1438,21 +1455,6 @@ th {
   margin: 0;
   color: var(--muted);
   line-height: 1.55;
-}
-
-.promptBodyPreview {
-  min-height: 96px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfaf6;
-  padding: 12px;
-  color: var(--ink);
-  line-height: 1.65;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
 }
 
 .promptCardMeta {

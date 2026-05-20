@@ -170,8 +170,13 @@ export function PromptLibraryPage() {
       <div className={isLoading ? 'promptTemplateGrid refreshing' : 'promptTemplateGrid'}>
         {items.map((item) => (
           <article className="promptTemplateCard" key={item.id}>
-            {item.exampleImageUrl && (
+            {item.exampleImageUrl ? (
               <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+            ) : (
+              <div className="promptExamplePlaceholder">
+                <Sparkles size={24} />
+                <span>暂无示例图</span>
+              </div>
             )}
             <div className="promptCardHeader">
               <div>
@@ -188,7 +193,6 @@ export function PromptLibraryPage() {
               </button>
             </div>
             {item.description && <p className="promptDescription">{item.description}</p>}
-            <div className="promptBodyPreview">{item.promptText}</div>
             <div className="promptCardMeta">
               <span>{item.variables.length} 个变量</span>
               <span>使用 {item.usageCount}</span>
