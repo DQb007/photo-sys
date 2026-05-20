@@ -1200,6 +1200,186 @@ th {
   gap: 8px;
 }
 
+.promptLibraryToolbar {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.promptSearch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.searchInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+}
+
+.searchInputWrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(31, 111, 91, 0.12);
+}
+
+.searchInputWrap input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-shadow: none;
+}
+
+.searchInputWrap input:focus {
+  box-shadow: none;
+}
+
+.promptFilters {
+  align-items: center;
+}
+
+.promptTemplateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.promptTemplateGrid.refreshing {
+  opacity: 0.72;
+}
+
+.promptTemplateCard {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.promptCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.promptCardHeader h2,
+.promptTemplateModal h2 {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.promptCardHeader span,
+.promptCardMeta,
+.promptTemplateModal .modalHeader span,
+.modalIntro {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.favoriteActive {
+  color: var(--danger);
+  border-color: rgba(182, 66, 59, 0.24);
+  background: #fff3f1;
+}
+
+.promptDescription {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.promptBodyPreview {
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf6;
+  padding: 12px;
+  color: var(--ink);
+  line-height: 1.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.promptCardMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.promptTemplateModal {
+  width: min(760px, 94vw);
+  max-height: min(760px, 88vh);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.modalIntro {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.variableGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.renderedPromptBox {
+  border: 1px solid var(--line);
+  background: #fbfaf6;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.renderedPromptBox .panelTitle {
+  margin-bottom: 10px;
+}
+
+.renderedPromptBox p {
+  margin: 0;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.promptAdminGrid {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.promptAdminTable .tableHeader {
+  align-items: start;
+}
+
+.promptAdminTable .tableActions input,
+.promptAdminTable .tableActions select {
+  min-height: 42px;
+}
+
 @media (max-width: 900px) {
   .shell {
     display: block;
@@ -1336,11 +1516,21 @@ th {
     white-space: normal;
   }
 
+  .promptSearch,
   .generateGrid,
   .redeemAdminGrid,
+  .promptAdminGrid,
   .redeemForm,
   .formRow,
   .formRow.two {
+    grid-template-columns: 1fr;
+  }
+
+  .variableGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .promptTemplateGrid {
     grid-template-columns: 1fr;
   }
 }

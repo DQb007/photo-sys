@@ -4,6 +4,7 @@ const tokenKey = 'photoSysAuthToken';
 export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
 export type UserRole = 'user' | 'admin';
 export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
+export type PromptTemplateStatus = 'active' | 'disabled';
 
 export interface User {
   id: number;
@@ -150,6 +151,24 @@ export interface RedeemCode {
   redeemedAt: string | null;
   expiresAt: string | null;
   createdAt: string;
+}
+
+export interface PromptTemplate {
+  id: number;
+  title: string;
+  description: string | null;
+  promptText: string;
+  category: string | null;
+  status: PromptTemplateStatus;
+  sortOrder: number;
+  usageCount: number;
+  createdBy: number | null;
+  updatedBy: number | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  isFavorite: boolean;
+  variables: string[];
 }
 
 export interface AuditLog {
@@ -470,6 +489,69 @@ export async function listRedeemCodesForBatch(batchId: number) {
 
 export async function disableRedeemCode(id: number) {
   return request<{ item: RedeemCode }>(`/admin/redeem-codes/${id}/disable`, { method: 'POST' });
+}
+
+export async function listPromptTemplates(params: {
+  scope?: 'all' | 'favorites';
+  category?: string;
+  search?: string;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.scope) query.set('scope', params.scope);
+  if (params.category) query.set('category', params.category);
+  if (params.search) query.set('search', params.search);
+  return request<{ items: PromptTemplate[]; categories: string[] }>(`/prompt-templates?${query.toString()}`);
+}
+
+export async function favoritePromptTemplate(id: number) {
+  return request<{ ok: boolean }>(`/prompt-templates/${id}/favorite`, { method: 'POST' });
+}
+
+export async function unfavoritePromptTemplate(id: number) {
+  return request<{ ok: boolean }>(`/prompt-templates/${id}/favorite`, { method: 'DELETE' });
+}
+
+export async function recordPromptTemplateUse(id: number) {
+  return request<{ item: PromptTemplate }>(`/prompt-templates/${id}/use`, { method: 'POST' });
+}
+
+export async function listAdminPromptTemplates(params: { search?: string; status?: string } = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.status) query.set('status', params.status);
+  return request<{ items: PromptTemplate[] }>(`/admin/prompt-templates?${query.toString()}`);
+}
+
+export async function createAdminPromptTemplate(input: {
+  title: string;
+  description?: string;
+  promptText: string;
+  category?: string;
+  status?: PromptTemplateStatus;
+  sortOrder?: number;
+}) {
+  return request<{ item: PromptTemplate }>('/admin/prompt-templates', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function updateAdminPromptTemplate(id: number, input: Partial<{
+  title: string;
+  description: string;
+  promptText: string;
+  category: string;
+  status: PromptTemplateStatus;
+  sortOrder: number;
+}>) {
+  return request<{ item: PromptTemplate }>(`/admin/prompt-templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function deleteAdminPromptTemplate(id: number) {
+  await request(`/admin/prompt-templates/${id}`, { method: 'DELETE' });
 }
 
 async function request<T = unknown>(path: string, init: RequestInit = {}, includeAuth = true): Promise<T> {

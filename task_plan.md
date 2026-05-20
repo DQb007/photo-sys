@@ -10,7 +10,7 @@ Users should be able to browse active prompt templates, favorite templates, fill
 
 ## Current Phase
 
-Phase 1
+Complete
 
 ## Phases
 
@@ -19,47 +19,47 @@ Phase 1
 - [x] Confirm final scope: admin-maintained templates only; users can favorite and use templates.
 - [x] Write and commit Chinese design spec.
 - [x] Replace old root planning files with prompt templates implementation plan.
-- [ ] Inspect current backend admin/user route patterns, frontend navigation, and admin page conventions before editing.
-- **Status:** in_progress
+- [x] Inspect current backend admin/user route patterns, frontend navigation, and admin page conventions before editing.
+- **Status:** complete
 
 ### Phase 2: Database and Backend Foundation
 
-- [ ] Add prompt template migration.
-- [ ] Update base schema.
-- [ ] Add prompt template service/module with serializers and variable parser.
-- [ ] Add user prompt template routes.
-- [ ] Add admin prompt template routes.
-- [ ] Mount routes in API server.
-- [ ] Add audit logging for admin actions.
-- **Status:** pending
+- [x] Add prompt template migration.
+- [x] Update base schema.
+- [x] Add prompt template service/module with serializers and variable parser.
+- [x] Add user prompt template routes.
+- [x] Add admin prompt template routes.
+- [x] Mount routes in API server.
+- [x] Add audit logging for admin actions.
+- **Status:** complete
 
 ### Phase 3: Frontend API and User Prompt Library
 
-- [ ] Add frontend prompt template types and API helpers.
-- [ ] Add user Prompt Library page.
-- [ ] Implement search, scope/category filtering, cards, favorite/unfavorite, and use modal.
-- [ ] Reuse `sessionStorage.reusePrompt` for Generate page handoff.
-- [ ] Add user navigation and route.
-- **Status:** pending
+- [x] Add frontend prompt template types and API helpers.
+- [x] Add user Prompt Library page.
+- [x] Implement search, scope/category filtering, cards, favorite/unfavorite, and use modal.
+- [x] Reuse `sessionStorage.reusePrompt` for Generate page handoff.
+- [x] Add user navigation and route.
+- **Status:** complete
 
 ### Phase 4: Admin Prompt Management UI
 
-- [ ] Add admin Prompt Management page.
-- [ ] Implement create/edit form.
-- [ ] Implement template list/table with status, variables, usage count, sort order, and actions.
-- [ ] Add admin navigation and route.
-- **Status:** pending
+- [x] Add admin Prompt Management page.
+- [x] Implement create/edit form.
+- [x] Implement template list/table with status, variables, usage count, sort order, and actions.
+- [x] Add admin navigation and route.
+- **Status:** complete
 
 ### Phase 5: Styling, Mobile, and Verification
 
-- [ ] Add CSS using existing panel/card/table/modal/mobile patterns.
-- [ ] Run API typecheck.
-- [ ] Run web typecheck.
-- [ ] Run full build.
-- [ ] Run web lint.
-- [ ] Run targeted manual or API smoke checks where practical.
-- [ ] Commit implementation.
-- **Status:** pending
+- [x] Add CSS using existing panel/card/table/modal/mobile patterns.
+- [x] Run API typecheck.
+- [x] Run web typecheck.
+- [x] Run full build.
+- [x] Run web lint.
+- [x] Run targeted manual or API smoke checks where practical.
+- [x] Commit implementation.
+- **Status:** complete
 
 ## Key Constraints
 

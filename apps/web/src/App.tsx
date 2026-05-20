@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Activity, Clock3, ImagePlus, LogOut, Menu, Settings, Shield, SlidersHorizontal, Ticket, Users, X } from 'lucide-react';
+import { Activity, BookOpen, Clock3, ImagePlus, LogOut, Menu, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -15,6 +15,8 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
 import { AdminUserGenerationsPage } from './pages/AdminUserGenerationsPage';
 import { AdminRedeemCodesPage } from './pages/AdminRedeemCodesPage';
+import { PromptLibraryPage } from './pages/PromptLibraryPage';
+import { AdminPromptTemplatesPage } from './pages/AdminPromptTemplatesPage';
 
 export function App() {
   return (
@@ -85,6 +87,10 @@ function ProtectedShell() {
             <Clock3 size={18} />
             历史
           </NavLink>
+          <NavLink to="/prompts" onClick={() => setIsSidebarOpen(false)}>
+            <BookOpen size={18} />
+            提示词库
+          </NavLink>
           <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
             <Settings size={18} />
             账号设置
@@ -111,6 +117,10 @@ function ProtectedShell() {
                 <Ticket size={18} />
                 兑换码管理
               </NavLink>
+              <NavLink to="/admin/prompt-templates" onClick={() => setIsSidebarOpen(false)}>
+                <Tags size={18} />
+                提示词管理
+              </NavLink>
               <NavLink to="/admin/audit-logs" onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
                 审计日志
@@ -133,6 +143,7 @@ function ProtectedShell() {
           <Route path="/" element={<Navigate to="/generate" replace />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/prompts" element={<PromptLibraryPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin/overview" element={<AdminOnly><AdminOverviewPage /></AdminOnly>} />
           <Route path="/admin/status" element={<AdminOnly><AdminStatusPage /></AdminOnly>} />
@@ -140,6 +151,7 @@ function ProtectedShell() {
           <Route path="/admin/users" element={<AdminOnly><AdminUsersPage /></AdminOnly>} />
           <Route path="/admin/users/:id/generations" element={<AdminOnly><AdminUserGenerationsPage /></AdminOnly>} />
           <Route path="/admin/redeem-codes" element={<AdminOnly><AdminRedeemCodesPage /></AdminOnly>} />
+          <Route path="/admin/prompt-templates" element={<AdminOnly><AdminPromptTemplatesPage /></AdminOnly>} />
           <Route path="/admin/audit-logs" element={<AdminOnly><AdminAuditLogsPage /></AdminOnly>} />
         </Routes>
       </main>

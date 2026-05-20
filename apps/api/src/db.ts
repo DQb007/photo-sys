@@ -37,6 +37,7 @@ export type CreditTransactionType =
   | 'generation_cancel_refund';
 export type RedeemPackageStatus = 'active' | 'disabled';
 export type RedeemCodeStatus = 'active' | 'disabled' | 'redeemed';
+export type PromptTemplateStatus = 'active' | 'disabled';
 
 export interface GenerationRow extends RowDataPacket {
   id: number;
@@ -131,6 +132,22 @@ export interface RedeemCodeRow extends RowDataPacket {
   redeemed_at: Date | null;
   expires_at: Date | null;
   created_at: Date;
+}
+
+export interface PromptTemplateRow extends RowDataPacket {
+  id: number;
+  title: string;
+  description: string | null;
+  prompt_text: string;
+  category: string | null;
+  status: PromptTemplateStatus;
+  sort_order: number;
+  usage_count: number;
+  created_by: number | null;
+  updated_by: number | null;
+  deleted_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface EmailVerificationTokenRow extends RowDataPacket {
