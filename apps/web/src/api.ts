@@ -97,13 +97,52 @@ export interface AdminUser extends User {
 export interface CreditTransaction {
   id: number;
   userId: number;
-  type: 'initial_grant' | 'admin_adjustment' | 'generation_debit' | 'generation_refund';
+  type: 'initial_grant' | 'admin_adjustment' | 'generation_debit' | 'generation_refund' | 'redeem_code_credit';
   amount: number;
   balanceAfter: number;
   generationId: number | null;
   actorUserId: number | null;
   reason: string | null;
   metadata: unknown;
+  createdAt: string;
+}
+
+export interface RedeemPackage {
+  id: number;
+  name: string;
+  credits: number;
+  status: 'active' | 'disabled';
+  description: string | null;
+  createdBy: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RedeemCodeBatch {
+  id: number;
+  packageId: number | null;
+  packageNameSnapshot: string;
+  creditsSnapshot: number;
+  quantity: number;
+  activeCount: number;
+  redeemedCount: number;
+  disabledCount: number;
+  expiresAt: string | null;
+  note: string | null;
+  createdBy: number | null;
+  createdAt: string;
+}
+
+export interface RedeemCode {
+  id: number;
+  batchId: number;
+  codeSuffix: string;
+  credits: number;
+  status: 'active' | 'disabled' | 'redeemed';
+  redeemedBy: number | null;
+  redeemedEmail: string | null;
+  redeemedAt: string | null;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -203,6 +242,13 @@ export async function listCreditTransactions(page = 1, pageSize = 20) {
     totalPages: number;
     items: CreditTransaction[];
   }>(`/credits/transactions?page=${page}&pageSize=${pageSize}`);
+}
+
+export async function redeemCode(code: string) {
+  return request<{ credits: number; balance: number; transaction: CreditTransaction }>('/redeem-codes/redeem', {
+    method: 'POST',
+    body: JSON.stringify({ code })
+  });
 }
 
 export async function createGeneration(formData: FormData) {
@@ -359,6 +405,58 @@ export async function listAuditLogs(action = '') {
   const params = new URLSearchParams();
   if (action) params.set('action', action);
   return request<{ items: AuditLog[] }>(`/admin/audit-logs?${params.toString()}`);
+}
+
+export async function listRedeemPackages() {
+  return request<{ items: RedeemPackage[] }>('/admin/redeem-packages');
+}
+
+export async function createRedeemPackage(input: {
+  name: string;
+  credits: number;
+  status?: RedeemPackage['status'];
+  description?: string;
+}) {
+  return request<{ item: RedeemPackage }>('/admin/redeem-packages', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function updateRedeemPackage(id: number, input: Partial<{
+  name: string;
+  credits: number;
+  status: RedeemPackage['status'];
+  description: string;
+}>) {
+  return request<{ item: RedeemPackage }>(`/admin/redeem-packages/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function listRedeemBatches() {
+  return request<{ items: RedeemCodeBatch[] }>('/admin/redeem-code-batches');
+}
+
+export async function createRedeemBatch(input: {
+  packageId: number;
+  quantity: number;
+  expiresAt?: string | null;
+  note?: string;
+}) {
+  return request<{ batch: RedeemCodeBatch; codes: string[] }>('/admin/redeem-code-batches', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function listRedeemCodesForBatch(batchId: number) {
+  return request<{ items: RedeemCode[] }>(`/admin/redeem-code-batches/${batchId}/codes`);
+}
+
+export async function disableRedeemCode(id: number) {
+  return request<{ item: RedeemCode }>(`/admin/redeem-codes/${id}/disable`, { method: 'POST' });
 }
 
 async function request<T = unknown>(path: string, init: RequestInit = {}, includeAuth = true): Promise<T> {

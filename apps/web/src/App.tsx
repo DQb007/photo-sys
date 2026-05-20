@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Activity, Clock3, ImagePlus, LogOut, Settings, Shield, SlidersHorizontal, Users } from 'lucide-react';
+import { Activity, Clock3, ImagePlus, LogOut, Settings, Shield, SlidersHorizontal, Ticket, Users } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -13,6 +13,7 @@ import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
 import { AdminUserGenerationsPage } from './pages/AdminUserGenerationsPage';
+import { AdminRedeemCodesPage } from './pages/AdminRedeemCodesPage';
 
 export function App() {
   return (
@@ -83,6 +84,10 @@ function ProtectedShell() {
                 <Users size={18} />
                 用户管理
               </NavLink>
+              <NavLink to="/admin/redeem-codes">
+                <Ticket size={18} />
+                兑换码管理
+              </NavLink>
               <NavLink to="/admin/audit-logs">
                 <Clock3 size={18} />
                 审计日志
@@ -108,6 +113,7 @@ function ProtectedShell() {
           <Route path="/admin/settings" element={<AdminOnly><AdminSettingsPage /></AdminOnly>} />
           <Route path="/admin/users" element={<AdminOnly><AdminUsersPage /></AdminOnly>} />
           <Route path="/admin/users/:id/generations" element={<AdminOnly><AdminUserGenerationsPage /></AdminOnly>} />
+          <Route path="/admin/redeem-codes" element={<AdminOnly><AdminRedeemCodesPage /></AdminOnly>} />
           <Route path="/admin/audit-logs" element={<AdminOnly><AdminAuditLogsPage /></AdminOnly>} />
         </Routes>
       </main>

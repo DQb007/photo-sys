@@ -8,6 +8,8 @@ import { settingsRouter } from './routes/settings.js';
 import { authRouter } from './routes/auth.js';
 import { adminRouter } from './routes/admin.js';
 import { creditsRouter } from './routes/credits.js';
+import { redeemCodesRouter } from './routes/redeemCodes.js';
+import { adminRedeemCodesRouter } from './routes/adminRedeemCodes.js';
 import { startGenerationWorker } from './queue.js';
 import { ensureStorageDirs } from './storage.js';
 import { ensureAdminSeed } from './users.js';
@@ -26,6 +28,8 @@ app.use('/api/generations', generationsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/credits', creditsRouter);
+app.use('/api/redeem-codes', redeemCodesRouter);
+app.use('/api/admin', adminRedeemCodesRouter);
 app.use('/api/admin', adminRouter);
 app.use('/files', filesRouter);
 

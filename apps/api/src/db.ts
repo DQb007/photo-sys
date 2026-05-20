@@ -28,7 +28,14 @@ export async function pingDatabase() {
 export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
 export type UserRole = 'user' | 'admin';
 export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
-export type CreditTransactionType = 'initial_grant' | 'admin_adjustment' | 'generation_debit' | 'generation_refund';
+export type CreditTransactionType =
+  | 'initial_grant'
+  | 'admin_adjustment'
+  | 'generation_debit'
+  | 'generation_refund'
+  | 'redeem_code_credit';
+export type RedeemPackageStatus = 'active' | 'disabled';
+export type RedeemCodeStatus = 'active' | 'disabled' | 'redeemed';
 
 export interface GenerationRow extends RowDataPacket {
   id: number;
@@ -86,6 +93,42 @@ export interface CreditTransactionRow extends RowDataPacket {
   actor_user_id: number | null;
   reason: string | null;
   metadata_json: unknown;
+  created_at: Date;
+}
+
+export interface RedeemPackageRow extends RowDataPacket {
+  id: number;
+  name: string;
+  credits: number;
+  status: RedeemPackageStatus;
+  description: string | null;
+  created_by: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface RedeemCodeBatchRow extends RowDataPacket {
+  id: number;
+  package_id: number | null;
+  package_name_snapshot: string;
+  credits_snapshot: number;
+  quantity: number;
+  expires_at: Date | null;
+  note: string | null;
+  created_by: number | null;
+  created_at: Date;
+}
+
+export interface RedeemCodeRow extends RowDataPacket {
+  id: number;
+  batch_id: number;
+  code_hash: string;
+  code_suffix: string;
+  credits: number;
+  status: RedeemCodeStatus;
+  redeemed_by: number | null;
+  redeemed_at: Date | null;
+  expires_at: Date | null;
   created_at: Date;
 }
 

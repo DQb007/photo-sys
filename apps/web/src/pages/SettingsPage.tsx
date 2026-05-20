@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { KeyRound } from 'lucide-react';
-import { changePassword, getCreditBalance, listCreditTransactions, type CreditTransaction } from '../api';
+import { Gift, KeyRound } from 'lucide-react';
+import { changePassword, getCreditBalance, listCreditTransactions, redeemCode, type CreditTransaction } from '../api';
 
 const emptyPasswordForm = {
   oldPassword: '',
@@ -15,15 +15,24 @@ export function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [creditItems, setCreditItems] = useState<CreditTransaction[]>([]);
+  const [redeemInput, setRedeemInput] = useState('');
+  const [redeemMessage, setRedeemMessage] = useState('');
+  const [redeemError, setRedeemError] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   useEffect(() => {
-    getCreditBalance()
-      .then((payload) => setCreditBalance(payload.balance))
-      .catch(() => undefined);
-    listCreditTransactions(1, 10)
-      .then((payload) => setCreditItems(payload.items))
+    loadCredits()
       .catch(() => undefined);
   }, []);
+
+  async function loadCredits() {
+    const [balancePayload, transactionsPayload] = await Promise.all([
+      getCreditBalance(),
+      listCreditTransactions(1, 10)
+    ]);
+    setCreditBalance(balancePayload.balance);
+    setCreditItems(transactionsPayload.items);
+  }
 
   async function submitPassword(event: FormEvent) {
     event.preventDefault();
@@ -51,6 +60,29 @@ export function SettingsPage() {
       setPasswordError(err instanceof Error ? err.message : '修改密码失败');
     } finally {
       setIsChangingPassword(false);
+    }
+  }
+
+  async function submitRedeem(event: FormEvent) {
+    event.preventDefault();
+    setRedeemError('');
+    setRedeemMessage('');
+    const code = redeemInput.trim();
+    if (!code) {
+      setRedeemError('请输入兑换码');
+      return;
+    }
+
+    setIsRedeeming(true);
+    try {
+      const payload = await redeemCode(code);
+      setRedeemInput('');
+      setRedeemMessage(`兑换成功，已增加 ${payload.credits} 积分。当前余额 ${payload.balance}`);
+      await loadCredits();
+    } catch (err) {
+      setRedeemError(err instanceof Error ? err.message : '兑换失败');
+    } finally {
+      setIsRedeeming(false);
     }
   }
 
@@ -109,6 +141,23 @@ export function SettingsPage() {
           <h2>积分余额</h2>
           <span>{creditBalance ?? '-'} 积分</span>
         </div>
+        <form className="redeemForm" onSubmit={submitRedeem}>
+          <label className="field">
+            <span>兑换码充值</span>
+            <input
+              value={redeemInput}
+              onChange={(event) => setRedeemInput(event.target.value)}
+              placeholder="PS-XXXX-XXXX-XXXX"
+              autoComplete="off"
+            />
+          </label>
+          <button className="primaryButton compact" type="submit" disabled={isRedeeming}>
+            <Gift size={16} />
+            {isRedeeming ? '兑换中' : '兑换'}
+          </button>
+        </form>
+        {redeemError && <div className="inlineError">{redeemError}</div>}
+        {redeemMessage && <div className="hintBox">{redeemMessage}</div>}
         <div className="creditList">
           {creditItems.length === 0 && <div className="emptyLine">暂无积分流水</div>}
           {creditItems.map((item) => (
@@ -134,7 +183,8 @@ function creditTypeLabel(type: CreditTransaction['type']) {
     initial_grant: '初始发放',
     admin_adjustment: '管理员调整',
     generation_debit: '生成扣费',
-    generation_refund: '失败退款'
+    generation_refund: '失败退款',
+    redeem_code_credit: '兑换码充值'
   };
   return labels[type];
 }

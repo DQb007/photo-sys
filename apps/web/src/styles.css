@@ -799,6 +799,14 @@ code {
   margin-top: 18px;
 }
 
+.redeemForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
 .creditList {
   display: grid;
   gap: 10px;
@@ -1036,6 +1044,72 @@ code {
   gap: 18px;
 }
 
+.compactStack {
+  display: grid;
+  gap: 12px;
+}
+
+.redeemAdminGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.packageList {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.packageItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.packageItem strong,
+.packageItem span {
+  display: block;
+}
+
+.packageItem span {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.generatedCodesPanel,
+.redeemBatchPanel,
+.redeemCodePanel {
+  margin-top: 18px;
+}
+
+.generatedCodesPanel textarea {
+  width: 100%;
+  min-height: 180px;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tableHeader span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .toggleRow {
   display: flex;
   align-items: center;
@@ -1131,6 +1205,8 @@ th {
   }
 
   .generateGrid,
+  .redeemAdminGrid,
+  .redeemForm,
   .formRow,
   .formRow.two {
     grid-template-columns: 1fr;
