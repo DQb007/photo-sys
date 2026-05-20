@@ -811,6 +811,12 @@ code {
   margin-bottom: 14px;
 }
 
+.redeemActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .creditList {
   display: grid;
   gap: 10px;

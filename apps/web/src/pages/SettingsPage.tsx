@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Gift, KeyRound } from 'lucide-react';
+import { Gift, KeyRound, ShoppingCart } from 'lucide-react';
 import { changePassword, getCreditBalance, listCreditTransactions, redeemCode, type CreditTransaction } from '../api';
 
 const emptyPasswordForm = {
@@ -151,10 +151,16 @@ export function SettingsPage() {
               autoComplete="off"
             />
           </label>
-          <button className="primaryButton compact" type="submit" disabled={isRedeeming}>
-            <Gift size={16} />
-            {isRedeeming ? '兑换中' : '兑换'}
-          </button>
+          <div className="redeemActions">
+            <button className="primaryButton compact" type="submit" disabled={isRedeeming}>
+              <Gift size={16} />
+              {isRedeeming ? '兑换中' : '兑换'}
+            </button>
+            <a className="ghostButton" href="https://pay.x2boot.com/" target="_blank" rel="noreferrer">
+              <ShoppingCart size={16} />
+              购买兑换码
+            </a>
+          </div>
         </form>
         {redeemError && <div className="inlineError">{redeemError}</div>}
         {redeemMessage && <div className="hintBox">{redeemMessage}</div>}
