@@ -61,6 +61,17 @@ Complete
 - [x] Commit implementation.
 - **Status:** complete
 
+### Phase 6: Admin Prompt Management Layout Fix
+
+- [x] Convert admin prompt management to list-first layout.
+- [x] Move create/edit into a modal dialog.
+- [x] Replace browser `confirm()` delete with in-app confirmation modal.
+- [x] Remove split grid layout that caused form fields to overlap the table.
+- [x] Run web typecheck.
+- [x] Run web lint.
+- [x] Run web build.
+- **Status:** complete
+
 ## Key Constraints
 
 1. Users cannot create, submit, or request public prompt templates in this version.
@@ -80,6 +91,7 @@ Complete
 | Parse variables from `{name}` in prompt text | Avoids variable configuration UI in v1. |
 | Reuse `sessionStorage.reusePrompt` | Generate page already supports this path from History reuse. |
 | No audit log for user use events | Usage may be frequent; aggregate `usage_count` is enough for v1. |
+| Admin prompt management is list-first | Avoids cramped split-pane overlap and matches operational admin workflow. |
 
 ## Error Log
 

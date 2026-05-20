@@ -145,6 +145,14 @@ select {
   margin-bottom: 24px;
 }
 
+.pageHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--accent);
@@ -1364,20 +1372,26 @@ th {
   overflow-wrap: anywhere;
 }
 
-.promptAdminGrid {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
-}
-
 .promptAdminTable .tableHeader {
-  align-items: start;
+  align-items: center;
 }
 
 .promptAdminTable .tableActions input,
 .promptAdminTable .tableActions select {
   min-height: 42px;
+}
+
+.promptAdminModal {
+  width: min(680px, 94vw);
+  max-height: min(760px, 88vh);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
 }
 
 @media (max-width: 900px) {
@@ -1519,7 +1533,6 @@ th {
   .promptSearch,
   .generateGrid,
   .redeemAdminGrid,
-  .promptAdminGrid,
   .redeemForm,
   .formRow,
   .formRow.two {

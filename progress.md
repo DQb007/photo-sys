@@ -46,6 +46,16 @@
 - API typecheck, web typecheck, full build, lint, and diff check passed.
 - API smoke was not run because the database migration has to be applied first.
 
+### Phase 6: Admin Prompt Management Layout Fix
+
+- Status: complete
+- User reported the admin prompt management page layout was broken: form fields overlapped the template list.
+- Reworked the page into a list-first admin view.
+- Moved create/edit into a modal.
+- Added in-app delete confirmation modal.
+- Removed the split prompt admin grid that caused the overlap.
+- Web typecheck, lint, and web build passed.
+
 ## Verification Results
 
 | Check | Result | Notes |
@@ -58,6 +68,9 @@
 | Web lint | Passed with existing warnings | 4 pre-existing warnings remain; prompt-template hook naming errors were fixed. |
 | Diff check | Passed | `git diff --check` reported no whitespace errors; only CRLF conversion warnings. |
 | API smoke | Passed | After user applied migration and restarted backend: login, create template, list active, favorite, list favorites, record use, disable hidden, and soft-delete all passed. Temporary smoke template was deleted. |
+| Admin UI layout fix typecheck | Passed | `npm run typecheck -w apps/web`. |
+| Admin UI layout fix lint | Passed with existing warnings | `npm run lint -w apps/web`; 4 pre-existing warnings remain. |
+| Admin UI layout fix build | Passed | `npm run build -w apps/web`. |
 
 ## Error Log
 
