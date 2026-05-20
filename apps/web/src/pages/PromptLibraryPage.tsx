@@ -9,6 +9,7 @@ import {
 } from '../api';
 
 type PromptScope = 'all' | 'favorites';
+const pageSize = 12;
 
 export function PromptLibraryPage() {
   const [items, setItems] = useState<PromptTemplate[]>([]);
@@ -16,6 +17,7 @@ export function PromptLibraryPage() {
   const [scope, setScope] = useState<PromptScope>('all');
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [activeTemplate, setActiveTemplate] = useState<PromptTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<PromptTemplate | null>(null);
   const [variables, setVariables] = useState<Record<string, string>>({});
@@ -57,9 +59,20 @@ export function PromptLibraryPage() {
   }, [activeTemplate, variables]);
 
   const missingVariables = activeTemplate?.variables.filter((item) => !variables[item]?.trim()) ?? [];
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [category, scope]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   async function submitSearch(event: FormEvent) {
     event.preventDefault();
+    setPage(1);
     await load();
   }
 
@@ -178,7 +191,7 @@ export function PromptLibraryPage() {
       )}
 
       <div className={isLoading ? 'promptTemplateGrid refreshing' : 'promptTemplateGrid'}>
-        {items.map((item) => (
+        {pageItems.map((item) => (
           <article className="promptTemplateCard" key={item.id}>
             {item.exampleImageUrl ? (
               <button
@@ -221,6 +234,18 @@ export function PromptLibraryPage() {
           </article>
         ))}
       </div>
+
+      {items.length > pageSize && (
+        <div className="paginationBar promptPagination">
+          <button className="ghostButton" type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+            上一页
+          </button>
+          <span>第 {page} / {totalPages} 页，共 {items.length} 个模板</span>
+          <button className="ghostButton" type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>
+            下一页
+          </button>
+        </div>
+      )}
 
       {activeTemplate && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-template-title">
