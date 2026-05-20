@@ -41,7 +41,6 @@ export function AdminUserGenerationsPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>{user ? `${user.email} 的生成记录` : '用户生成记录'}</h1>
         </div>
         <Link className="ghostButton" to="/admin/users">

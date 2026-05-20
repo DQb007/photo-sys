@@ -180,7 +180,6 @@ export function AdminRedeemCodesPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>兑换码管理</h1>
         </div>
         <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>

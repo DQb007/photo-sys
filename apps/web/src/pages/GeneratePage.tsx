@@ -163,7 +163,6 @@ export function GeneratePage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Generate</p>
           <h1>图片生成</h1>
         </div>
         <div className="statusPill">

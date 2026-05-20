@@ -72,7 +72,6 @@ export function HistoryPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">History</p>
           <h1>生成历史</h1>
         </div>
         <button className="ghostButton" onClick={() => void load()}>

@@ -13,7 +13,6 @@ export function AdminOverviewPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>后台概览</h1>
         </div>
       </header>

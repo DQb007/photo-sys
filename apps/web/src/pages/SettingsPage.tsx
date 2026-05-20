@@ -90,7 +90,6 @@ export function SettingsPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Account</p>
           <h1>账号设置</h1>
         </div>
       </header>

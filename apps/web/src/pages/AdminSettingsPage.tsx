@@ -112,7 +112,6 @@ export function AdminSettingsPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>配置管理</h1>
         </div>
       </header>

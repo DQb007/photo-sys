@@ -30,7 +30,6 @@ export function AdminStatusPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>运行状态</h1>
         </div>
         <button className="primaryButton compact" onClick={() => void runTest()} disabled={isTesting}>

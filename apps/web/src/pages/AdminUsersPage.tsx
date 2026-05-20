@@ -101,7 +101,6 @@ export function AdminUsersPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>用户管理</h1>
         </div>
         <button className="ghostButton" onClick={() => void load()}>

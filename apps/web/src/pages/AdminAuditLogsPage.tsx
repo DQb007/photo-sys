@@ -24,7 +24,6 @@ export function AdminAuditLogsPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <p className="eyebrow">Admin</p>
           <h1>审计日志</h1>
         </div>
       </header>
