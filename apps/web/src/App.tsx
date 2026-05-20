@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Activity, Clock3, ImagePlus, LogOut, Settings, Shield, SlidersHorizontal, Ticket, Users } from 'lucide-react';
+import { Activity, Clock3, ImagePlus, LogOut, Menu, Settings, Shield, SlidersHorizontal, Ticket, Users, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -31,6 +32,11 @@ export function App() {
 function ProtectedShell() {
   const auth = useAuth();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   if (auth.isLoading) {
     return <div className="authPage"><div className="panel authPanel">加载中...</div></div>;
@@ -42,7 +48,21 @@ function ProtectedShell() {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <header className="mobileTopbar">
+        <button className="iconButton mobileMenuButton" type="button" onClick={() => setIsSidebarOpen(true)} aria-label="打开菜单">
+          <Menu size={20} />
+        </button>
+        <div className="mobileBrand">
+          <strong>Photo Sys</strong>
+          <span>{auth.user.email}</span>
+        </div>
+      </header>
+
+      {isSidebarOpen && (
+        <button className="mobileSidebarBackdrop" type="button" onClick={() => setIsSidebarOpen(false)} aria-label="关闭菜单" />
+      )}
+
+      <aside className={isSidebarOpen ? 'sidebar mobileOpen' : 'sidebar'}>
         <div className="brand">
           <div className="brandMark">
             <Activity size={22} />
@@ -51,44 +71,47 @@ function ProtectedShell() {
             <strong>Photo Sys</strong>
             <span>{auth.user.email}</span>
           </div>
+          <button className="iconButton sidebarClose" type="button" onClick={() => setIsSidebarOpen(false)} aria-label="关闭菜单">
+            <X size={18} />
+          </button>
         </div>
 
         <nav className="nav">
-          <NavLink to="/generate">
+          <NavLink to="/generate" onClick={() => setIsSidebarOpen(false)}>
             <ImagePlus size={18} />
             生成
           </NavLink>
-          <NavLink to="/history">
+          <NavLink to="/history" onClick={() => setIsSidebarOpen(false)}>
             <Clock3 size={18} />
             历史
           </NavLink>
-          <NavLink to="/settings">
+          <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
             <Settings size={18} />
             账号设置
           </NavLink>
           {auth.user.role === 'admin' && (
             <>
-              <NavLink to="/admin/overview">
+              <NavLink to="/admin/overview" onClick={() => setIsSidebarOpen(false)}>
                 <Shield size={18} />
                 后台概览
               </NavLink>
-              <NavLink to="/admin/status">
+              <NavLink to="/admin/status" onClick={() => setIsSidebarOpen(false)}>
                 <Activity size={18} />
                 运行状态
               </NavLink>
-              <NavLink to="/admin/settings">
+              <NavLink to="/admin/settings" onClick={() => setIsSidebarOpen(false)}>
                 <SlidersHorizontal size={18} />
                 配置管理
               </NavLink>
-              <NavLink to="/admin/users">
+              <NavLink to="/admin/users" onClick={() => setIsSidebarOpen(false)}>
                 <Users size={18} />
                 用户管理
               </NavLink>
-              <NavLink to="/admin/redeem-codes">
+              <NavLink to="/admin/redeem-codes" onClick={() => setIsSidebarOpen(false)}>
                 <Ticket size={18} />
                 兑换码管理
               </NavLink>
-              <NavLink to="/admin/audit-logs">
+              <NavLink to="/admin/audit-logs" onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
                 审计日志
               </NavLink>
@@ -96,7 +119,10 @@ function ProtectedShell() {
           )}
         </nav>
 
-        <button className="navButton logoutButton" onClick={() => void auth.signOut()}>
+        <button className="navButton logoutButton" onClick={() => {
+          setIsSidebarOpen(false);
+          void auth.signOut();
+        }}>
           <LogOut size={18} />
           退出
         </button>
