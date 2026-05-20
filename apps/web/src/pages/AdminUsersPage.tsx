@@ -81,11 +81,6 @@ export function AdminUsersPage() {
       setCreditError('请输入非 0 的整数积分');
       return;
     }
-    if (!creditForm.reason.trim()) {
-      setCreditError('请填写调整原因');
-      return;
-    }
-
     setIsAdjustingCredit(true);
     try {
       await adjustAdminUserCredits({

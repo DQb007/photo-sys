@@ -63,7 +63,7 @@ const creditAdjustmentSchema = z.object({
   amount: z.number().int().min(-1000000).max(1000000).refine((value) => value !== 0, {
     message: '积分调整数量不能为 0'
   }),
-  reason: z.string().trim().min(1).max(500)
+  reason: z.string().trim().max(500).optional().or(z.literal(''))
 });
 
 router.get('/overview', async (_req, res, next) => {
@@ -304,7 +304,7 @@ router.post('/users/:id/credits/adjust', async (req: AuthenticatedRequest, res, 
       type: 'admin_adjustment',
       amount: parsed.amount,
       actorUserId: req.user?.id || null,
-      reason: parsed.reason
+      reason: parsed.reason || null
     });
     await writeAuditLog({
       actor: req.user,
@@ -312,7 +312,7 @@ router.post('/users/:id/credits/adjust', async (req: AuthenticatedRequest, res, 
       targetType: 'user',
       targetId: user.id,
       targetUserId: user.id,
-      metadata: { amount: parsed.amount, reason: parsed.reason },
+      metadata: { amount: parsed.amount, reason: parsed.reason || null },
       req
     });
     res.json({
