@@ -664,8 +664,8 @@ code {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(25, 24, 21, 0.48);
-  backdrop-filter: blur(3px);
+  background: rgba(25, 24, 21, 0.42);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -683,54 +683,18 @@ code {
 }
 
 .settingsConfirmModal {
-  width: min(460px, calc(100vw - 32px));
-  display: grid;
-  grid-template-columns: 46px 1fr;
-  gap: 16px;
+  width: min(380px, calc(100vw - 32px));
   padding: 22px;
-  overflow: hidden;
-}
-
-.settingsConfirmModal::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 4px;
-  background: var(--accent);
-}
-
-.settingsConfirmModal.danger::before {
-  background: var(--danger);
 }
 
 .settingsConfirmModal h2 {
-  margin: 2px 34px 0 0;
-  font-size: 20px;
+  margin: 0 34px 0 0;
+  font-size: 18px;
+  line-height: 1.35;
 }
 
 .settingsConfirmModal p {
-  grid-column: 2;
-  margin: 10px 0 0;
-}
-
-.settingsConfirmModal .eyebrow {
-  margin: 0;
-  color: var(--muted);
-}
-
-.confirmIcon {
-  width: 46px;
-  height: 46px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: rgba(31, 111, 91, 0.1);
-  color: var(--accent);
-}
-
-.settingsConfirmModal.danger .confirmIcon {
-  background: rgba(182, 66, 59, 0.1);
-  color: var(--danger);
+  margin: 10px 0 22px;
 }
 
 .modalClose {
@@ -791,8 +755,7 @@ code {
 }
 
 .settingsConfirmModal .modalActions {
-  grid-column: 1 / -1;
-  padding-top: 6px;
+  padding-top: 0;
 }
 
 .detailBlock {

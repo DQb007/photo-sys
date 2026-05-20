@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { AlertTriangle, MailCheck, RotateCcw, Save, X } from 'lucide-react';
+import { MailCheck, RotateCcw, Save, X } from 'lucide-react';
 import { getAdminSettings, resetAdminSettings, testAdminEmail, updateAdminSettings, type AppSettings } from '../api';
 
 type ConfirmAction = 'save' | 'reset';
@@ -246,21 +246,15 @@ export function AdminSettingsPage() {
       {confirmAction && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="settings-confirm-title">
           <div className={`confirmModal settingsConfirmModal ${confirmAction === 'reset' ? 'danger' : ''}`}>
-            <div className="confirmIcon">
-              {confirmAction === 'reset' ? <AlertTriangle size={22} /> : <Save size={22} />}
-            </div>
             <button className="iconButton modalClose" type="button" onClick={() => setConfirmAction(null)} aria-label="关闭">
               <X size={18} />
             </button>
-            <div>
-              <p className="eyebrow">{confirmAction === 'reset' ? 'Danger Zone' : 'Settings'}</p>
-              <h2 id="settings-confirm-title">{confirmAction === 'reset' ? '恢复默认配置？' : '保存当前配置？'}</h2>
-              <p>
-                {confirmAction === 'reset'
-                  ? '这会用系统默认值覆盖当前配置，保存前的修改也会被清除。'
-                  : '保存后，新注册策略和邮件配置会立即生效。测试邮件会使用保存后的配置发送。'}
-              </p>
-            </div>
+            <h2 id="settings-confirm-title">{confirmAction === 'reset' ? '恢复默认配置？' : '保存配置？'}</h2>
+            <p>
+              {confirmAction === 'reset'
+                ? '当前配置会被默认值覆盖。'
+                : '保存后配置将立即生效。'}
+            </p>
             <div className="modalActions">
               <button className="ghostButton" type="button" onClick={() => setConfirmAction(null)}>
                 取消
@@ -271,7 +265,6 @@ export function AdminSettingsPage() {
                 disabled={isSaving}
                 onClick={submitConfirmAction}
               >
-                {confirmAction === 'reset' ? <RotateCcw size={16} /> : <Save size={16} />}
                 {confirmAction === 'reset' ? '确认恢复' : '确认保存'}
               </button>
             </div>
