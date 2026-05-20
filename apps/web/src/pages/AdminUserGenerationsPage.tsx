@@ -128,7 +128,7 @@ export function AdminUserGenerationsPage() {
                 <X size={18} />
               </button>
             </div>
-            <p>删除后将从列表隐藏。</p>
+            <p>是否确认删除？</p>
             <div className="modalActions">
               <button className="ghostButton" onClick={() => setDeleteTarget(null)}>
                 取消
