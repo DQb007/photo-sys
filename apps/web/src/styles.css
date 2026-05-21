@@ -354,13 +354,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
+  height: 28px;
+  line-height: 28px;
   border-radius: 999px;
-  padding: 0 10px;
+  padding: 0 14px;
   font-size: 12px;
   font-weight: 700;
   border: 1px solid transparent;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .adminUserPill.role.admin {

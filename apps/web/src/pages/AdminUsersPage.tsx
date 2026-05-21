@@ -212,7 +212,6 @@ export function AdminUsersPage() {
                     <div className="adminUserIdentity">
                       <strong>{item.email}</strong>
                       <span>{item.displayName || '-'}</span>
-                      <small>ID {item.id}</small>
                     </div>
                   </td>
                   <td><span className={`adminUserPill role ${item.role}`}>{roleLabel(item.role)}</span></td>
