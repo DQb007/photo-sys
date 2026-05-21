@@ -3149,6 +3149,17 @@ th {
   gap: 16px;
 }
 
+.promptTemplateModal > .modalHeader {
+  position: sticky;
+  top: -18px;
+  z-index: 2;
+  margin: -18px -18px 0;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+}
+
 .modalIntro {
   margin: 0;
   line-height: 1.55;
