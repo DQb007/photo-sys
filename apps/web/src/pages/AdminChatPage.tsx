@@ -162,10 +162,11 @@ export function AdminChatPage() {
   }
 
   return (
-    <div className="page">
-      <header className="pageHeader">
+    <div className="page adminChatPage">
+      <header className="pageHeader adminChatHeader">
         <div>
           <h1>AI 对话管理</h1>
+          <p>配置用户端 AI 对话开关、计费规则和可用模型。</p>
         </div>
         <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>
           <RefreshCcw size={16} />
@@ -177,49 +178,57 @@ export function AdminChatPage() {
       {message && <div className="toastNotice" role="status">{message}</div>}
 
       <div className="adminChatGrid">
-        <form className="panel formPanel" onSubmit={saveSettings}>
-          <div className="panelTitle"><h2>对话设置</h2></div>
-          <label className="toggleRow">
+        <form className="panel formPanel adminChatCard adminChatSettingsCard" onSubmit={saveSettings}>
+          <div className="panelTitle adminChatPanelTitle">
+            <div>
+              <h2>对话设置</h2>
+              <span>控制前台聊天能力、扣费和上下文长度。</span>
+            </div>
+          </div>
+          <label className="toggleRow adminChatSwitchRow">
             <span>启用 AI 对话</span>
             <input type="checkbox" checked={settings.enabled} onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })} />
           </label>
-          <div className="formRow two">
-            <label className="field">
+          <div className="adminChatSettingGrid">
+            <label className="field adminChatNumberField">
               <span>每条消息积分</span>
               <input type="number" min={0} max={100000} value={settings.messageCreditCost} onChange={(event) => setSettings({ ...settings, messageCreditCost: Number(event.target.value) })} />
             </label>
-            <label className="field">
+            <label className="field adminChatNumberField">
               <span>最大输入字符</span>
               <input type="number" min={1} max={50000} value={settings.maxInputChars} onChange={(event) => setSettings({ ...settings, maxInputChars: Number(event.target.value) })} />
             </label>
-          </div>
-          <div className="formRow two">
-            <label className="field">
+            <label className="field adminChatNumberField">
               <span>携带历史消息数</span>
               <input type="number" min={1} max={100} value={settings.maxHistoryMessages} onChange={(event) => setSettings({ ...settings, maxHistoryMessages: Number(event.target.value) })} />
             </label>
-            <label className="field">
+            <label className="field adminChatNumberField">
               <span>请求超时毫秒</span>
               <input type="number" min={1000} max={600000} value={settings.requestTimeoutMs} onChange={(event) => setSettings({ ...settings, requestTimeoutMs: Number(event.target.value) })} />
             </label>
           </div>
           <label className="field">
             <span>系统提示词</span>
-            <textarea value={settings.systemPrompt} onChange={(event) => setSettings({ ...settings, systemPrompt: event.target.value })} />
+            <textarea className="adminChatPromptTextarea" value={settings.systemPrompt} onChange={(event) => setSettings({ ...settings, systemPrompt: event.target.value })} />
           </label>
-          <button className="primaryButton compact" type="submit" disabled={isSavingSettings}>
+          <button className="primaryButton compact adminChatSaveButton" type="submit" disabled={isSavingSettings}>
             <Save size={16} />
             {isSavingSettings ? '保存中' : '保存设置'}
           </button>
         </form>
 
-        <form className="panel formPanel" onSubmit={saveModel}>
-          <div className="panelTitle"><h2>{modelForm.id ? '编辑模型' : '新建模型'}</h2></div>
+        <form className="panel formPanel adminChatCard adminChatModelCard" onSubmit={saveModel}>
+          <div className="panelTitle adminChatPanelTitle">
+            <div>
+              <h2>{modelForm.id ? '编辑模型' : '新建模型'}</h2>
+              <span>{modelForm.id ? '更新模型参数，API Key 留空则保持原值。' : '新增一个可供用户切换的对话模型。'}</span>
+            </div>
+          </div>
           <label className="field">
             <span>模型名称</span>
             <input value={modelForm.name} onChange={(event) => setModelForm({ ...modelForm, name: event.target.value })} />
           </label>
-          <div className="formRow two">
+          <div className="formRow two adminChatCompactRow">
             <label className="field">
               <span>模型标识</span>
               <input value={modelForm.modelKey} onChange={(event) => setModelForm({ ...modelForm, modelKey: event.target.value })} />
@@ -241,15 +250,17 @@ export function AdminChatPage() {
             <span>说明</span>
             <input value={modelForm.description} onChange={(event) => setModelForm({ ...modelForm, description: event.target.value })} />
           </label>
-          <label className="toggleRow">
-            <span>启用</span>
-            <input type="checkbox" checked={modelForm.status === 'active'} onChange={(event) => setModelForm({ ...modelForm, status: event.target.checked ? 'active' : 'disabled' })} />
-          </label>
-          <label className="toggleRow">
-            <span>设为默认模型</span>
-            <input type="checkbox" checked={modelForm.isDefault} onChange={(event) => setModelForm({ ...modelForm, isDefault: event.target.checked })} />
-          </label>
-          <div className="modalActions">
+          <div className="adminChatSwitchGrid">
+            <label className="toggleRow adminChatSwitchRow">
+              <span>启用</span>
+              <input type="checkbox" checked={modelForm.status === 'active'} onChange={(event) => setModelForm({ ...modelForm, status: event.target.checked ? 'active' : 'disabled' })} />
+            </label>
+            <label className="toggleRow adminChatSwitchRow">
+              <span>设为默认模型</span>
+              <input type="checkbox" checked={modelForm.isDefault} onChange={(event) => setModelForm({ ...modelForm, isDefault: event.target.checked })} />
+            </label>
+          </div>
+          <div className="modalActions adminChatActions">
             {modelForm.id ? <button className="ghostButton" type="button" onClick={() => setModelForm(emptyModelForm)}>取消编辑</button> : null}
             <button className="primaryButton compact" type="submit" disabled={isSavingModel}>
               <Plus size={16} />
@@ -259,11 +270,14 @@ export function AdminChatPage() {
         </form>
       </div>
 
-      <section className="panel tablePanel">
-        <div className="tableHeader">
-          <h2>模型列表</h2>
+      <section className="panel tablePanel adminChatModelList">
+        <div className="tableHeader adminChatListHeader">
+          <div>
+            <h2>模型列表</h2>
+            <span>共 {models.length} 个模型，用户端会优先使用默认模型。</span>
+          </div>
         </div>
-        <table>
+        <table className="adminChatTable">
           <thead>
             <tr>
               <th>模型</th>
@@ -277,17 +291,17 @@ export function AdminChatPage() {
           <tbody>
             {models.map((item) => (
               <tr key={item.id}>
-                <td>
+                <td className="adminChatModelCell">
                   <strong>{item.name}</strong>
                   <span>{item.modelKey}</span>
                   {item.description && <span>{item.description}</span>}
                 </td>
-                <td>{item.status === 'active' ? '启用' : '停用'}</td>
-                <td>{item.isDefault ? <CheckCircle2 size={16} /> : '-'}</td>
-                <td>{item.hasApiKey ? '已配置' : '未配置'}</td>
-                <td>{item.sortOrder}</td>
+                <td><span className={item.status === 'active' ? 'statusBadge active' : 'statusBadge muted'}>{item.status === 'active' ? '启用' : '停用'}</span></td>
+                <td>{item.isDefault ? <span className="defaultBadge"><CheckCircle2 size={14} /> 默认</span> : <span className="mutedDash">-</span>}</td>
+                <td><span className={item.hasApiKey ? 'keyBadge ready' : 'keyBadge'}>{item.hasApiKey ? '已配置' : '未配置'}</span></td>
+                <td><span className="sortBadge">{item.sortOrder}</span></td>
                 <td>
-                  <div className="tableActions">
+                  <div className="tableActions adminChatRowActions">
                     <button className="ghostButton" type="button" onClick={() => editModel(item)}>编辑</button>
                     <button className="ghostButton" type="button" disabled={item.isDefault} onClick={() => void setDefaultModel(item)}>设默认</button>
                     <button className="ghostButton" type="button" onClick={() => void toggleModel(item)}>{item.status === 'active' ? '停用' : '启用'}</button>

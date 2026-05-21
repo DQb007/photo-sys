@@ -698,9 +698,235 @@
 
 .adminChatGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
   gap: 18px;
   align-items: start;
+}
+
+.adminChatPage {
+  max-width: 1240px;
+}
+
+.adminChatHeader {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.adminChatHeader p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.adminChatCard {
+  padding: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 22px 60px rgba(25, 24, 21, 0.075);
+}
+
+.adminChatCard > .field,
+.adminChatCard > .formRow,
+.adminChatCard > .adminChatSettingGrid,
+.adminChatCard > .adminChatSwitchGrid,
+.adminChatCard > .adminChatActions,
+.adminChatCard > .adminChatSaveButton {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.adminChatPanelTitle {
+  align-items: flex-start;
+  padding: 20px;
+  margin: 0 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 250, 246, 0.72));
+}
+
+.adminChatPanelTitle > div {
+  display: grid;
+  gap: 6px;
+}
+
+.adminChatPanelTitle h2 {
+  font-size: 20px;
+}
+
+.adminChatPanelTitle span {
+  line-height: 1.45;
+}
+
+.adminChatSwitchRow {
+  min-height: 54px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf6;
+  padding-inline: 14px;
+}
+
+.adminChatSwitchRow span {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.adminChatSwitchRow input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.adminChatSettingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.adminChatNumberField {
+  gap: 7px;
+}
+
+.adminChatNumberField input,
+.adminChatModelCard input {
+  min-height: 42px;
+}
+
+.adminChatPromptTextarea {
+  min-height: 168px;
+  resize: vertical;
+}
+
+.adminChatSaveButton {
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.adminChatModelCard {
+  display: grid;
+  gap: 14px;
+}
+
+.adminChatModelCard > .field,
+.adminChatModelCard > .formRow,
+.adminChatModelCard > .adminChatSwitchGrid {
+  margin-top: 0;
+}
+
+.adminChatCompactRow {
+  gap: 12px;
+}
+
+.adminChatSwitchGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.adminChatActions {
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-top: 2px;
+}
+
+.adminChatModelList {
+  margin-top: 6px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(25, 24, 21, 0.08);
+}
+
+.adminChatListHeader {
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.adminChatListHeader > div {
+  display: grid;
+  gap: 5px;
+}
+
+.adminChatTable {
+  min-width: 980px;
+}
+
+.adminChatTable th {
+  background: #fbfaf6;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.adminChatTable td {
+  vertical-align: middle;
+}
+
+.adminChatModelCell {
+  min-width: 260px;
+}
+
+.adminChatModelCell strong,
+.adminChatModelCell span {
+  display: block;
+}
+
+.adminChatModelCell strong {
+  font-size: 15px;
+}
+
+.adminChatModelCell span {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.statusBadge,
+.defaultBadge,
+.keyBadge,
+.sortBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.statusBadge.active,
+.keyBadge.ready {
+  color: var(--accent);
+  border-color: rgba(31, 111, 91, 0.18);
+  background: rgba(31, 111, 91, 0.08);
+}
+
+.statusBadge.muted,
+.keyBadge {
+  color: var(--muted);
+  background: #fbfaf6;
+}
+
+.defaultBadge {
+  gap: 5px;
+  color: var(--amber);
+  border-color: rgba(201, 137, 44, 0.22);
+  background: rgba(201, 137, 44, 0.09);
+}
+
+.sortBadge {
+  min-width: 38px;
+  color: var(--ink);
+  background: #fbfaf6;
+}
+
+.adminChatRowActions {
+  gap: 8px;
+}
+
+.adminChatRowActions .ghostButton {
+  min-height: 38px;
+  padding: 9px 12px;
 }
 
 .adminUserStats {
@@ -4018,6 +4244,26 @@ th {
 
   .adminChatGrid {
     grid-template-columns: 1fr;
+  }
+
+  .adminChatHeader {
+    gap: 14px;
+  }
+
+  .adminChatHeader .ghostButton {
+    width: 100%;
+  }
+
+  .adminChatSettingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminChatModelList {
+    overflow-x: auto;
+  }
+
+  .adminChatRowActions {
+    min-width: 280px;
   }
 
   .adminUserStats {
