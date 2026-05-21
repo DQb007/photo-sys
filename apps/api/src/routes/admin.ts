@@ -163,6 +163,12 @@ router.get('/users', async (req, res, next) => {
     const status = ['pending_email_verification', 'active', 'disabled'].includes(String(req.query.status))
       ? String(req.query.status)
       : '';
+    const requestedPage = Number(req.query.page || 1);
+    const requestedPageSize = Number(req.query.pageSize || 10);
+    const requestedSafePage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const pageSize = Number.isInteger(requestedPageSize)
+      ? Math.min(Math.max(requestedPageSize, 1), 100)
+      : 10;
     const conditions: string[] = [];
     const params: Array<string | number> = [];
     if (search) {
@@ -178,6 +184,16 @@ router.get('/users', async (req, res, next) => {
       params.push(status);
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const [countRows] = await getPool().query<Array<{ total: number } & import('mysql2').RowDataPacket>>(
+      `SELECT COUNT(*) AS total
+       FROM users u
+       ${where}`,
+      params
+    );
+    const total = Number(countRows[0]?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(requestedSafePage, totalPages);
+    const offset = (page - 1) * pageSize;
     const [rows] = await getPool().query<Array<{
       id: number;
       email: string;
@@ -205,10 +221,14 @@ router.get('/users', async (req, res, next) => {
        ${where}
        GROUP BY u.id
        ORDER BY u.created_at DESC
-       LIMIT 100`,
-      params
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
     );
     res.json({
+      page,
+      pageSize,
+      total,
+      totalPages,
       items: rows.map((row) => ({
         id: row.id,
         email: row.email,

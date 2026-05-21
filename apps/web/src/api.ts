@@ -452,12 +452,26 @@ export async function resetAdminSettings() {
   return request<{ settings: AppSettings }>('/admin/settings/reset-defaults', { method: 'POST' });
 }
 
-export async function listAdminUsers(params: { search?: string; role?: string; status?: string } = {}) {
+export async function listAdminUsers(params: {
+  search?: string;
+  role?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+} = {}) {
   const query = new URLSearchParams();
   if (params.search) query.set('search', params.search);
   if (params.role) query.set('role', params.role);
   if (params.status) query.set('status', params.status);
-  return request<{ items: AdminUser[] }>(`/admin/users?${query.toString()}`);
+  if (params.page) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  return request<{
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    items: AdminUser[];
+  }>(`/admin/users?${query.toString()}`);
 }
 
 export async function updateAdminUser(id: number, patch: Partial<Pick<User, 'role' | 'status' | 'displayName'>>) {

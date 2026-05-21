@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CopyPlus, RefreshCcw, RotateCw, Trash2, X } from 'lucide-react';
+import { CopyPlus, RefreshCcw, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -12,11 +12,13 @@ import {
   retryGeneration,
   type Generation
 } from '../api';
+import { Pagination } from '../Pagination';
 import { formatDuration, generationElapsedMs } from '../time';
 
 export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [items, setItems] = useState<Generation[]>([]);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [summary, setSummary] = useState<{ statusCounts: Record<string, number>; queue: { waiting: number } } | null>(null);
@@ -37,6 +39,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       const data = await listGenerationsWithFilter(nextPage, nextStatus);
       setItems(data.items);
       setPage(data.page);
+      setTotal(data.total);
       setTotalPages(data.totalPages);
       setSummary(await getGenerationSummary());
     } catch (err) {
@@ -105,6 +108,18 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         <div className="queueSummary">
           {isLoading ? '刷新中...' : `队列中 ${summary?.queue.waiting ?? 0} · 生成中 ${summary?.statusCounts.processing ?? 0}`}
         </div>
+        <button
+          className="ghostButton compact"
+          type="button"
+          onClick={() => {
+            setPage(1);
+            setStatusFilter('');
+            void load(1, '');
+          }}
+        >
+          <RotateCcw size={16} />
+          重置
+        </button>
       </section>
 
       {error && <div className="errorBox">{error}</div>}
@@ -186,17 +201,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         ))}
       </div>
 
-      {items.length > 0 && (
-        <div className="paginationBar">
-          <button className="ghostButton" disabled={page <= 1} onClick={() => void load(page - 1, statusFilter)}>
-            上一页
-          </button>
-          <span>第 {page} / {totalPages} 页</span>
-          <button className="ghostButton" disabled={page >= totalPages} onClick={() => void load(page + 1, statusFilter)}>
-            下一页
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={(nextPage) => void load(nextPage, statusFilter)} />
 
       {deleteTarget && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="delete-title">

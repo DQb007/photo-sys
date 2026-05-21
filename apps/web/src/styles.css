@@ -271,7 +271,7 @@
 
 .adminUserToolbar {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 180px 200px auto;
+  grid-template-columns: minmax(260px, 1fr) 180px 200px auto auto;
   align-items: end;
   gap: 12px;
   margin-bottom: 18px;
@@ -1557,11 +1557,25 @@ code {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .paginationBar span {
   color: var(--muted);
+}
+
+.appPagination span {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .ghostButton:disabled,
@@ -2400,7 +2414,7 @@ th {
 
 .promptSearch {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: end;
 }

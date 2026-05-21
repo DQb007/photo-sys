@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Edit3, FileText, Plus, RefreshCcw, Save, Tags, Trash2, X, XCircle } from 'lucide-react';
+import { Edit3, FileText, Plus, RefreshCcw, RotateCcw, Save, Tags, Trash2, X, XCircle } from 'lucide-react';
 import {
   createAdminPromptTemplate,
   deleteAdminPromptTemplate,
@@ -166,6 +166,11 @@ export function AdminPromptTemplatesPage() {
     }
   }
 
+  function resetFilters() {
+    setSearch('');
+    setStatus('');
+  }
+
   return (
     <div className="page">
       <header className="pageHeader promptAdminHeader">
@@ -222,6 +227,10 @@ export function AdminPromptTemplatesPage() {
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模板" />
             <SelectField value={status} options={statusFilterOptions} onChange={setStatus} />
             <button className="ghostButton" type="submit">筛选</button>
+            <button className="ghostButton" type="button" onClick={resetFilters}>
+              <RotateCcw size={16} />
+              重置
+            </button>
           </form>
         </div>
         <table>

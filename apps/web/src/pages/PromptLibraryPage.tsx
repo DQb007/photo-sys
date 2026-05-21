@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Heart, Loader2, RefreshCcw, Search, Send, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Heart, Loader2, RefreshCcw, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
 import {
   favoritePromptTemplate,
   listPromptTemplates,
@@ -7,6 +7,7 @@ import {
   unfavoritePromptTemplate,
   type PromptTemplate
 } from '../api';
+import { Pagination } from '../Pagination';
 
 type PromptScope = 'all' | 'favorites';
 const pageSize = 12;
@@ -74,6 +75,13 @@ export function PromptLibraryPage() {
     event.preventDefault();
     setPage(1);
     await load();
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setCategory('');
+    setScope('all');
+    setPage(1);
   }
 
   async function toggleFavorite(template: PromptTemplate) {
@@ -147,6 +155,10 @@ export function PromptLibraryPage() {
           </label>
           <button className="primaryButton compact" type="submit">
             搜索
+          </button>
+          <button className="ghostButton compact" type="button" onClick={resetFilters}>
+            <RotateCcw size={16} />
+            重置
           </button>
         </form>
 
@@ -235,17 +247,13 @@ export function PromptLibraryPage() {
         ))}
       </div>
 
-      {items.length > 0 && (
-        <div className="paginationBar promptPagination">
-          <button className="ghostButton" type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
-            上一页
-          </button>
-          <span>第 {page} / {totalPages} 页，共 {items.length} 个模板</span>
-          <button className="ghostButton" type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>
-            下一页
-          </button>
-        </div>
-      )}
+      <Pagination
+        className="promptPagination"
+        page={page}
+        totalPages={totalPages}
+        total={items.length}
+        onPageChange={setPage}
+      />
 
       {activeTemplate && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-template-title">

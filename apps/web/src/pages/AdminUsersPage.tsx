@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, Image, KeyRound, RefreshCcw, Search, Shield, UserCheck, UsersRound, UserX, X } from 'lucide-react';
+import { Coins, Image, KeyRound, RefreshCcw, RotateCcw, Search, Shield, UserCheck, UsersRound, UserX, X } from 'lucide-react';
 import {
   adjustAdminUserCredits,
   listAdminUsers,
@@ -11,6 +11,7 @@ import {
   type UserStatus
 } from '../api';
 import { useAuth } from '../auth';
+import { Pagination } from '../Pagination';
 import { SelectField } from '../SelectField';
 
 const emptyPasswordForm = {
@@ -23,12 +24,23 @@ const emptyCreditForm = {
   reason: ''
 };
 
+const userPageSize = 10;
+const emptyUserFilters = {
+  search: '',
+  role: '',
+  status: ''
+};
+
 export function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
+  const [filters, setFilters] = useState(emptyUserFilters);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState('');
   const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
@@ -40,21 +52,30 @@ export function AdminUsersPage() {
   const [isAdjustingCredit, setIsAdjustingCredit] = useState(false);
 
   const summary = useMemo(() => ({
-    total: users.length,
+    total,
     active: users.filter((item) => item.status === 'active').length,
     pending: users.filter((item) => item.status === 'pending_email_verification').length,
     admins: users.filter((item) => item.role === 'admin').length
-  }), [users]);
+  }), [total, users]);
 
   const load = useCallback(async () => {
     setError('');
     try {
-      const payload = await listAdminUsers({ search, role, status });
+      const payload = await listAdminUsers({
+        search: filters.search,
+        role: filters.role,
+        status: filters.status,
+        page,
+        pageSize: userPageSize
+      });
       setUsers(payload.items);
+      setPage(payload.page);
+      setTotal(payload.total);
+      setTotalPages(payload.totalPages);
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取用户失败');
     }
-  }, [role, search, status]);
+  }, [filters, page]);
 
   useEffect(() => {
     void load();
@@ -62,7 +83,16 @@ export function AdminUsersPage() {
 
   function submitSearch(event: FormEvent) {
     event.preventDefault();
-    void load();
+    setPage(1);
+    setFilters({ search: search.trim(), role, status });
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setRole('');
+    setStatus('');
+    setPage(1);
+    setFilters(emptyUserFilters);
   }
 
   async function patchUser(id: number, patch: Parameters<typeof updateAdminUser>[1]) {
@@ -185,6 +215,10 @@ export function AdminUsersPage() {
           <Search size={16} />
           搜索
         </button>
+        <button className="ghostButton compact" type="button" onClick={resetFilters}>
+          <RotateCcw size={16} />
+          重置
+        </button>
       </form>
 
       {error && <div className="errorBox">{error}</div>}
@@ -274,6 +308,8 @@ export function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {passwordTarget && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="password-reset-title">
