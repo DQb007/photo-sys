@@ -43,7 +43,7 @@
 
 ### Phase 4-6: Frontend, Verification, and Commit
 
-- Status: in_progress
+- Status: complete
 - Added frontend chat types, API helpers, and streamed fetch parser.
 - Added user Chat page with internal conversation history, message stream, model selector, stop generation, rename, and delete.
 - Added admin AI Chat management page with chat settings and chat model CRUD/test/default workflows.
@@ -51,6 +51,7 @@
 - Added responsive chat and admin chat CSS.
 - Removed an unused `Sparkles` import from `LoginPage.tsx` so lint can pass; file behavior was not changed.
 - API typecheck, web typecheck, full build, and web lint passed.
+- Committed implementation as `a0b29a5 Add AI chat module`.
 
 ## Verification Results
 

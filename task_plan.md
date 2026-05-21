@@ -70,8 +70,8 @@ Complete
 - [x] Run full build.
 - [x] Run web lint.
 - [x] Run targeted smoke checks where practical.
-- [ ] Commit implementation.
-- **Status:** in_progress
+- [x] Commit implementation.
+- **Status:** complete
 
 ## Key Constraints
 
