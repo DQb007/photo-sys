@@ -91,11 +91,11 @@ function ProtectedShell() {
             <>
               <NavLink to="/generate" onClick={() => setIsSidebarOpen(false)}>
                 <ImagePlus size={18} />
-                生成
+                图片生成
               </NavLink>
               <NavLink to="/history" onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
-                历史
+                生成历史
               </NavLink>
               <NavLink to="/prompts" onClick={() => setIsSidebarOpen(false)}>
                 <BookOpen size={18} />
