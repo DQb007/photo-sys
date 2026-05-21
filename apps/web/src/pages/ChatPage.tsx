@@ -241,15 +241,9 @@ export function ChatPage() {
 
       <div className="chatLayout">
         <aside className={isHistoryOpen ? 'chatSidebar open' : 'chatSidebar'}>
-          <div className="chatSidebarHeader">
-            <div>
-              <strong>对话</strong>
-              <span>{conversations.length} 条历史</span>
-            </div>
-            <button className="iconButton chatSidebarClose" type="button" onClick={() => setIsHistoryOpen(false)} aria-label="关闭历史">
-              <X size={16} />
-            </button>
-          </div>
+          <button className="iconButton chatSidebarClose" type="button" onClick={() => setIsHistoryOpen(false)} aria-label="关闭历史">
+            <X size={16} />
+          </button>
           <button className="primaryButton compact fullWidth" type="button" onClick={() => void startConversation()}>
             <MessageSquarePlus size={16} />
             新建对话
@@ -286,13 +280,6 @@ export function ChatPage() {
               <h2>{activeConversation?.title || '新对话'}</h2>
               <span>{selectedModel ? selectedModel.name : '选择一个模型开始对话'}</span>
             </div>
-            <div className="chatModelSelect">
-              <SelectField
-                value={String(selectedModelId || '')}
-                options={modelOptions}
-                onChange={(value) => setSelectedModelId(Number(value))}
-              />
-            </div>
           </div>
 
           <div className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
@@ -300,13 +287,6 @@ export function ChatPage() {
               <div className="chatEmptyState">
                 <strong>AI 对话当前已关闭</strong>
                 <p>请在后台启用对话功能后再使用。</p>
-              </div>
-            )}
-
-            {settings?.enabled && messages.length === 0 && (
-              <div className="chatEmptyState">
-                <strong>开始一次新的对话</strong>
-                <p>{selectedModel ? `当前模型：${selectedModel.name}` : '先选择一个可用模型，然后发送第一条消息。'}</p>
               </div>
             )}
 
@@ -335,6 +315,13 @@ export function ChatPage() {
             <div className="chatComposerActions">
               <span>{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
               <span>{settings?.messageCreditCost ? `每条 ${settings.messageCreditCost} 积分` : '免费使用'}</span>
+              <div className="chatComposerModel">
+                <SelectField
+                  value={String(selectedModelId || '')}
+                  options={modelOptions}
+                  onChange={(value) => setSelectedModelId(Number(value))}
+                />
+              </div>
               {isStreaming ? (
                 <button className="dangerButton" type="button" onClick={stopStreaming}>
                   <Square size={16} />
