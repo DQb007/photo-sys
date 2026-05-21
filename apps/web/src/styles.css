@@ -28,8 +28,8 @@
   align-items: center;
 }
 
-.chatHistoryToggle,
-.chatSidebarClose {
+.chatHeaderActions .chatHistoryToggle,
+.chatSidebar .chatSidebarClose {
   display: none;
 }
 
@@ -132,7 +132,7 @@
 }
 
 .chatPanelHeader h2 {
-  margin: 0 0 4px;
+  margin: 0;
 }
 
 .chatPanelTitle {
@@ -3572,8 +3572,8 @@ th {
     min-height: calc(100vh - 140px);
   }
 
-  .chatHistoryToggle,
-  .chatSidebarClose {
+  .chatHeaderActions .chatHistoryToggle,
+  .chatSidebar .chatSidebarClose {
     display: inline-flex;
   }
 

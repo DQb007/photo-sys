@@ -36,7 +36,6 @@ export function ChatPage() {
 
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
-  const selectedModel = models.find((item) => item.id === selectedModelId) || null;
 
   const load = useCallback(async () => {
     setError('');
@@ -278,7 +277,6 @@ export function ChatPage() {
           <div className="chatPanelHeader">
             <div className="chatPanelTitle">
               <h2>{activeConversation?.title || '新对话'}</h2>
-              <span>{selectedModel ? selectedModel.name : '选择一个模型开始对话'}</span>
             </div>
           </div>
 
