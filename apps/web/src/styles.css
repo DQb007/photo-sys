@@ -290,14 +290,22 @@
 .adminUserToolbar {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) 180px 200px auto auto;
-  align-items: end;
+  align-items: center;
   gap: 12px;
   margin-bottom: 18px;
+}
+
+.adminUserToolbar .primaryButton,
+.adminUserToolbar .ghostButton {
+  height: 48px;
+  min-height: 48px;
+  box-sizing: border-box;
 }
 
 .adminUserToolbar .selectTrigger {
   height: 48px;
   min-height: 48px;
+  box-sizing: border-box;
   border-radius: 8px;
 }
 
