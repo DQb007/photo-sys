@@ -113,10 +113,6 @@ function ProtectedShell() {
                 <Shield size={18} />
                 后台概览
               </NavLink>
-              <NavLink to="/admin/status" onClick={() => setIsSidebarOpen(false)}>
-                <Activity size={18} />
-                运行状态
-              </NavLink>
               <NavLink to="/admin/generations" onClick={() => setIsSidebarOpen(false)}>
                 <Images size={18} />
                 图片管理
@@ -140,6 +136,10 @@ function ProtectedShell() {
               <NavLink to="/admin/audit-logs" onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
                 审计日志
+              </NavLink>
+              <NavLink to="/admin/status" onClick={() => setIsSidebarOpen(false)}>
+                <Activity size={18} />
+                运行状态
               </NavLink>
             </>
           )}
