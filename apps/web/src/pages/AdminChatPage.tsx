@@ -49,7 +49,7 @@ export function AdminChatPage() {
       setSettings(settingsPayload.settings);
       setModels(modelsPayload.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '读取 AI 对话管理数据失败');
+      setError(err instanceof Error ? err.message : '读取模型管理数据失败');
     } finally {
       setIsLoading(false);
     }
@@ -158,14 +158,14 @@ export function AdminChatPage() {
   }
 
   if (!settings) {
-    return <div className="page"><div className="panel emptyState">{isLoading ? '加载 AI 对话管理...' : '暂无配置'}</div></div>;
+    return <div className="page"><div className="panel emptyState">{isLoading ? '加载模型管理...' : '暂无配置'}</div></div>;
   }
 
   return (
     <div className="page adminChatPage">
       <header className="pageHeader adminChatHeader">
         <div>
-          <h1>AI 对话管理</h1>
+          <h1>模型管理</h1>
           <p>配置用户端 AI 对话开关、计费规则和可用模型。</p>
         </div>
         <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>

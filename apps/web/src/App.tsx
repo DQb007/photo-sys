@@ -158,7 +158,7 @@ function ProtectedShell() {
               </NavLink>
               <NavLink to="/admin/chat" onClick={() => setIsSidebarOpen(false)}>
                 <Bot size={18} />
-                AI 对话管理
+                模型管理
               </NavLink>
               <NavLink to="/admin/audit-logs" onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
