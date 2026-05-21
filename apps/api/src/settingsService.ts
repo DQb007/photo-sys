@@ -33,6 +33,14 @@ const defaults = {
     costPerImage: 1,
     initialBalance: 0,
     refundOnFailure: true
+  },
+  chat: {
+    enabled: true,
+    messageCreditCost: 1,
+    systemPrompt: '',
+    maxInputChars: 8000,
+    maxHistoryMessages: 20,
+    requestTimeoutMs: 120000
   }
 };
 
@@ -62,6 +70,14 @@ const settingsSchema = z.object({
     costPerImage: z.number().int().min(0).max(100000),
     initialBalance: z.number().int().min(0).max(1000000),
     refundOnFailure: z.boolean()
+  }),
+  chat: z.object({
+    enabled: z.boolean(),
+    messageCreditCost: z.number().int().min(0).max(100000),
+    systemPrompt: z.string().max(12000),
+    maxInputChars: z.number().int().min(1).max(50000),
+    maxHistoryMessages: z.number().int().min(1).max(100),
+    requestTimeoutMs: z.number().int().min(1000).max(600000)
   })
 });
 
@@ -91,7 +107,13 @@ const definitions: Record<string, {
   'credits.enabled': { category: 'credits', type: 'boolean', description: 'Enable credit charging' },
   'credits.costPerImage': { category: 'credits', type: 'number', description: 'Credits charged per image' },
   'credits.initialBalance': { category: 'credits', type: 'number', description: 'Initial credits for new users' },
-  'credits.refundOnFailure': { category: 'credits', type: 'boolean', description: 'Refund credits when generation fails' }
+  'credits.refundOnFailure': { category: 'credits', type: 'boolean', description: 'Refund credits when generation fails' },
+  'chat.enabled': { category: 'chat', type: 'boolean', description: 'Enable AI chat' },
+  'chat.messageCreditCost': { category: 'chat', type: 'number', description: 'Credits charged per user chat message' },
+  'chat.systemPrompt': { category: 'chat', type: 'string', description: 'Global AI chat system prompt' },
+  'chat.maxInputChars': { category: 'chat', type: 'number', description: 'Maximum characters per user chat message' },
+  'chat.maxHistoryMessages': { category: 'chat', type: 'number', description: 'Maximum historical messages sent to chat model' },
+  'chat.requestTimeoutMs': { category: 'chat', type: 'number', description: 'AI chat upstream request timeout in milliseconds' }
 };
 
 let cache: { value: AppSettings; expiresAt: number } | null = null;
@@ -112,6 +134,7 @@ export type AppSettingsPatch = {
   registration?: Partial<AppSettings['registration']>;
   mail?: Partial<AppSettings['mail']>;
   credits?: Partial<AppSettings['credits']>;
+  chat?: Partial<AppSettings['chat']>;
 };
 
 export async function updateAppSettings(
@@ -228,7 +251,13 @@ function flattenSettings(settings: AppSettings) {
     'credits.enabled': settings.credits.enabled,
     'credits.costPerImage': settings.credits.costPerImage,
     'credits.initialBalance': settings.credits.initialBalance,
-    'credits.refundOnFailure': settings.credits.refundOnFailure
+    'credits.refundOnFailure': settings.credits.refundOnFailure,
+    'chat.enabled': settings.chat.enabled,
+    'chat.messageCreditCost': settings.chat.messageCreditCost,
+    'chat.systemPrompt': settings.chat.systemPrompt,
+    'chat.maxInputChars': settings.chat.maxInputChars,
+    'chat.maxHistoryMessages': settings.chat.maxHistoryMessages,
+    'chat.requestTimeoutMs': settings.chat.requestTimeoutMs
   };
 }
 
@@ -253,6 +282,10 @@ function mergeSettingsPatch(current: AppSettings, patch: AppSettingsPatch): AppS
     credits: {
       ...current.credits,
       ...(patch.credits || {})
+    },
+    chat: {
+      ...current.chat,
+      ...(patch.chat || {})
     }
   };
 }

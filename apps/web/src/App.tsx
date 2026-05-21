@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Activity, BookOpen, Clock3, Images, ImagePlus, LogOut, Menu, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
+import { Activity, BookOpen, Bot, Clock3, Images, ImagePlus, LogOut, Menu, MessageSquare, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -17,6 +17,8 @@ import { AdminUserGenerationsPage } from './pages/AdminUserGenerationsPage';
 import { AdminRedeemCodesPage } from './pages/AdminRedeemCodesPage';
 import { PromptLibraryPage } from './pages/PromptLibraryPage';
 import { AdminPromptTemplatesPage } from './pages/AdminPromptTemplatesPage';
+import { ChatPage } from './pages/ChatPage';
+import { AdminChatPage } from './pages/AdminChatPage';
 
 const appName = '炫步 AI';
 const brandIconSrc = '/brand-icon.png';
@@ -101,6 +103,10 @@ function ProtectedShell() {
                 <BookOpen size={18} />
                 提示词库
               </NavLink>
+              <NavLink to="/chat" onClick={() => setIsSidebarOpen(false)}>
+                <MessageSquare size={18} />
+                AI 对话
+              </NavLink>
               <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
                 <Settings size={18} />
                 账号设置
@@ -133,6 +139,14 @@ function ProtectedShell() {
                 <Tags size={18} />
                 提示词管理
               </NavLink>
+              <NavLink to="/chat" onClick={() => setIsSidebarOpen(false)}>
+                <MessageSquare size={18} />
+                AI 对话
+              </NavLink>
+              <NavLink to="/admin/chat" onClick={() => setIsSidebarOpen(false)}>
+                <Bot size={18} />
+                AI 对话管理
+              </NavLink>
               <NavLink to="/admin/audit-logs" onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
                 审计日志
@@ -160,6 +174,7 @@ function ProtectedShell() {
           <Route path="/generate" element={<UserOnly><GeneratePage /></UserOnly>} />
           <Route path="/history" element={<UserOnly><HistoryPage /></UserOnly>} />
           <Route path="/prompts" element={<UserOnly><PromptLibraryPage /></UserOnly>} />
+          <Route path="/chat" element={<ChatPage />} />
           <Route path="/settings" element={<UserOnly><SettingsPage /></UserOnly>} />
           <Route path="/admin/overview" element={<AdminOnly><AdminOverviewPage /></AdminOnly>} />
           <Route path="/admin/status" element={<AdminOnly><AdminStatusPage /></AdminOnly>} />
@@ -169,6 +184,7 @@ function ProtectedShell() {
           <Route path="/admin/users/:id/generations" element={<AdminOnly><AdminUserGenerationsPage /></AdminOnly>} />
           <Route path="/admin/redeem-codes" element={<AdminOnly><AdminRedeemCodesPage /></AdminOnly>} />
           <Route path="/admin/prompt-templates" element={<AdminOnly><AdminPromptTemplatesPage /></AdminOnly>} />
+          <Route path="/admin/chat" element={<AdminOnly><AdminChatPage /></AdminOnly>} />
           <Route path="/admin/audit-logs" element={<AdminOnly><AdminAuditLogsPage /></AdminOnly>} />
         </Routes>
       </main>

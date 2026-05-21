@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Feather, LogIn, Mail, Orbit, Sparkles, WandSparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Feather, LogIn, Mail, Orbit, WandSparkles } from 'lucide-react';
 import { ApiError, resendVerification } from '../api';
 import { useAuth } from '../auth';
 

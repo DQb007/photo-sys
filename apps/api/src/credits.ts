@@ -29,6 +29,10 @@ export function calculateGenerationCreditCost(count: number, settings: AppSettin
   return count * settings.credits.costPerImage;
 }
 
+export function calculateChatMessageCreditCost(settings: AppSettings) {
+  return settings.chat.messageCreditCost;
+}
+
 export async function applyCreditTransaction(input: CreditTransactionInput) {
   const pool = getPool();
   const connection = await pool.getConnection();

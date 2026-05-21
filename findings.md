@@ -1,33 +1,47 @@
-# Findings: Prompt Templates Module
+# Findings: AI Chat Module
 
 ## Approved Scope
 
-- Prompt templates are maintained only by administrators.
-- Users only browse active templates, favorite/unfavorite templates, copy rendered prompts, and send rendered prompts to Generate.
-- Users do not create private templates and do not submit templates for approval in v1.
-- Template variables are inferred from placeholders such as `{主体}` or `{scene}`.
-- All variables are required in v1.
-- "My prompts" means favorited templates.
+- First version is a general-purpose chat assistant.
+- Replies must stream.
+- Chat uses separate model configuration from image generation.
+- Admins can manage multiple chat models.
+- Users can switch enabled chat models before sending each message.
+- Chat is independent from image generation, prompt templates, and generation history.
+- Conversations and messages are persisted.
+- Users can create, continue, rename, and delete conversations.
+- Regular users and admins can use chat, but only see their own history.
+- Chat costs a configurable fixed number of credits per user message.
+- A cost of `0` means chat is free.
 
 ## Current Code Findings
 
-- Root `package.json` has workspaces `apps/api` and `apps/web`.
-- API uses Express, route modules under `apps/api/src/routes`, auth middleware `requireUser`, `requireActiveUser`, and `requireAdmin`.
-- Admin routes are mounted under `/api/admin`; existing redeem-code admin routes provide a useful CRUD-style pattern.
-- User generation handoff already exists: `GeneratePage` reads `sessionStorage.reusePrompt` and fills the prompt textarea.
+- Root `package.json` uses workspaces `apps/api` and `apps/web`.
+- API is Express with route modules under `apps/api/src/routes`.
+- Auth middleware provides `requireUser`, `requireActiveUser`, and `requireAdmin`.
 - Frontend routing and navigation live in `apps/web/src/App.tsx`.
 - Frontend API helpers and shared types live in `apps/web/src/api.ts`.
-- Existing CSS has reusable page, panel, table, modal, button, field, card, and mobile patterns in `apps/web/src/styles.css`.
-- Current UI source text appears as mojibake when read in PowerShell, but the app has been building successfully; preserve existing encoding/style and avoid unnecessary text churn.
+- Existing credit logic lives in `apps/api/src/credits.ts`.
+- Existing global settings logic lives in `apps/api/src/settingsService.ts`.
+- Existing encrypted settings helper is in `apps/api/src/cryptoSettings.ts`.
+- Existing relay image generation uses `config.OPENAI_BASE_URL`, `config.OPENAI_API_KEY`, and `fetch` in `apps/api/src/relay.ts`; chat should not reuse those env vars directly.
+- `settingsService.ts` validates the full settings object with zod and redacts secrets for non-secret reads; adding chat settings requires updating defaults, schema, definitions, patch type, flattening, and frontend `AppSettings`.
+- `credits.ts` already has transactional helpers that can be reused for chat debit/refund if `CreditTransactionType` and DB enum are extended.
+- Admin feature routes use separate modules mounted under `/api/admin`, with `requireUser, requireAdmin` at router level and audit logging per operation.
+- API key encryption for chat models can directly reuse `encryptSettingSecret` and `decryptSettingSecret`; list responses should expose only a boolean or masked state.
+- Existing UI source text can appear as mojibake in PowerShell output, but builds have succeeded. Preserve file encoding and avoid unnecessary text churn.
 
 ## Design Reference
 
-- Chinese design spec committed at `docs/superpowers/specs/2026-05-21-prompt-templates-design.md`.
-- Latest design commit: `5de358e Translate prompt templates design`.
+- Chinese design spec committed at `docs/superpowers/specs/2026-05-21-ai-chat-design.md`.
+- Latest design commit: `53b0cb8 Add AI chat module design`.
 
 ## Risks
 
-- UI text encoding display in PowerShell can be misleading; validate with typecheck/build rather than relying on terminal rendering.
-- The admin route namespace already has several modules. Mount order should avoid route conflicts.
-- Variable parsing should be shared or duplicated carefully between frontend and backend. Backend serialization should expose variables; frontend still needs rendering/replacement logic for the modal.
-- MySQL migration enum/status names must match TypeScript union types.
+- Streaming over fetch requires careful SSE framing and parsing on both backend and frontend.
+- Request abort handling may not reliably complete all cleanup if the HTTP connection closes abruptly.
+- Credit refund must be idempotent enough to avoid double refunds.
+- Extending MySQL enum `credit_transactions.type` must preserve existing values.
+- Model API keys need secure storage and masked admin display.
+- Admin default model changes should avoid leaving the system with no selectable model unless chat is disabled.
+- Large assistant replies should not be written to the database on every token; accumulate and write final state.

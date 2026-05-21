@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS generations (
 CREATE TABLE IF NOT EXISTS credit_transactions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
-  type ENUM('initial_grant', 'admin_adjustment', 'generation_debit', 'generation_refund', 'redeem_code_credit', 'generation_cancel_refund') NOT NULL,
+  type ENUM('initial_grant', 'admin_adjustment', 'generation_debit', 'generation_refund', 'redeem_code_credit', 'generation_cancel_refund', 'chat_message_debit', 'chat_message_refund') NOT NULL,
   amount INT NOT NULL,
   balance_after INT UNSIGNED NOT NULL,
   generation_id BIGINT UNSIGNED NULL,
@@ -130,6 +130,94 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   CONSTRAINT fk_credit_transactions_actor
     FOREIGN KEY (actor_user_id)
     REFERENCES users (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_models (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(160) NOT NULL,
+  model_key VARCHAR(160) NOT NULL,
+  base_url VARCHAR(1000) NOT NULL,
+  api_key_encrypted TEXT NULL,
+  status ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  description VARCHAR(500) NULL,
+  created_by BIGINT UNSIGNED NULL,
+  updated_by BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_chat_models_status_sort (status, sort_order, created_at),
+  INDEX idx_chat_models_default (is_default, status),
+  INDEX idx_chat_models_created_by (created_by),
+  INDEX idx_chat_models_updated_by (updated_by),
+  CONSTRAINT fk_chat_models_created_by
+    FOREIGN KEY (created_by)
+    REFERENCES users (id)
+    ON DELETE SET NULL,
+  CONSTRAINT fk_chat_models_updated_by
+    FOREIGN KEY (updated_by)
+    REFERENCES users (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  title_is_auto TINYINT(1) NOT NULL DEFAULT 1,
+  status ENUM('active', 'deleted') NOT NULL DEFAULT 'active',
+  last_message_at TIMESTAMP NULL,
+  deleted_at TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_chat_conversations_user_updated (user_id, updated_at),
+  INDEX idx_chat_conversations_user_status_last_message (user_id, status, last_message_at),
+  CONSTRAINT fk_chat_conversations_user
+    FOREIGN KEY (user_id)
+    REFERENCES users (id)
+    ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role ENUM('user', 'assistant', 'system') NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  status ENUM('streaming', 'completed', 'failed', 'cancelled') NOT NULL DEFAULT 'completed',
+  error_message TEXT NULL,
+  chat_model_id BIGINT UNSIGNED NULL,
+  model_name_snapshot VARCHAR(160) NULL,
+  model_key_snapshot VARCHAR(160) NULL,
+  credit_cost INT UNSIGNED NOT NULL DEFAULT 0,
+  credit_transaction_id BIGINT UNSIGNED NULL,
+  credit_refunded_at TIMESTAMP NULL,
+  metadata_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_chat_messages_conversation_created (conversation_id, created_at),
+  INDEX idx_chat_messages_user_created (user_id, created_at),
+  INDEX idx_chat_messages_model (chat_model_id),
+  INDEX idx_chat_messages_credit_transaction (credit_transaction_id),
+  CONSTRAINT fk_chat_messages_conversation
+    FOREIGN KEY (conversation_id)
+    REFERENCES chat_conversations (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_chat_messages_user
+    FOREIGN KEY (user_id)
+    REFERENCES users (id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_chat_messages_model
+    FOREIGN KEY (chat_model_id)
+    REFERENCES chat_models (id)
+    ON DELETE SET NULL,
+  CONSTRAINT fk_chat_messages_credit_transaction
+    FOREIGN KEY (credit_transaction_id)
+    REFERENCES credit_transactions (id)
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

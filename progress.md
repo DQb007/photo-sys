@@ -1,102 +1,75 @@
-# Progress: Prompt Templates Module
+# Progress: AI Chat Module
 
 ## Session: 2026-05-21
 
 ### Brainstorming and Spec
 
 - Status: complete
-- Read recent git history and project structure.
-- Confirmed latest implementation commit before this work was `d05c770`.
-- Used brainstorming flow and visual companion.
-- Initial scope included user submission, then user changed scope: remove user-provided submission logic.
-- Final scope: templates are admin-maintained; users only browse, favorite, copy, and use.
-- Wrote design spec in English, committed as `7502bc7 Add prompt templates design`.
-- User requested Chinese document.
-- Translated design spec to Chinese, committed as `5de358e Translate prompt templates design`.
-- User confirmed Chinese spec.
+- Read git history and project structure before designing.
+- Confirmed current HEAD had one commit after the user-mentioned `a3b0c13`: `729df32 Rename user navigation labels`.
+- Used brainstorming flow.
+- User accepted visual companion, but the helper server could not start in this Windows environment.
+- Confirmed first version is general-purpose chat, not prompt/image workflow.
+- Confirmed streaming replies are required.
+- Confirmed chat model configuration is separate from image generation.
+- Confirmed admin-managed multiple chat models and user-side model switching.
+- Confirmed conversation history is persisted and managed inside the Chat page.
+- Confirmed fixed per-message credit cost, configurable to `0`.
+- Wrote Chinese design spec and committed it as `53b0cb8 Add AI chat module design`.
+- User reviewed and confirmed the spec.
 
 ### Implementation Planning
 
 - Status: complete
-- Activated planning-with-files as the available equivalent to the missing writing-plans skill.
-- Replaced old cancellation planning files with prompt templates module plan.
-- Committed implementation plan as `d737f79 Add prompt templates implementation plan`.
+- Activated `planning-with-files` as the available implementation planning skill because `writing-plans` is not available in this session.
+- Replaced old prompt-template planning files with AI chat implementation plan.
+- Reviewed backend settings, encryption, credit transaction, admin route, prompt template route, redeem code route, and admin settings UI patterns.
+- Confirmed implementation should use separate chat route modules and extend the existing settings service schema.
 
-### Phase 1: Context and Pattern Review
-
-- Status: complete
-- Reviewed API DB types, admin route patterns, redeem-code user/admin routes, admin settings page, settings page, app navigation, and style conventions.
-- Confirmed `GeneratePage` already consumes `sessionStorage.reusePrompt`, so prompt library handoff can reuse existing behavior.
-- Confirmed backend should follow separate `/api/prompt-templates` and `/api/admin/prompt-templates` route modules.
-
-### Phase 2-4: Implementation
+### Phase 2-3: Backend Foundation and APIs
 
 - Status: complete
-- Added `prompt_templates` and `prompt_template_favorites` migration and schema entries.
-- Added backend prompt template row types, service module, variable parser, serializers, user routes, and admin routes.
-- Mounted `/api/prompt-templates` and `/api/admin/prompt-templates`.
-- Added frontend prompt template API types/helpers.
-- Added user Prompt Library page with search/filter, favorites, variable modal, copy, and Generate handoff.
-- Added admin Prompt Management page with create/edit/status/delete actions.
-- Added navigation/routes and prompt template CSS.
+- Added AI chat migration and base schema entries for `chat_models`, `chat_conversations`, and `chat_messages`.
+- Extended `credit_transactions.type` for `chat_message_debit` and `chat_message_refund`.
+- Added backend DB row types for chat models, conversations, and messages.
+- Extended app settings with `chat` settings.
+- Added chat model service with encrypted API key handling.
+- Added chat conversation/message service and serializers.
+- Added OpenAI-compatible streaming chat relay.
+- Added user chat routes under `/api/chat`.
+- Added admin chat model and chat settings routes under `/api/admin`.
+- Mounted new routes in `server.ts`.
+- API typecheck passed after fixing an audit-log target id type issue.
 
-### Phase 5: Verification and Commit
+### Phase 4-6: Frontend, Verification, and Commit
 
-- Status: complete
-- API typecheck, web typecheck, full build, lint, and diff check passed.
-- API smoke was not run because the database migration has to be applied first.
-
-### Phase 6: Admin Prompt Management Layout Fix
-
-- Status: complete
-- User reported the admin prompt management page layout was broken: form fields overlapped the template list.
-- Reworked the page into a list-first admin view.
-- Moved create/edit into a modal.
-- Added in-app delete confirmation modal.
-- Removed the split prompt admin grid that caused the overlap.
-- Web typecheck, lint, and web build passed.
-
-### Phase 7: Admin Prompt Management Visual Polish
-
-- Status: complete
-- User asked to beautify the prompt management page.
-- Reworked the admin list presentation with summary cards, richer template cells, prompt previews, status pills, variable badges, compact usage/sort/date display, and a better empty state.
-- Kept the admin workflow unchanged: list-first page, create/edit modal, status toggle, and delete confirmation modal.
-- Web typecheck, lint, and web build passed.
-
-### Phase 8: Prompt Template Example Images
-
-- Status: complete
-- User asked to remove the English eyebrow, remove the low-value updated-at table column, and add generated example images to templates.
-- Added optional `example_image_url` storage and API serialization.
-- Added an admin form field and preview for the example image URL.
-- Added admin table thumbnails and removed the updated-at column.
-- Added user prompt library card and modal image display.
-- Added migration `apps/api/db/migrations/2026-05-21-prompt-template-example-image.sql` for existing databases.
+- Status: in_progress
+- Added frontend chat types, API helpers, and streamed fetch parser.
+- Added user Chat page with internal conversation history, message stream, model selector, stop generation, rename, and delete.
+- Added admin AI Chat management page with chat settings and chat model CRUD/test/default workflows.
+- Added global navigation entries for AI Chat and admin AI Chat management.
+- Added responsive chat and admin chat CSS.
+- Removed an unused `Sparkles` import from `LoginPage.tsx` so lint can pass; file behavior was not changed.
+- API typecheck, web typecheck, full build, and web lint passed.
 
 ## Verification Results
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| Design spec self-review | Passed | Removed user submission from scope; retained only as non-goal/future expansion. |
-| Git status before implementation plan | Clean | Checked after `5de358e`. |
-| API typecheck | Passed | `npm run typecheck -w apps/api`. |
-| Web typecheck | Passed | `npm run typecheck -w apps/web`. |
-| Full build | Passed | `npm run build`. |
-| Web lint | Passed with existing warnings | 4 pre-existing warnings remain; prompt-template hook naming errors were fixed. |
-| Diff check | Passed | `git diff --check` reported no whitespace errors; only CRLF conversion warnings. |
-| API smoke | Passed | After user applied migration and restarted backend: login, create template, list active, favorite, list favorites, record use, disable hidden, and soft-delete all passed. Temporary smoke template was deleted. |
-| Admin UI layout fix typecheck | Passed | `npm run typecheck -w apps/web`. |
-| Admin UI layout fix lint | Passed with existing warnings | `npm run lint -w apps/web`; 4 pre-existing warnings remain. |
-| Admin UI layout fix build | Passed | `npm run build -w apps/web`. |
-| Admin UI polish typecheck | Passed | `npm run typecheck -w apps/web`. |
-| Admin UI polish lint | Passed with existing warnings | `npm run lint -w apps/web`; same 4 pre-existing warnings remain. |
-| Admin UI polish build | Passed | `npm run build -w apps/web`. |
-| Example image API typecheck | Passed | `npm run typecheck -w apps/api`. |
-| Example image web typecheck | Passed | `npm run typecheck -w apps/web`. |
+| Design spec self-review | Passed | Fixed inconsistent chat refund transaction naming before commit. |
+| Git status before implementation planning | Clean | Checked after spec commit. |
+| API typecheck after backend chat routes | Passed | `npm run typecheck -w apps/api`. |
+| Final API typecheck | Passed | `npm run typecheck -w apps/api`. |
+| Final web typecheck | Passed | `npm run typecheck -w apps/web`. |
+| Final full build | Passed | `npm run build`. |
+| Final web lint | Passed with existing warnings | `npm run lint -w apps/web`; 4 pre-existing warnings remain. |
+| Diff whitespace check | Passed | `git diff --check`; only CRLF conversion warnings. |
 
 ## Error Log
 
 | Time | Error | Attempt | Resolution |
 | --- | --- | --- | --- |
-| 2026-05-21 | `git add` failed due to dubious ownership | Design commit | Used per-command `git -c safe.directory=...` instead of global config changes. |
+| 2026-05-21 | Bash/WSL was unavailable for visual companion startup | Start companion via `start-server.sh` | Continued without live companion; can use static HTML later if visual comparison is needed. |
+| 2026-05-21 | Node process startup for companion hit environment setup issues | Start companion via PowerShell/.NET Process | Continued text-first because the immediate questions were not visual. |
+| 2026-05-21 | `git status` failed due to dubious ownership | Spec self-review | Added the repo to global Git safe.directory for this environment. |
+| 2026-05-21 | API typecheck failed on `targetId` type in admin chat model test audit logging | First API typecheck after backend routes | Normalized `req.params.id` to a string before passing it to `writeAuditLog`. |

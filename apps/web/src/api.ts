@@ -5,6 +5,9 @@ export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed'
 export type UserRole = 'user' | 'admin';
 export type UserStatus = 'pending_email_verification' | 'active' | 'disabled';
 export type PromptTemplateStatus = 'active' | 'disabled';
+export type ChatModelStatus = 'active' | 'disabled';
+export type ChatMessageStatus = 'streaming' | 'completed' | 'failed' | 'cancelled';
+export type ChatMessageRole = 'user' | 'assistant' | 'system';
 
 export interface User {
   id: number;
@@ -85,6 +88,14 @@ export interface AppSettings {
     costPerImage: number;
     initialBalance: number;
     refundOnFailure: boolean;
+  };
+  chat: {
+    enabled: boolean;
+    messageCreditCost: number;
+    systemPrompt: string;
+    maxInputChars: number;
+    maxHistoryMessages: number;
+    requestTimeoutMs: number;
   };
 }
 
@@ -185,6 +196,68 @@ export interface AuditLog {
   user_agent: string | null;
   created_at: string;
 }
+
+export interface ChatModel {
+  id: number;
+  name: string;
+  modelKey: string;
+  baseUrl?: string;
+  status: ChatModelStatus;
+  isDefault: boolean;
+  sortOrder: number;
+  description: string | null;
+  hasApiKey: boolean;
+  createdBy: number | null;
+  updatedBy: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatSettings {
+  enabled: boolean;
+  messageCreditCost: number;
+  systemPrompt?: string;
+  maxInputChars: number;
+  maxHistoryMessages: number;
+  requestTimeoutMs?: number;
+}
+
+export interface ChatConversation {
+  id: number;
+  userId: number;
+  title: string;
+  titleIsAuto: boolean;
+  status: 'active' | 'deleted';
+  lastMessageAt: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: number;
+  userId: number;
+  role: ChatMessageRole;
+  content: string;
+  status: ChatMessageStatus;
+  errorMessage: string | null;
+  chatModelId: number | null;
+  modelNameSnapshot: string | null;
+  modelKeySnapshot: string | null;
+  creditCost: number;
+  creditTransactionId: number | null;
+  creditRefundedAt: string | null;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ChatStreamEvent =
+  | { event: 'message_created'; data: { userMessage: ChatMessage; assistantMessage: ChatMessage } }
+  | { event: 'delta'; data: { delta: string } }
+  | { event: 'completed'; data: { assistantMessage: ChatMessage; conversation: ChatConversation } }
+  | { event: 'failed'; data: { error: string; assistantMessage?: ChatMessage; refund?: CreditTransaction | null } };
 
 export class ApiError extends Error {
   status: number;
@@ -557,6 +630,137 @@ export async function deleteAdminPromptTemplate(id: number) {
   await request(`/admin/prompt-templates/${id}`, { method: 'DELETE' });
 }
 
+export async function getChatSettings() {
+  return request<ChatSettings>('/chat/settings');
+}
+
+export async function listChatModels() {
+  return request<{ items: ChatModel[]; defaultModelId: number | null }>('/chat/models');
+}
+
+export async function listChatConversations() {
+  return request<{ items: ChatConversation[] }>('/chat/conversations');
+}
+
+export async function createChatConversation(title?: string) {
+  return request<{ item: ChatConversation }>('/chat/conversations', {
+    method: 'POST',
+    body: JSON.stringify({ title: title || '' })
+  });
+}
+
+export async function updateChatConversation(id: number, title: string) {
+  return request<{ item: ChatConversation }>(`/chat/conversations/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title })
+  });
+}
+
+export async function deleteChatConversation(id: number) {
+  await request(`/chat/conversations/${id}`, { method: 'DELETE' });
+}
+
+export async function listChatMessages(conversationId: number) {
+  return request<{ items: ChatMessage[] }>(`/chat/conversations/${conversationId}/messages`);
+}
+
+export async function streamChatMessage(input: {
+  conversationId: number;
+  content: string;
+  chatModelId: number;
+  signal?: AbortSignal;
+  onEvent: (event: ChatStreamEvent) => void;
+}) {
+  const response = await fetch(`${API_BASE_URL}/chat/conversations/${input.conversationId}/messages/stream`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      content: input.content,
+      chatModelId: input.chatModelId
+    }),
+    signal: input.signal
+  });
+
+  if (!response.ok || !response.body) {
+    await parseResponse(response);
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const frames = buffer.split(/\r?\n\r?\n/);
+    buffer = frames.pop() || '';
+    for (const frame of frames) {
+      const event = parseSseFrame(frame);
+      if (event) input.onEvent(event);
+    }
+  }
+  if (buffer.trim()) {
+    const event = parseSseFrame(buffer);
+    if (event) input.onEvent(event);
+  }
+}
+
+export async function getAdminChatSettings() {
+  return request<{ settings: Required<ChatSettings> }>('/admin/chat-settings');
+}
+
+export async function updateAdminChatSettings(settings: Partial<Required<ChatSettings>>) {
+  return request<{ settings: Required<ChatSettings> }>('/admin/chat-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(settings)
+  });
+}
+
+export async function listAdminChatModels() {
+  return request<{ items: ChatModel[] }>('/admin/chat-models');
+}
+
+export async function createAdminChatModel(input: {
+  name: string;
+  modelKey: string;
+  baseUrl: string;
+  apiKey?: string;
+  status?: ChatModelStatus;
+  isDefault?: boolean;
+  sortOrder?: number;
+  description?: string;
+}) {
+  return request<{ item: ChatModel }>('/admin/chat-models', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function updateAdminChatModel(id: number, input: Partial<{
+  name: string;
+  modelKey: string;
+  baseUrl: string;
+  apiKey: string;
+  status: ChatModelStatus;
+  isDefault: boolean;
+  sortOrder: number;
+  description: string;
+}>) {
+  return request<{ item: ChatModel }>(`/admin/chat-models/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function disableAdminChatModel(id: number) {
+  return request<{ item: ChatModel }>(`/admin/chat-models/${id}`, { method: 'DELETE' });
+}
+
+export async function testAdminChatModel(id: number) {
+  return request<{ ok: boolean }>(`/admin/chat-models/${id}/test`, { method: 'POST' });
+}
+
 async function request<T = unknown>(path: string, init: RequestInit = {}, includeAuth = true): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -608,4 +812,20 @@ function appendToken(url: string) {
   if (!token || url.includes('token=')) return url;
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}token=${encodeURIComponent(token)}`;
+}
+
+function parseSseFrame(frame: string): ChatStreamEvent | null {
+  const eventLine = frame.split(/\r?\n/).find((line) => line.startsWith('event:'));
+  const event = eventLine?.slice(6).trim();
+  const data = frame
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice(5).trim())
+    .join('\n');
+  if (!event || !data) return null;
+  try {
+    return { event, data: JSON.parse(data) } as ChatStreamEvent;
+  } catch {
+    return null;
+  }
 }

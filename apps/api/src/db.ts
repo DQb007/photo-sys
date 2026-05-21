@@ -34,10 +34,16 @@ export type CreditTransactionType =
   | 'generation_debit'
   | 'generation_refund'
   | 'redeem_code_credit'
-  | 'generation_cancel_refund';
+  | 'generation_cancel_refund'
+  | 'chat_message_debit'
+  | 'chat_message_refund';
 export type RedeemPackageStatus = 'active' | 'disabled';
 export type RedeemCodeStatus = 'active' | 'disabled' | 'redeemed';
 export type PromptTemplateStatus = 'active' | 'disabled';
+export type ChatModelStatus = 'active' | 'disabled';
+export type ChatConversationStatus = 'active' | 'deleted';
+export type ChatMessageRole = 'user' | 'assistant' | 'system';
+export type ChatMessageStatus = 'streaming' | 'completed' | 'failed' | 'cancelled';
 
 export interface GenerationRow extends RowDataPacket {
   id: number;
@@ -147,6 +153,53 @@ export interface PromptTemplateRow extends RowDataPacket {
   created_by: number | null;
   updated_by: number | null;
   deleted_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ChatModelRow extends RowDataPacket {
+  id: number;
+  name: string;
+  model_key: string;
+  base_url: string;
+  api_key_encrypted: string | null;
+  status: ChatModelStatus;
+  is_default: 0 | 1;
+  sort_order: number;
+  description: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ChatConversationRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  title: string;
+  title_is_auto: 0 | 1;
+  status: ChatConversationStatus;
+  last_message_at: Date | null;
+  deleted_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ChatMessageRow extends RowDataPacket {
+  id: number;
+  conversation_id: number;
+  user_id: number;
+  role: ChatMessageRole;
+  content: string;
+  status: ChatMessageStatus;
+  error_message: string | null;
+  chat_model_id: number | null;
+  model_name_snapshot: string | null;
+  model_key_snapshot: string | null;
+  credit_cost: number;
+  credit_transaction_id: number | null;
+  credit_refunded_at: Date | null;
+  metadata_json: unknown;
   created_at: Date;
   updated_at: Date;
 }

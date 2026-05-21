@@ -1,12 +1,12 @@
-# Task Plan: Prompt Templates Module
+# Task Plan: AI Chat Module
 
 ## Goal
 
-Implement the administrator-maintained prompt templates module defined in:
+Implement the AI chat module defined in:
 
-`docs/superpowers/specs/2026-05-21-prompt-templates-design.md`
+`docs/superpowers/specs/2026-05-21-ai-chat-design.md`
 
-Users should be able to browse active prompt templates, favorite templates, fill `{variable}` placeholders, copy the rendered prompt, and send the rendered prompt to the existing Generate page. Administrators should be able to create, edit, enable, disable, and soft-delete templates.
+Users and administrators should be able to use an independent general-purpose chat page with streamed AI replies, personal conversation history, selectable admin-configured chat models, and fixed per-message credit charging that can be configured to `0` for free use.
 
 ## Current Phase
 
@@ -14,112 +14,94 @@ Complete
 
 ## Phases
 
-### Phase 1: Context and Planning
+### Phase 1: Context and Implementation Planning
 
-- [x] Confirm final scope: admin-maintained templates only; users can favorite and use templates.
+- [x] Confirm final scope through brainstorming.
 - [x] Write and commit Chinese design spec.
-- [x] Replace old root planning files with prompt templates implementation plan.
-- [x] Inspect current backend admin/user route patterns, frontend navigation, and admin page conventions before editing.
+- [x] Replace prior root planning files with AI chat implementation plan.
+- [x] Inspect current backend settings, encryption, credits, admin routes, and frontend navigation/page conventions before editing.
 - **Status:** complete
 
 ### Phase 2: Database and Backend Foundation
 
-- [x] Add prompt template migration.
+- [x] Add AI chat migration.
 - [x] Update base schema.
-- [x] Add prompt template service/module with serializers and variable parser.
-- [x] Add user prompt template routes.
-- [x] Add admin prompt template routes.
+- [x] Extend credit transaction type handling for chat debit/refund.
+- [x] Add DB row types for chat models, conversations, and messages.
+- [x] Add chat settings defaults and service helpers.
+- [x] Add model encryption/decryption handling using existing settings encryption patterns.
+- **Status:** complete
+
+### Phase 3: Backend Chat and Admin APIs
+
+- [x] Add chat model service/module.
+- [x] Add conversation/message service/module.
+- [x] Add OpenAI-compatible streaming chat relay.
+- [x] Add user chat routes including streamed POST endpoint.
+- [x] Add admin chat settings routes.
+- [x] Add admin chat model routes.
 - [x] Mount routes in API server.
-- [x] Add audit logging for admin actions.
+- [x] Add audit logging for admin chat settings/model actions.
 - **Status:** complete
 
-### Phase 3: Frontend API and User Prompt Library
+### Phase 4: Frontend API and User Chat Page
 
-- [x] Add frontend prompt template types and API helpers.
-- [x] Add user Prompt Library page.
-- [x] Implement search, scope/category filtering, cards, favorite/unfavorite, and use modal.
-- [x] Reuse `sessionStorage.reusePrompt` for Generate page handoff.
-- [x] Add user navigation and route.
+- [x] Add frontend chat types and API helpers.
+- [x] Implement streamed fetch/SSE parser with abort support.
+- [x] Add user Chat page with conversation list, message list, model selector, input, streaming state, stop button, rename, and delete.
+- [x] Add responsive mobile history drawer behavior.
+- [x] Add user/admin navigation and route for `/chat`.
 - **Status:** complete
 
-### Phase 4: Admin Prompt Management UI
+### Phase 5: Admin Chat Management UI
 
-- [x] Add admin Prompt Management page.
-- [x] Implement create/edit form.
-- [x] Implement template list/table with status, variables, usage count, sort order, and actions.
-- [x] Add admin navigation and route.
+- [x] Add admin chat settings UI.
+- [x] Add admin chat model management UI.
+- [x] Support create/edit/enable/disable/default/test model workflows.
+- [x] Ensure API keys are masked and only updated when provided.
+- [x] Add admin navigation/routes.
 - **Status:** complete
 
-### Phase 5: Styling, Mobile, and Verification
+### Phase 6: Styling, Verification, and Commit
 
-- [x] Add CSS using existing panel/card/table/modal/mobile patterns.
+- [x] Add CSS using existing operational admin and app page patterns.
 - [x] Run API typecheck.
 - [x] Run web typecheck.
 - [x] Run full build.
 - [x] Run web lint.
-- [x] Run targeted manual or API smoke checks where practical.
-- [x] Commit implementation.
-- **Status:** complete
-
-### Phase 6: Admin Prompt Management Layout Fix
-
-- [x] Convert admin prompt management to list-first layout.
-- [x] Move create/edit into a modal dialog.
-- [x] Replace browser `confirm()` delete with in-app confirmation modal.
-- [x] Remove split grid layout that caused form fields to overlap the table.
-- [x] Run web typecheck.
-- [x] Run web lint.
-- [x] Run web build.
-- **Status:** complete
-
-### Phase 7: Admin Prompt Management Visual Polish
-
-- [x] Add summary cards for template counts, status counts, variables, and usage.
-- [x] Improve table hierarchy with prompt previews, category/description metadata, status pills, and compact metrics.
-- [x] Improve empty-state presentation.
-- [x] Keep create/edit/delete behavior unchanged.
-- [x] Run web typecheck.
-- [x] Run web lint.
-- [x] Run web build.
-- **Status:** complete
-
-### Phase 8: Prompt Template Example Images
-
-- [x] Remove the English eyebrow above Prompt Management.
-- [x] Remove the updated-at column from the admin template table.
-- [x] Add an optional example image URL field to prompt templates.
-- [x] Show example image thumbnails in admin prompt management.
-- [x] Show example images in the user prompt library cards and use modal.
-- [x] Add a database migration for existing deployments.
-- [x] Run API typecheck.
-- [x] Run web typecheck.
-- **Status:** complete
+- [x] Run targeted smoke checks where practical.
+- [ ] Commit implementation.
+- **Status:** in_progress
 
 ## Key Constraints
 
-1. Users cannot create, submit, or request public prompt templates in this version.
-2. Prompt templates must not create generations directly.
-3. The Generate page handoff must reuse `sessionStorage.reusePrompt`.
-4. Do not modify `generations` or credit behavior.
-5. Favorite and unfavorite should be idempotent.
-6. Disabled templates are hidden from user lists, including favorites.
-7. Existing project has no dedicated test framework; use typecheck/build/lint and targeted smoke checks.
+1. AI chat is independent from image generation in v1.
+2. Do not add prompt-library or generation-page handoff behavior.
+3. Global navigation gets only one AI Chat entry; conversation history stays inside the Chat page.
+4. Users and admins can only see their own conversations.
+5. Admins cannot inspect all user conversations in v1.
+6. Chat models are configured separately from image generation settings.
+7. Users can switch enabled models per message.
+8. Per-message credit cost must be dynamically configurable and may be `0`.
+9. Streaming must use POST with auth, so frontend should use `fetch` + `ReadableStream`, not `EventSource`.
+10. Preserve existing user changes and avoid unrelated refactors.
 
 ## Decisions
 
 | Decision | Reason |
 | --- | --- |
-| Admin-maintained templates only | User explicitly removed user submission/request flow. |
-| Favorites represent "my prompts" in v1 | Keeps user scope small while still letting users save preferred prompts. |
-| Parse variables from `{name}` in prompt text | Avoids variable configuration UI in v1. |
-| Reuse `sessionStorage.reusePrompt` | Generate page already supports this path from History reuse. |
-| No audit log for user use events | Usage may be frequent; aggregate `usage_count` is enough for v1. |
-| Admin prompt management is list-first | Avoids cramped split-pane overlap and matches operational admin workflow. |
-| Prompt management polish stays operational | Admins need faster scanning and safer actions, not a decorative landing-style page. |
-| Example image is stored as a URL | Keeps v1 simple and lets admins reuse generated image URLs without adding a picker workflow yet. |
+| Use an internal conversation list inside `/chat` | Avoids overlap with global nav and existing image generation history. |
+| Persist conversations and messages | General chat is weak without history. |
+| Stream replies through SSE-style events over fetch | Supports POST body and Authorization header. |
+| Model applies per message, not per conversation | Lets users switch models within an ongoing conversation while retaining accurate snapshots. |
+| Store model snapshots on messages | Historical replies should remain understandable if admins rename or disable models. |
+| Fixed per-user-message credit cost | User requested configurable fixed cost, with `0` meaning free. |
+| Refund on failed, interrupted, or stopped generation | Keeps first-version billing user-friendly and simple. |
+| Admin model management is in v1 | User confirmed multiple chat models and user-side switching are required. |
 
 ## Error Log
 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
-| Git dubious ownership blocked normal add/commit | Design phase | Used per-command `git -c safe.directory=D:/project/ai-code-project/photo-sys ...` without changing global config. |
+| Visual companion server could not start via Bash/WSL or Node process setup | Brainstorming | Continued text-first; visual mockups can be static HTML if needed. |
+| Git dubious ownership blocked `git status` during spec review | Spec self-review | Added this repository to Git safe.directory in the current environment. |
