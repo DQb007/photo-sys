@@ -836,8 +836,20 @@ textarea {
 .historyBody dl {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 0;
   margin: 0 0 14px;
+}
+
+.historyBody dl > div {
+  min-width: 0;
+}
+
+.historyBody dl > div:nth-child(2) {
+  text-align: center;
+}
+
+.historyBody dl > div:nth-child(3) {
+  text-align: right;
 }
 
 dt {
