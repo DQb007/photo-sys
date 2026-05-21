@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, Image, KeyRound, RefreshCcw, RotateCcw, Search, Shield, UserCheck, UsersRound, UserX, X } from 'lucide-react';
+import { Coins, Image, KeyRound, RotateCcw, Search, Shield, UserCheck, UsersRound, UserX, X } from 'lucide-react';
 import {
   adjustAdminUserCredits,
   listAdminUsers,
@@ -156,10 +156,6 @@ export function AdminUsersPage() {
         <div>
           <h1>用户管理</h1>
         </div>
-        <button className="ghostButton" type="button" onClick={() => void load()}>
-          <RefreshCcw size={16} />
-          刷新
-        </button>
       </header>
 
       <section className="adminUserStats">

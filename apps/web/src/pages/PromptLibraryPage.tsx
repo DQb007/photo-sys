@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Heart, Loader2, RefreshCcw, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
 import {
   favoritePromptTemplate,
   listPromptTemplates,
@@ -134,10 +134,6 @@ export function PromptLibraryPage() {
         <div>
           <h1>提示词库</h1>
         </div>
-        <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>
-          <RefreshCcw size={16} />
-          刷新
-        </button>
       </header>
 
       <section className="promptLibraryToolbar">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CopyPlus, RefreshCcw, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
+import { CopyPlus, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -77,10 +77,6 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         <div>
           <h1>{mode === 'admin' ? '图片管理' : '生成历史'}</h1>
         </div>
-        <button className="ghostButton" onClick={() => void load()}>
-          <RefreshCcw size={16} />
-          刷新
-        </button>
       </header>
 
       <section className="historyToolbar">
