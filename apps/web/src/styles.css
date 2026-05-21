@@ -755,12 +755,12 @@
 }
 
 .adminChatSwitchRow {
-  min-height: 54px;
+  min-height: 34px;
   margin-top: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfaf6;
-  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .adminChatSwitchRow span {
@@ -797,18 +797,18 @@
 
 .adminChatSaveButton {
   justify-self: start;
-  margin-top: 18px;
+  margin-top: 22px;
   margin-bottom: 22px;
 }
 
 .adminChatModelCard {
   display: grid;
-  gap: 14px;
+  gap: 0;
 }
 
 .adminChatSettingsCard > .field,
 .adminChatModelCard > .field {
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .adminChatSettingsCard > .adminChatSwitchRow,
@@ -823,8 +823,8 @@
 
 .adminChatSwitchGrid {
   display: grid;
-  gap: 10px;
-  margin-top: 2px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .adminChatActions {
@@ -832,7 +832,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 0;
+  margin-top: 18px;
   margin-bottom: 22px;
   padding-top: 0;
 }
