@@ -44,7 +44,7 @@ function ProtectedShell() {
   }, [location.pathname]);
 
   if (auth.isLoading) {
-    return <div className="authPage"><div className="panel authPanel">加载中...</div></div>;
+    return <div className="appLoadingPage"><div className="panel appLoadingPanel">加载中...</div></div>;
   }
 
   if (!auth.user) {

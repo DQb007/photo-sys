@@ -102,6 +102,16 @@ export function AuthLayout({ title, eyebrow, children }: { title: string; eyebro
               把想象交给 AI，把惊喜留给作品。每一次生成，都是一次新的风格实验。
             </p>
           </div>
+          <div className="authLiveDemo" aria-hidden="true">
+            <div className="authLiveFrame">
+              <span className="authLiveOrbit authLiveOrbitOne" />
+              <span className="authLiveOrbit authLiveOrbitTwo" />
+              <span className="authLiveCore" />
+              <span className="authLiveTrace authLiveTraceOne" />
+              <span className="authLiveTrace authLiveTraceTwo" />
+              <span className="authLiveTrace authLiveTraceThree" />
+            </div>
+          </div>
           <div className="authSlogan">一张图，打开一个新世界</div>
           <div className="authFeatureGrid authCopyGrid">
             <div>

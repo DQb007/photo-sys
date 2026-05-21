@@ -135,6 +135,18 @@ select {
   padding: 34px;
 }
 
+.appLoadingPage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.appLoadingPanel {
+  padding: 24px 28px;
+  color: var(--muted);
+}
+
 .page {
   max-width: 1240px;
   margin: 0 auto;
@@ -1200,6 +1212,7 @@ code {
   inset: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 0;
 }
 
 .authBeam,
@@ -1377,7 +1390,7 @@ code {
   position: relative;
   z-index: 1;
   max-width: 650px;
-  padding: 58px 0 34px;
+  padding: 42px 0 18px;
   animation: authRiseIn 700ms ease 80ms both;
 }
 
@@ -1400,6 +1413,93 @@ code {
   color: rgba(255, 255, 255, 0.72);
   font-size: 16px;
   line-height: 1.8;
+}
+
+.authLiveDemo {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 170px;
+  margin: 2px 0 22px;
+  border: 1px solid rgba(158, 230, 205, 0.24);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(158, 230, 205, 0.24), transparent 34%),
+    linear-gradient(90deg, rgba(158, 230, 205, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(158, 230, 205, 0.08) 1px, transparent 1px),
+    rgba(255, 255, 255, 0.06);
+  background-size: auto, 28px 28px, 28px 28px, auto;
+  box-shadow: inset 0 0 44px rgba(158, 230, 205, 0.1);
+  overflow: hidden;
+  animation: authLiveGrid 4.5s linear infinite;
+}
+
+.authLiveFrame {
+  position: relative;
+  width: min(300px, 70%);
+  aspect-ratio: 1;
+}
+
+.authLiveCore,
+.authLiveOrbit,
+.authLiveTrace {
+  position: absolute;
+  display: block;
+  left: 50%;
+  top: 50%;
+}
+
+.authLiveCore {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  background: #9ee6cd;
+  box-shadow:
+    0 0 18px rgba(158, 230, 205, 0.95),
+    0 0 70px rgba(158, 230, 205, 0.5);
+  animation: authLiveCore 1.35s ease-in-out infinite;
+}
+
+.authLiveOrbit {
+  border: 1px solid rgba(158, 230, 205, 0.42);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.authLiveOrbitOne {
+  width: 128px;
+  height: 128px;
+  animation: authLiveOrbit 3s linear infinite;
+}
+
+.authLiveOrbitTwo {
+  width: 210px;
+  height: 210px;
+  border-style: dashed;
+  opacity: 0.72;
+  animation: authLiveOrbit 6s linear reverse infinite;
+}
+
+.authLiveTrace {
+  width: 120px;
+  height: 2px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(158, 230, 205, 0.95), transparent);
+  box-shadow: 0 0 18px rgba(158, 230, 205, 0.5);
+}
+
+.authLiveTraceOne {
+  animation: authLiveTraceOne 2.4s linear infinite;
+}
+
+.authLiveTraceTwo {
+  animation: authLiveTraceTwo 3.1s linear infinite;
+}
+
+.authLiveTraceThree {
+  animation: authLiveTraceThree 3.8s linear infinite;
 }
 
 .authSlogan {
@@ -1700,6 +1800,63 @@ code {
   }
 }
 
+@keyframes authLiveGrid {
+  from {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  to {
+    background-position: 0 0, 28px 0, 0 28px, 0 0;
+  }
+}
+
+@keyframes authLiveCore {
+  0%,
+  100% {
+    transform: scale(0.82);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 1;
+  }
+}
+
+@keyframes authLiveOrbit {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.96);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg) scale(1.04);
+  }
+}
+
+@keyframes authLiveTraceOne {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes authLiveTraceTwo {
+  from {
+    transform: rotate(118deg);
+  }
+  to {
+    transform: rotate(478deg);
+  }
+}
+
+@keyframes authLiveTraceThree {
+  from {
+    transform: rotate(236deg);
+  }
+  to {
+    transform: rotate(596deg);
+  }
+}
+
 @keyframes authFloat {
   0%,
   100% {
@@ -1777,6 +1934,10 @@ code {
   .authBrandLockup,
   .authHeroCopy,
   .authHeroCopy h1,
+  .authLiveDemo,
+  .authLiveCore,
+  .authLiveOrbit,
+  .authLiveTrace,
   .authSlogan,
   .authFeatureGrid > div,
   .authFlow,
