@@ -221,6 +221,188 @@
   align-items: start;
 }
 
+.adminUserStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.adminUserStat {
+  min-height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  gap: 3px 12px;
+  padding: 16px;
+  box-shadow: 0 18px 44px rgba(24, 24, 20, 0.05);
+}
+
+.adminUserStat svg {
+  grid-area: icon;
+  color: var(--accent);
+}
+
+.adminUserStat span {
+  grid-area: label;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.adminUserStat strong {
+  grid-area: value;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.adminUserStat.pending svg {
+  color: #a8711a;
+}
+
+.adminUserStat.admin svg {
+  color: #49566d;
+}
+
+.adminUserToolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 180px 200px auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.adminUserSearch {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+.adminUserSearch svg {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.adminUserSearch input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  font: inherit;
+}
+
+.adminUsersPanel table {
+  min-width: 980px;
+}
+
+.adminUsersPanel th {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.adminUsersPanel td {
+  vertical-align: middle;
+}
+
+.adminUserIdentity {
+  display: grid;
+  gap: 5px;
+}
+
+.adminUserIdentity strong {
+  font-size: 15px;
+}
+
+.adminUserIdentity span,
+.adminUserIdentity small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.adminUserPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.adminUserPill.role.admin {
+  background: #eef2f7;
+  color: #344153;
+  border-color: #d9e1eb;
+}
+
+.adminUserPill.role.user {
+  background: #edf6f1;
+  color: var(--accent);
+  border-color: #d7eadf;
+}
+
+.adminUserPill.status.active {
+  background: #edf6f1;
+  color: var(--accent);
+  border-color: #d7eadf;
+}
+
+.adminUserPill.status.pending_email_verification {
+  background: #fff5df;
+  color: #976515;
+  border-color: #f1d99d;
+}
+
+.adminUserPill.status.disabled {
+  background: #fff0ee;
+  color: var(--danger);
+  border-color: #f2d2ce;
+}
+
+.adminUserMetric {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: rgba(250, 248, 243, 0.72);
+}
+
+.adminUserMetric svg {
+  color: var(--muted);
+}
+
+.adminUserActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  gap: 8px;
+  align-items: center;
+}
+
+.adminUserActions .ghostButton,
+.adminUserActions .dangerButton {
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -3240,6 +3422,18 @@ th {
   }
 
   .adminChatGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminUserStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminUserToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .adminUserActions {
     grid-template-columns: 1fr;
   }
 }

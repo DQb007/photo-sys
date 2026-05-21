@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Coins, KeyRound, RefreshCcw, Shield, UserX, X } from 'lucide-react';
-import { adjustAdminUserCredits, listAdminUsers, resetAdminUserPassword, updateAdminUser, type AdminUser } from '../api';
+import { Coins, Image, KeyRound, RefreshCcw, Search, Shield, UserCheck, UsersRound, UserX, X } from 'lucide-react';
+import {
+  adjustAdminUserCredits,
+  listAdminUsers,
+  resetAdminUserPassword,
+  updateAdminUser,
+  type AdminUser,
+  type UserRole,
+  type UserStatus
+} from '../api';
 import { useAuth } from '../auth';
+import { SelectField } from '../SelectField';
 
 const emptyPasswordForm = {
   password: '',
@@ -18,6 +27,8 @@ export function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState('');
+  const [role, setRole] = useState('');
+  const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
@@ -28,19 +39,31 @@ export function AdminUsersPage() {
   const [creditError, setCreditError] = useState('');
   const [isAdjustingCredit, setIsAdjustingCredit] = useState(false);
 
-  async function load() {
+  const summary = useMemo(() => ({
+    total: users.length,
+    active: users.filter((item) => item.status === 'active').length,
+    pending: users.filter((item) => item.status === 'pending_email_verification').length,
+    admins: users.filter((item) => item.role === 'admin').length
+  }), [users]);
+
+  const load = useCallback(async () => {
     setError('');
     try {
-      const payload = await listAdminUsers({ search });
+      const payload = await listAdminUsers({ search, role, status });
       setUsers(payload.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取用户失败');
     }
-  }
+  }, [role, search, status]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
+
+  function submitSearch(event: FormEvent) {
+    event.preventDefault();
+    void load();
+  }
 
   async function patchUser(id: number, patch: Parameters<typeof updateAdminUser>[1]) {
     await updateAdminUser(id, patch);
@@ -98,22 +121,75 @@ export function AdminUsersPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page adminUsersPage">
       <header className="pageHeader">
         <div>
           <h1>用户管理</h1>
         </div>
-        <button className="ghostButton" onClick={() => void load()}>
+        <button className="ghostButton" type="button" onClick={() => void load()}>
           <RefreshCcw size={16} />
           刷新
         </button>
       </header>
-      <div className="historyToolbar">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索邮箱或昵称" />
-        <button className="primaryButton compact" onClick={() => void load()}>搜索</button>
-      </div>
+
+      <section className="adminUserStats">
+        <div className="adminUserStat">
+          <UsersRound size={18} />
+          <span>总用户</span>
+          <strong>{summary.total}</strong>
+        </div>
+        <div className="adminUserStat active">
+          <UserCheck size={18} />
+          <span>活跃用户</span>
+          <strong>{summary.active}</strong>
+        </div>
+        <div className="adminUserStat pending">
+          <Shield size={18} />
+          <span>待验证</span>
+          <strong>{summary.pending}</strong>
+        </div>
+        <div className="adminUserStat admin">
+          <Shield size={18} />
+          <span>管理员</span>
+          <strong>{summary.admins}</strong>
+        </div>
+      </section>
+
+      <form className="adminUserToolbar" onSubmit={submitSearch}>
+        <label className="adminUserSearch">
+          <Search size={16} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索邮箱或昵称" />
+        </label>
+        <SelectField
+          label="角色"
+          value={role}
+          options={[
+            { label: '全部角色', value: '' },
+            { label: '普通用户', value: 'user' },
+            { label: '管理员', value: 'admin' }
+          ]}
+          onChange={setRole}
+        />
+        <SelectField
+          label="状态"
+          value={status}
+          options={[
+            { label: '全部状态', value: '' },
+            { label: '活跃', value: 'active' },
+            { label: '待验证', value: 'pending_email_verification' },
+            { label: '已禁用', value: 'disabled' }
+          ]}
+          onChange={setStatus}
+        />
+        <button className="primaryButton compact" type="submit">
+          <Search size={16} />
+          搜索
+        </button>
+      </form>
+
       {error && <div className="errorBox">{error}</div>}
-      <div className="panel tablePanel">
+
+      <div className="panel tablePanel adminUsersPanel">
         <table>
           <thead>
             <tr>
@@ -121,61 +197,85 @@ export function AdminUsersPage() {
               <th>角色</th>
               <th>状态</th>
               <th>积分</th>
-              <th>生成</th>
               <th>图片</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => {
-              const isSelf = user.id === currentUser?.id;
-              const cannotDemoteSelf = isSelf && user.role === 'admin';
-              const cannotDisableSelf = isSelf && user.status !== 'disabled';
+            {users.map((item) => {
+              const isSelf = item.id === currentUser?.id;
+              const cannotDemoteSelf = isSelf && item.role === 'admin';
+              const cannotDisableSelf = isSelf && item.status !== 'disabled';
               return (
-                <tr key={user.id}>
-                  <td><strong>{user.email}</strong><span>{user.displayName || '-'}</span></td>
-                  <td>{user.role}</td>
-                  <td>{user.status}</td>
-                  <td>{user.creditBalance}</td>
-                  <td>{user.generationCount} / 成功 {user.succeededCount} / 失败 {user.failedCount}</td>
-                  <td>{user.imageCount}</td>
-                  <td className="tableActions">
-                    <button
-                      className="ghostButton"
-                      disabled={cannotDemoteSelf}
-                      title={cannotDemoteSelf ? '不能降级当前登录管理员' : undefined}
-                      onClick={() => void patchUser(user.id, { role: user.role === 'admin' ? 'user' : 'admin' })}
-                    >
-                      <Shield size={14} />
-                      {user.role === 'admin' ? '降级' : '设管理员'}
-                    </button>
-                    <button
-                      className="dangerButton"
-                      disabled={cannotDisableSelf}
-                      title={cannotDisableSelf ? '不能禁用当前登录管理员' : undefined}
-                      onClick={() => void patchUser(user.id, { status: user.status === 'disabled' ? 'active' : 'disabled' })}
-                    >
-                      <UserX size={14} />
-                      {user.status === 'disabled' ? '启用' : '禁用'}
-                    </button>
-                    <button className="ghostButton" onClick={() => openPasswordModal(user)}>
-                      <KeyRound size={14} />
-                      重置密码
-                    </button>
-                    <button className="ghostButton" onClick={() => openCreditModal(user)}>
-                      <Coins size={14} />
-                      调整积分
-                    </button>
-                    <Link className="ghostButton" to={`/admin/users/${user.id}/generations`}>
-                      生成记录
-                    </Link>
+                <tr key={item.id}>
+                  <td>
+                    <div className="adminUserIdentity">
+                      <strong>{item.email}</strong>
+                      <span>{item.displayName || '-'}</span>
+                      <small>ID {item.id}</small>
+                    </div>
+                  </td>
+                  <td><span className={`adminUserPill role ${item.role}`}>{roleLabel(item.role)}</span></td>
+                  <td><span className={`adminUserPill status ${item.status}`}>{statusLabel(item.status)}</span></td>
+                  <td>
+                    <div className="adminUserMetric">
+                      <Coins size={15} />
+                      <strong>{item.creditBalance}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="adminUserMetric">
+                      <Image size={15} />
+                      <strong>{item.imageCount}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="adminUserActions">
+                      <button
+                        className="ghostButton"
+                        type="button"
+                        disabled={cannotDemoteSelf}
+                        title={cannotDemoteSelf ? '不能降级当前登录管理员' : undefined}
+                        onClick={() => void patchUser(item.id, { role: item.role === 'admin' ? 'user' : 'admin' })}
+                      >
+                        <Shield size={14} />
+                        {item.role === 'admin' ? '降级' : '设管理员'}
+                      </button>
+                      <button
+                        className="dangerButton"
+                        type="button"
+                        disabled={cannotDisableSelf}
+                        title={cannotDisableSelf ? '不能禁用当前登录管理员' : undefined}
+                        onClick={() => void patchUser(item.id, { status: item.status === 'disabled' ? 'active' : 'disabled' })}
+                      >
+                        <UserX size={14} />
+                        {item.status === 'disabled' ? '启用' : '禁用'}
+                      </button>
+                      <button className="ghostButton" type="button" onClick={() => openPasswordModal(item)}>
+                        <KeyRound size={14} />
+                        重置密码
+                      </button>
+                      <button className="ghostButton" type="button" onClick={() => openCreditModal(item)}>
+                        <Coins size={14} />
+                        调整积分
+                      </button>
+                      <Link className="ghostButton" to={`/admin/users/${item.id}/generations`}>
+                        生成记录
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );
             })}
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={6}>暂无匹配用户</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
       {passwordTarget && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="password-reset-title">
           <form className="confirmModal passwordResetModal" onSubmit={(event) => {
@@ -223,6 +323,7 @@ export function AdminUsersPage() {
           </form>
         </div>
       )}
+
       {creditTarget && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="credit-adjust-title">
           <form className="confirmModal passwordResetModal" onSubmit={(event) => {
@@ -294,4 +395,17 @@ export function AdminUsersPage() {
     setCreditForm(emptyCreditForm);
     setCreditError('');
   }
+}
+
+function roleLabel(role: UserRole) {
+  return role === 'admin' ? '管理员' : '用户';
+}
+
+function statusLabel(status: UserStatus) {
+  const labels: Record<UserStatus, string> = {
+    active: '活跃',
+    pending_email_verification: '待验证',
+    disabled: '已禁用'
+  };
+  return labels[status];
 }
