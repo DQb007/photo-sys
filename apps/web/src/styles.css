@@ -302,7 +302,9 @@
 }
 
 .adminUserSearch {
+  height: 48px;
   min-height: 48px;
+  box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
