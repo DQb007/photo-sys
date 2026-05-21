@@ -263,18 +263,97 @@
   font-size: 0.92em;
 }
 
+.markdownCodeBlock {
+  overflow: hidden;
+  border: 1px solid rgba(218, 213, 204, 0.9);
+  border-radius: 12px;
+  background: #111713;
+  box-shadow: 0 14px 34px rgba(24, 24, 20, 0.12);
+}
+
+.markdownCodeHeader {
+  min-height: 36px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1a201c;
+  color: rgba(255, 255, 255, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px 0 14px;
+  font-size: 12px;
+}
+
+.markdownCodeHeader span {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: lowercase;
+}
+
+.markdownCodeHeader button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 9px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.markdownCodeHeader button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
 .chatMarkdown pre {
   overflow: auto;
-  border: 1px solid rgba(222, 216, 206, 0.78);
-  border-radius: 8px;
-  background: #fbfaf6;
-  padding: 12px;
+  margin: 0;
+  padding: 14px;
+  background: transparent;
 }
 
 .chatMarkdown pre code {
   border: 0;
   background: transparent;
   padding: 0;
+  color: #e8ece8;
+  font-size: 13px;
+  line-height: 1.65;
+  text-align: left;
+}
+
+.chatMarkdown .hljs-keyword,
+.chatMarkdown .hljs-selector-tag,
+.chatMarkdown .hljs-title.function_ {
+  color: #8fd6ff;
+}
+
+.chatMarkdown .hljs-string,
+.chatMarkdown .hljs-attr,
+.chatMarkdown .hljs-symbol {
+  color: #b9e986;
+}
+
+.chatMarkdown .hljs-number,
+.chatMarkdown .hljs-literal {
+  color: #f6c177;
+}
+
+.chatMarkdown .hljs-comment {
+  color: #87928b;
+  font-style: italic;
+}
+
+.chatMarkdown .hljs-built_in,
+.chatMarkdown .hljs-type,
+.chatMarkdown .hljs-class .hljs-title {
+  color: #f3a7c4;
 }
 
 .chatMarkdown table {
@@ -441,6 +520,7 @@
 .chatAttachWrap {
   position: relative;
   flex: 0 0 auto;
+  margin-right: auto;
 }
 
 .chatAttachMenu {

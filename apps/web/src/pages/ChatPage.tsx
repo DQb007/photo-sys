@@ -439,7 +439,6 @@ export function ChatPage() {
                   event.target.value = '';
                 }}
               />
-              <span>{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
               <span>{settings?.messageCreditCost ? `每条 ${settings.messageCreditCost} 积分` : '免费使用'}</span>
               <div className="chatComposerModel">
                 <SelectField
