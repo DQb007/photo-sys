@@ -51,6 +51,8 @@ function ProtectedShell() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  const isAdmin = auth.user.role === 'admin';
+
   return (
     <div className="shell">
       <header className="mobileTopbar">
@@ -85,23 +87,27 @@ function ProtectedShell() {
         </div>
 
         <nav className="nav">
-          <NavLink to="/generate" onClick={() => setIsSidebarOpen(false)}>
-            <ImagePlus size={18} />
-            生成
-          </NavLink>
-          <NavLink to="/history" onClick={() => setIsSidebarOpen(false)}>
-            <Clock3 size={18} />
-            历史
-          </NavLink>
-          <NavLink to="/prompts" onClick={() => setIsSidebarOpen(false)}>
-            <BookOpen size={18} />
-            提示词库
-          </NavLink>
-          <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
-            <Settings size={18} />
-            账号设置
-          </NavLink>
-          {auth.user.role === 'admin' && (
+          {!isAdmin && (
+            <>
+              <NavLink to="/generate" onClick={() => setIsSidebarOpen(false)}>
+                <ImagePlus size={18} />
+                生成
+              </NavLink>
+              <NavLink to="/history" onClick={() => setIsSidebarOpen(false)}>
+                <Clock3 size={18} />
+                历史
+              </NavLink>
+              <NavLink to="/prompts" onClick={() => setIsSidebarOpen(false)}>
+                <BookOpen size={18} />
+                提示词库
+              </NavLink>
+              <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
+                <Settings size={18} />
+                账号设置
+              </NavLink>
+            </>
+          )}
+          {isAdmin && (
             <>
               <NavLink to="/admin/overview" onClick={() => setIsSidebarOpen(false)}>
                 <Shield size={18} />
@@ -146,11 +152,11 @@ function ProtectedShell() {
 
       <main className="main">
         <Routes>
-          <Route path="/" element={<Navigate to="/generate" replace />} />
-          <Route path="/generate" element={<GeneratePage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/prompts" element={<PromptLibraryPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/" element={<Navigate to={isAdmin ? '/admin/overview' : '/generate'} replace />} />
+          <Route path="/generate" element={<UserOnly><GeneratePage /></UserOnly>} />
+          <Route path="/history" element={<UserOnly><HistoryPage /></UserOnly>} />
+          <Route path="/prompts" element={<UserOnly><PromptLibraryPage /></UserOnly>} />
+          <Route path="/settings" element={<UserOnly><SettingsPage /></UserOnly>} />
           <Route path="/admin/overview" element={<AdminOnly><AdminOverviewPage /></AdminOnly>} />
           <Route path="/admin/status" element={<AdminOnly><AdminStatusPage /></AdminOnly>} />
           <Route path="/admin/settings" element={<AdminOnly><AdminSettingsPage /></AdminOnly>} />
@@ -163,6 +169,14 @@ function ProtectedShell() {
       </main>
     </div>
   );
+}
+
+function UserOnly({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin/overview" replace />;
+  }
+  return children;
 }
 
 function AdminOnly({ children }: { children: React.ReactNode }) {
