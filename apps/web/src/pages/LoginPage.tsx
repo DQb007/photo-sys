@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, ImagePlus, Layers3, LogIn, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Feather, LogIn, Mail, Orbit, Sparkles, WandSparkles } from 'lucide-react';
 import { ApiError, resendVerification } from '../api';
 import { useAuth } from '../auth';
 
@@ -83,54 +83,50 @@ export function AuthLayout({ title, eyebrow, children }: { title: string; eyebro
             <img src="/brand-icon.png" alt="" />
             <div>
               <strong>炫步 AI</strong>
-              <span>AI image studio</span>
+              <span>Imagination lab</span>
             </div>
           </div>
           <div className="authHeroCopy">
-            <p className="eyebrow">Creative engine</p>
-            <h1>把提示词、参考图和灵感变成可管理的作品库</h1>
+            <p className="eyebrow">Step into creation</p>
+            <h1>让灵感先一步成画</h1>
             <p>
-              面向内容创作者和运营团队的 AI 生图工作台，支持提示词模板、变量填写、积分消耗、历史管理和后台审计。
+              把想象交给 AI，把惊喜留给作品。每一次生成，都是一次新的风格实验。
             </p>
           </div>
-          <div className="authFeatureGrid">
+          <div className="authSlogan">一张图，打开一个新世界</div>
+          <div className="authFeatureGrid authCopyGrid">
             <div>
-              <Sparkles size={18} />
-              <span>提示词模板</span>
-              <strong>变量化复用</strong>
+              <WandSparkles size={18} />
+              <strong>更快抵达画面感</strong>
+              <span>让脑海里的画面，不再停在描述里。</span>
             </div>
             <div>
-              <ImagePlus size={18} />
-              <span>参考图生成</span>
-              <strong>作品可追溯</strong>
+              <Orbit size={18} />
+              <strong>更适合反复打磨</strong>
+              <span>灵感不会一次定稿，好作品值得多试几次。</span>
             </div>
             <div>
-              <Layers3 size={18} />
-              <span>历史图库</span>
-              <strong>批量管理</strong>
-            </div>
-            <div>
-              <ShieldCheck size={18} />
-              <span>后台治理</span>
-              <strong>审计与配置</strong>
+              <Feather size={18} />
+              <strong>更容易沉淀风格</strong>
+              <span>把喜欢的方向留下来，下一次更接近你想要的样子。</span>
             </div>
           </div>
           <div className="authFlow">
-            <span>选择模板</span>
+            <span>想象</span>
             <ArrowRight size={14} />
-            <span>填写变量</span>
+            <span>生成</span>
             <ArrowRight size={14} />
-            <span>生成图片</span>
+            <span>收藏</span>
             <ArrowRight size={14} />
-            <span>沉淀历史</span>
+            <span>再创作</span>
           </div>
         </div>
 
         <div className="panel authPanel">
           <div className="authPanelHeader">
             <p className="eyebrow">{eyebrow}</p>
-            <h2>{title}</h2>
-            <span><CheckCircle2 size={14} /> 安全登录后继续创作</span>
+            <h2>{title === '登录' ? '欢迎回来' : title}</h2>
+            <span><CheckCircle2 size={14} /> 继续你的下一张作品</span>
           </div>
           {children}
         </div>

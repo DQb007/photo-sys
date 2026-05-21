@@ -1263,11 +1263,25 @@ code {
   line-height: 1.8;
 }
 
+.authSlogan {
+  position: relative;
+  z-index: 1;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-left: 3px solid #9ee6cd;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .authFeatureGrid {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1290,14 +1304,20 @@ code {
 }
 
 .authFeatureGrid span {
-  margin-top: 12px;
+  margin-top: 8px;
   color: rgba(255, 255, 255, 0.58);
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .authFeatureGrid strong {
-  margin-top: 4px;
-  font-size: 14px;
+  margin-top: 14px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.authCopyGrid > div {
+  min-height: 142px;
 }
 
 .authFlow {
@@ -2255,7 +2275,11 @@ th {
   }
 
   .authFeatureGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+  }
+
+  .authCopyGrid > div {
+    min-height: auto;
   }
 
   .authFlow {
