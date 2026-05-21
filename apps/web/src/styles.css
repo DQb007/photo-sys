@@ -3506,50 +3506,6 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .chatLayout {
-    grid-template-columns: 1fr;
-    min-height: calc(100vh - 140px);
-  }
-
-  .chatHistoryToggle,
-  .chatSidebarClose {
-    display: inline-flex;
-  }
-
-  .chatSidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 40;
-    width: min(86vw, 340px);
-    border-radius: 0;
-    transform: translateX(-105%);
-    transition: transform 0.2s ease;
-    box-shadow: 24px 0 80px rgba(0, 0, 0, 0.16);
-  }
-
-  .chatSidebarClose {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 1;
-  }
-
-  .chatSidebar .primaryButton.fullWidth {
-    margin-top: 48px;
-  }
-
-  .chatSidebar.open {
-    transform: translateX(0);
-  }
-
-  .chatHistoryBackdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 35;
-    border: 0;
-    background: rgba(20, 20, 18, 0.28);
-  }
-
   .chatPanel {
     min-height: calc(100vh - 150px);
   }
@@ -3596,5 +3552,51 @@ th {
 
   .adminUserActions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .chatLayout {
+    grid-template-columns: 1fr;
+    min-height: calc(100vh - 140px);
+  }
+
+  .chatHistoryToggle,
+  .chatSidebarClose {
+    display: inline-flex;
+  }
+
+  .chatSidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(86vw, 340px);
+    border-radius: 0;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    box-shadow: 24px 0 80px rgba(0, 0, 0, 0.16);
+  }
+
+  .chatSidebarClose {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1;
+  }
+
+  .chatSidebar .primaryButton.fullWidth {
+    margin-top: 48px;
+  }
+
+  .chatSidebar.open {
+    transform: translateX(0);
+  }
+
+  .chatHistoryBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    border: 0;
+    background: rgba(20, 20, 18, 0.28);
   }
 }
