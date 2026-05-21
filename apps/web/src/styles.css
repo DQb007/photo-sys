@@ -1399,15 +1399,26 @@ code {
 .authHeroCopy h1 {
   margin: 10px 0 16px;
   max-width: 650px;
+  min-height: calc(clamp(38px, 5vw, 74px) * 1.92);
   font-size: clamp(38px, 5vw, 74px);
   line-height: 0.96;
   letter-spacing: 0;
-  background: linear-gradient(90deg, #ffffff 0%, #ffffff 34%, #9ee6cd 50%, #ffffff 66%, #ffffff 100%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: authTitleShine 3.4s ease-in-out infinite;
+  color: #fff;
+}
+
+.typewriterTitle {
+  white-space: pre-wrap;
+}
+
+.typewriterCursor {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.86em;
+  margin-left: 0.08em;
+  background: #9ee6cd;
+  box-shadow: 0 0 18px rgba(158, 230, 205, 0.82);
+  transform: translateY(0.08em);
+  animation: typewriterCursorBlink 760ms steps(1, end) infinite;
 }
 
 .authHeroCopy p:not(.eyebrow) {
@@ -1701,6 +1712,17 @@ code {
   }
 }
 
+@keyframes typewriterCursorBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes authFloat {
   0%,
   100% {
@@ -1777,7 +1799,7 @@ code {
   .authHero::after,
   .authBrandLockup,
   .authHeroCopy,
-  .authHeroCopy h1,
+  .typewriterCursor,
   .authSlogan,
   .authFeatureGrid > div,
   .authFlow,

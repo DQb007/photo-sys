@@ -1,8 +1,10 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Feather, LogIn, Mail, Orbit, Sparkles, WandSparkles } from 'lucide-react';
 import { ApiError, resendVerification } from '../api';
 import { useAuth } from '../auth';
+
+const HERO_TITLE = '让灵感先一步成画';
 
 export function LoginPage() {
   const auth = useAuth();
@@ -75,6 +77,8 @@ export function LoginPage() {
 }
 
 export function AuthLayout({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) {
+  const typedTitle = useTypewriter(HERO_TITLE, 140);
+
   return (
     <div className="authPage">
       <div className="authMotionLayer" aria-hidden="true">
@@ -97,7 +101,10 @@ export function AuthLayout({ title, eyebrow, children }: { title: string; eyebro
           </div>
           <div className="authHeroCopy">
             <p className="eyebrow">Step into creation</p>
-            <h1>让灵感先一步成画</h1>
+            <h1 className="typewriterTitle" aria-label={HERO_TITLE}>
+              <span aria-hidden="true">{typedTitle}</span>
+              <span className="typewriterCursor" aria-hidden="true" />
+            </h1>
             <p>
               把想象交给 AI，把惊喜留给作品。每一次生成，都是一次新的风格实验。
             </p>
@@ -142,4 +149,25 @@ export function AuthLayout({ title, eyebrow, children }: { title: string; eyebro
       </section>
     </div>
   );
+}
+
+function useTypewriter(text: string, speedMs: number) {
+  const [visibleLength, setVisibleLength] = useState(0);
+
+  useEffect(() => {
+    setVisibleLength(0);
+    const letters = Array.from(text);
+    let index = 0;
+    const timer = window.setInterval(() => {
+      index += 1;
+      setVisibleLength(index);
+      if (index >= letters.length) {
+        window.clearInterval(timer);
+      }
+    }, speedMs);
+
+    return () => window.clearInterval(timer);
+  }, [text, speedMs]);
+
+  return Array.from(text).slice(0, visibleLength).join('');
 }
