@@ -701,6 +701,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
   gap: 18px;
   align-items: start;
+  margin-bottom: 18px;
 }
 
 .adminChatPage {
@@ -723,14 +724,11 @@
   overflow: hidden;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 22px 60px rgba(25, 24, 21, 0.075);
+  display: grid;
+  align-content: start;
 }
 
-.adminChatCard > .field,
-.adminChatCard > .formRow,
-.adminChatCard > .adminChatSettingGrid,
-.adminChatCard > .adminChatSwitchGrid,
-.adminChatCard > .adminChatActions,
-.adminChatCard > .adminChatSaveButton {
+.adminChatCard > :not(.adminChatPanelTitle) {
   margin-left: 20px;
   margin-right: 20px;
 }
@@ -738,7 +736,7 @@
 .adminChatPanelTitle {
   align-items: flex-start;
   padding: 20px;
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 250, 246, 0.72));
 }
@@ -758,11 +756,11 @@
 
 .adminChatSwitchRow {
   min-height: 54px;
-  padding: 0;
+  margin-top: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfaf6;
-  padding-inline: 14px;
+  padding: 0 14px;
 }
 
 .adminChatSwitchRow span {
@@ -779,8 +777,8 @@
 .adminChatSettingGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  gap: 14px 12px;
+  margin-top: 16px;
 }
 
 .adminChatNumberField {
@@ -798,8 +796,9 @@
 }
 
 .adminChatSaveButton {
-  margin-top: 16px;
-  margin-bottom: 20px;
+  justify-self: start;
+  margin-top: 18px;
+  margin-bottom: 22px;
 }
 
 .adminChatModelCard {
@@ -807,29 +806,44 @@
   gap: 14px;
 }
 
-.adminChatModelCard > .field,
-.adminChatModelCard > .formRow,
-.adminChatModelCard > .adminChatSwitchGrid {
+.adminChatSettingsCard > .field,
+.adminChatModelCard > .field {
+  margin-top: 16px;
+}
+
+.adminChatSettingsCard > .adminChatSwitchRow,
+.adminChatModelCard > .field:first-of-type {
   margin-top: 0;
 }
 
 .adminChatCompactRow {
+  margin-top: 0;
   gap: 12px;
 }
 
 .adminChatSwitchGrid {
   display: grid;
   gap: 10px;
+  margin-top: 2px;
 }
 
 .adminChatActions {
+  justify-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 0;
-  margin-bottom: 20px;
-  padding-top: 2px;
+  margin-bottom: 22px;
+  padding-top: 0;
+}
+
+.adminChatActions .primaryButton,
+.adminChatActions .ghostButton {
+  margin-top: 0;
 }
 
 .adminChatModelList {
-  margin-top: 6px;
+  margin-top: 0;
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(25, 24, 21, 0.08);
 }
