@@ -981,6 +981,10 @@ select {
   display: none;
 }
 
+.mobileTopbarActions {
+  display: none;
+}
+
 .sidebar {
   border-right: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.78);
@@ -3756,6 +3760,7 @@ th {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 1 1 auto;
   }
 
   .mobileBrandIcon {
@@ -3781,6 +3786,20 @@ th {
   .mobileBrand span {
     color: var(--muted);
     font-size: 12px;
+  }
+
+  .mobileTopbarActions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 78px;
+  }
+
+  .mobileTopbarHistoryButton {
+    min-height: 40px;
+    padding: 9px 12px;
+    white-space: nowrap;
   }
 
   .sidebar {
@@ -3860,6 +3879,17 @@ th {
 
   .main {
     padding: 20px 18px;
+  }
+
+  .main.chatMain {
+    padding: 8px 18px 12px;
+  }
+
+  .chatPage {
+    height: calc(100vh - 86px);
+    height: calc(100dvh - 86px);
+    max-height: calc(100vh - 86px);
+    max-height: calc(100dvh - 86px);
   }
 
   .promptAdminHeader {
@@ -4004,16 +4034,8 @@ th {
 }
 
 @media (max-width: 640px) {
-  .chatPage {
-    height: calc(100vh - 106px);
-    height: calc(100dvh - 106px);
-    max-height: calc(100vh - 106px);
-    max-height: calc(100dvh - 106px);
-  }
-
   .chatPageHeader {
-    min-height: 42px;
-    margin-bottom: 8px;
+    display: none;
   }
 
   .chatLayout {
@@ -4022,7 +4044,6 @@ th {
     min-height: 0;
   }
 
-  .chatHeaderActions .chatHistoryToggle,
   .chatSidebar .chatSidebarClose {
     display: inline-flex;
   }

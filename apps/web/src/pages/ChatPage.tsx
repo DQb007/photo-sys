@@ -133,6 +133,14 @@ export function ChatPage() {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [isAttachMenuOpen]);
 
+  useEffect(() => {
+    function openChatHistory() {
+      setIsHistoryOpen(true);
+    }
+    window.addEventListener('photo-sys:open-chat-history', openChatHistory);
+    return () => window.removeEventListener('photo-sys:open-chat-history', openChatHistory);
+  }, []);
+
   async function selectConversation(id: number) {
     setActiveConversationId(id);
     setIsHistoryOpen(false);

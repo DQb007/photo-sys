@@ -40,6 +40,7 @@ function ProtectedShell() {
   const auth = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isChatRoute = location.pathname === '/chat';
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -68,6 +69,18 @@ function ProtectedShell() {
             <span>{auth.user.email}</span>
           </div>
         </div>
+        {isChatRoute && (
+          <div className="mobileTopbarActions">
+            <button
+              className="ghostButton mobileTopbarHistoryButton"
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('photo-sys:open-chat-history'))}
+            >
+              <Menu size={16} />
+              历史
+            </button>
+          </div>
+        )}
       </header>
 
       {isSidebarOpen && (
@@ -168,7 +181,7 @@ function ProtectedShell() {
         </button>
       </aside>
 
-      <main className="main">
+      <main className={isChatRoute ? 'main chatMain' : 'main'}>
         <Routes>
           <Route path="/" element={<Navigate to={isAdmin ? '/admin/overview' : '/generate'} replace />} />
           <Route path="/generate" element={<UserOnly><GeneratePage /></UserOnly>} />
