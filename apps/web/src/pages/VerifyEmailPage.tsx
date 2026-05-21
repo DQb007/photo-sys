@@ -28,7 +28,7 @@ export function VerifyEmailPage() {
   }, [params]);
 
   return (
-    <AuthLayout title="邮箱验证" eyebrow="Verify">
+    <AuthLayout title="邮箱验证" eyebrow="Verify" subtitle="完成验证后即可开始创作">
       <div className="authResult">
         {status === 'loading' && <Loader2 className="spin" size={28} />}
         {status === 'succeeded' && <CheckCircle2 size={32} />}

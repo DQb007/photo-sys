@@ -36,7 +36,7 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="注册" eyebrow="Create account">
+    <AuthLayout title="注册" eyebrow="Create account" subtitle="开启你的第一张作品">
       <form className="authForm" onSubmit={onSubmit}>
         <label className="field">
           <span>邮箱</span>

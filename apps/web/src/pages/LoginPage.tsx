@@ -76,7 +76,17 @@ export function LoginPage() {
   );
 }
 
-export function AuthLayout({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) {
+export function AuthLayout({
+  title,
+  eyebrow,
+  subtitle = '继续你的下一张作品',
+  children,
+}: {
+  title: string;
+  eyebrow: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   const typedTitle = useTypewriter(HERO_TITLE, 140);
 
   return (
@@ -142,7 +152,7 @@ export function AuthLayout({ title, eyebrow, children }: { title: string; eyebro
           <div className="authPanelHeader">
             <p className="eyebrow">{eyebrow}</p>
             <h2>{title === '登录' ? '欢迎回来' : title}</h2>
-            <span><CheckCircle2 size={14} /> 继续你的下一张作品</span>
+            <span><CheckCircle2 size={14} /> {subtitle}</span>
           </div>
           {children}
         </div>
