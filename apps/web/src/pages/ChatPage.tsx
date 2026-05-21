@@ -1,5 +1,5 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Edit3, Menu, MessageSquarePlus, Send, Square, Trash2, X } from 'lucide-react';
+import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Clipboard, Edit3, Menu, MessageSquarePlus, Send, Square, Trash2, X } from 'lucide-react';
 import {
   createChatConversation,
   deleteChatConversation,
@@ -16,6 +16,8 @@ import {
 } from '../api';
 import { SelectField } from '../SelectField';
 
+const MarkdownMessage = lazy(() => import('../MarkdownMessage').then((module) => ({ default: module.MarkdownMessage })));
+
 export function ChatPage() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -27,6 +29,7 @@ export function ChatPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingConversation, setEditingConversation] = useState<ChatConversation | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -126,6 +129,7 @@ export function ChatPage() {
       }
 
       setInput('');
+      setEditingMessageId(null);
       setIsStreaming(true);
       const controller = new AbortController();
       abortRef.current = controller;
@@ -185,6 +189,21 @@ export function ChatPage() {
   function stopStreaming() {
     abortRef.current?.abort();
     setMessage('已停止生成');
+  }
+
+  async function copyMessage(content: string) {
+    if (!content.trim()) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      setMessage('已复制');
+    } catch {
+      setError('复制失败');
+    }
+  }
+
+  function editMessage(item: ChatMessage) {
+    setInput(item.content);
+    setEditingMessageId(item.id);
   }
 
   function openRename(conversation: ChatConversation) {
@@ -291,11 +310,26 @@ export function ChatPage() {
             {messages.map((item) => (
               <article className={`chatMessage ${item.role}`} key={item.id}>
                 <div className="chatMessageBubble">
-                  <p>{item.content || (item.status === 'streaming' ? '生成中...' : '')}</p>
-                  {item.errorMessage && <span className="chatMessageError">{item.errorMessage}</span>}
-                  {item.role === 'assistant' && item.modelNameSnapshot && (
-                    <small>{item.modelNameSnapshot} · {statusLabel(item.status)}</small>
+                  {item.role === 'assistant' ? (
+                    <div className="chatMarkdown">
+                      <Suspense fallback={<p>{item.content || (item.status === 'streaming' ? '生成中...' : '')}</p>}>
+                        <MarkdownMessage content={item.content || (item.status === 'streaming' ? '生成中...' : '')} />
+                      </Suspense>
+                    </div>
+                  ) : (
+                    <p>{item.content || (item.status === 'streaming' ? '生成中...' : '')}</p>
                   )}
+                  {item.errorMessage && <span className="chatMessageError">{item.errorMessage}</span>}
+                  <div className="chatMessageTools">
+                    <button className="iconButton" type="button" onClick={() => void copyMessage(item.content)} aria-label="复制">
+                      <Clipboard size={14} />
+                    </button>
+                    {item.role === 'user' && (
+                      <button className="iconButton" type="button" onClick={() => editMessage(item)} aria-label="修改">
+                        <Edit3 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             ))}
@@ -311,7 +345,7 @@ export function ChatPage() {
               onChange={(event) => setInput(event.target.value)}
             />
             <div className="chatComposerActions">
-              <span>{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
+              <span>{editingMessageId ? '修改后发送 · ' : ''}{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
               <span>{settings?.messageCreditCost ? `每条 ${settings.messageCreditCost} 积分` : '免费使用'}</span>
               <div className="chatComposerModel">
                 <SelectField
@@ -383,16 +417,6 @@ function updateLastAssistant(items: ChatMessage[], delta: string) {
 function upsertConversation(items: ChatConversation[], item: ChatConversation) {
   return [item, ...items.filter((current) => current.id !== item.id)]
     .sort((a, b) => new Date(b.lastMessageAt || b.updatedAt).getTime() - new Date(a.lastMessageAt || a.updatedAt).getTime());
-}
-
-function statusLabel(status: ChatMessage['status']) {
-  const labels: Record<ChatMessage['status'], string> = {
-    streaming: '生成中',
-    completed: '完成',
-    failed: '失败',
-    cancelled: '已停止'
-  };
-  return labels[status];
 }
 
 function formatDate(value: string) {

@@ -187,15 +187,17 @@
 }
 
 .chatMessageBubble {
+  position: relative;
   max-width: min(760px, 82%);
   border: 1px solid rgba(222, 216, 206, 0.78);
   border-radius: 8px;
-  padding: 13px 15px;
+  padding: 13px 15px 42px;
   background: #fff;
   box-shadow: 0 10px 28px rgba(23, 23, 20, 0.05);
 }
 
 .chatMessage.user .chatMessageBubble {
+  padding-bottom: 42px;
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
@@ -218,6 +220,102 @@
 
 .chatMessageError {
   color: var(--danger);
+}
+
+.chatMarkdown {
+  line-height: 1.68;
+  word-break: break-word;
+}
+
+.chatMarkdown > :first-child {
+  margin-top: 0;
+}
+
+.chatMarkdown > :last-child {
+  margin-bottom: 0;
+}
+
+.chatMarkdown p,
+.chatMarkdown ul,
+.chatMarkdown ol,
+.chatMarkdown pre,
+.chatMarkdown blockquote,
+.chatMarkdown table {
+  margin: 0 0 12px;
+}
+
+.chatMarkdown ul,
+.chatMarkdown ol {
+  padding-left: 22px;
+}
+
+.chatMarkdown li + li {
+  margin-top: 4px;
+}
+
+.chatMarkdown code {
+  border: 1px solid rgba(222, 216, 206, 0.74);
+  border-radius: 6px;
+  background: rgba(251, 250, 246, 0.92);
+  padding: 1px 5px;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.92em;
+}
+
+.chatMarkdown pre {
+  overflow: auto;
+  border: 1px solid rgba(222, 216, 206, 0.78);
+  border-radius: 8px;
+  background: #fbfaf6;
+  padding: 12px;
+}
+
+.chatMarkdown pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.chatMarkdown table {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.chatMarkdown th,
+.chatMarkdown td {
+  border: 1px solid rgba(222, 216, 206, 0.86);
+  padding: 7px 9px;
+}
+
+.chatMessageTools {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.chatMessageBubble:hover .chatMessageTools,
+.chatMessageBubble:focus-within .chatMessageTools {
+  opacity: 1;
+}
+
+.chatMessageTools .iconButton {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+}
+
+.chatMessage.user .chatMessageTools .iconButton {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 
 .chatEmptyState {
