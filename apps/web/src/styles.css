@@ -14,7 +14,10 @@
 }
 
 .chatPage {
-  height: calc(100vh - 36px);
+  height: calc(100vh - 68px);
+  height: calc(100dvh - 68px);
+  max-height: calc(100vh - 68px);
+  max-height: calc(100dvh - 68px);
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -3991,7 +3994,10 @@ th {
 
 @media (max-width: 640px) {
   .chatPage {
-    height: calc(100dvh - 72px);
+    height: calc(100vh - 106px);
+    height: calc(100dvh - 106px);
+    max-height: calc(100vh - 106px);
+    max-height: calc(100dvh - 106px);
   }
 
   .chatPageHeader {
