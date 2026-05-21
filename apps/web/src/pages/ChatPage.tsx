@@ -1,5 +1,5 @@
 import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard, Edit3, Menu, MessageSquarePlus, Paperclip, Send, Square, Trash2, X } from 'lucide-react';
+import { Clipboard, Edit3, Menu, MessageSquarePlus, Paperclip, Plus, Send, Square, Trash2, X } from 'lucide-react';
 import {
   createChatConversation,
   deleteChatConversation,
@@ -45,6 +45,7 @@ export function ChatPage() {
   const [message, setMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingConversation, setEditingConversation] = useState<ChatConversation | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -52,6 +53,7 @@ export function ChatPage() {
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachMenuRef = useRef<HTMLDivElement | null>(null);
 
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
@@ -99,6 +101,16 @@ export function ChatPage() {
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, []);
+
+  useEffect(() => {
+    if (!isAttachMenuOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && attachMenuRef.current?.contains(event.target)) return;
+      setIsAttachMenuOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [isAttachMenuOpen]);
 
   async function selectConversation(id: number) {
     setActiveConversationId(id);
@@ -398,9 +410,25 @@ export function ChatPage() {
               onChange={(event) => setInput(event.target.value)}
             />
             <div className="chatComposerActions">
-              <button className="iconButton chatAttachButton" type="button" onClick={() => fileInputRef.current?.click()} aria-label="上传附件">
-                <Paperclip size={16} />
-              </button>
+              <div className="chatAttachWrap" ref={attachMenuRef}>
+                <button className="iconButton chatAttachButton" type="button" onClick={() => setIsAttachMenuOpen((current) => !current)} aria-label="上传附件" aria-expanded={isAttachMenuOpen}>
+                  <Plus size={18} />
+                </button>
+                {isAttachMenuOpen && (
+                  <div className="chatAttachMenu">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachMenuOpen(false);
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <Paperclip size={15} />
+                      添加照片和文件
+                    </button>
+                  </div>
+                )}
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -426,7 +454,7 @@ export function ChatPage() {
                   停止
                 </button>
               ) : (
-                <button className="primaryButton compact" type="submit" disabled={!input.trim() || !settings?.enabled || !selectedModelId}>
+                <button className="primaryButton compact" type="submit" disabled={(!input.trim() && attachments.length === 0) || !settings?.enabled || !selectedModelId}>
                   <Send size={16} />
                   发送
                 </button>
