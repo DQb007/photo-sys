@@ -77,6 +77,15 @@ export function LoginPage() {
 export function AuthLayout({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) {
   return (
     <div className="authPage">
+      <div className="authMotionLayer" aria-hidden="true">
+        <span className="authBeam authBeamOne" />
+        <span className="authBeam authBeamTwo" />
+        <span className="authPulse authPulseOne" />
+        <span className="authPulse authPulseTwo" />
+        <span className="authParticle authParticleOne" />
+        <span className="authParticle authParticleTwo" />
+        <span className="authParticle authParticleThree" />
+      </div>
       <section className="authShell">
         <div className="authHero">
           <div className="authBrandLockup">
