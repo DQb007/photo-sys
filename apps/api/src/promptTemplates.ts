@@ -26,6 +26,8 @@ export interface PromptTemplateListOptions {
 export interface AdminPromptTemplateListOptions {
   search?: string;
   status?: PromptTemplateStatus | '';
+  page?: number;
+  pageSize?: number;
 }
 
 export interface PromptTemplateWithFavorite extends PromptTemplateRow {
@@ -110,6 +112,8 @@ export async function listPromptTemplateCategories() {
 export async function listAdminPromptTemplates(options: AdminPromptTemplateListOptions = {}) {
   const conditions = ['deleted_at IS NULL'];
   const params: Array<string | number> = [];
+  const pageSize = clampPageSize(options.pageSize, 10);
+  const requestedPage = normalizePage(options.page);
   if (options.status) {
     conditions.push('status = ?');
     params.push(options.status);
@@ -119,15 +123,31 @@ export async function listAdminPromptTemplates(options: AdminPromptTemplateListO
     const like = `%${options.search}%`;
     params.push(like, like, like, like);
   }
+  const [countRows] = await getPool().query<Array<{ total: number } & import('mysql2').RowDataPacket>>(
+    `SELECT COUNT(*) AS total
+     FROM prompt_templates
+     WHERE ${conditions.join(' AND ')}`,
+    params
+  );
+  const total = Number(countRows[0]?.total || 0);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const offset = (page - 1) * pageSize;
   const [rows] = await getPool().query<PromptTemplateRow[]>(
     `SELECT *
      FROM prompt_templates
      WHERE ${conditions.join(' AND ')}
      ORDER BY sort_order ASC, created_at DESC, id DESC
-     LIMIT 200`,
-    params
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset]
   );
-  return rows;
+  return {
+    page,
+    pageSize,
+    total,
+    totalPages,
+    items: rows
+  };
 }
 
 export async function createPromptTemplate(input: PromptTemplateInput, actorUserId: number | null) {
@@ -238,4 +258,13 @@ export async function getAdminPromptTemplateById(id: number) {
 
 async function assertPromptTemplateExists(id: number) {
   await getAdminPromptTemplateById(id);
+}
+
+function normalizePage(page?: number) {
+  return Number.isInteger(page) && page && page > 0 ? page : 1;
+}
+
+function clampPageSize(pageSize: number | undefined, fallback: number) {
+  if (!Number.isInteger(pageSize)) return fallback;
+  return Math.min(Math.max(Number(pageSize), 1), 100);
 }

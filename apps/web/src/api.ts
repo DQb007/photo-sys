@@ -521,10 +521,18 @@ export async function getAdminUserGenerations(id: number) {
   return { ...payload, items: payload.items.map(withFileTokens) };
 }
 
-export async function listAuditLogs(action = '') {
+export async function listAuditLogs(input: { action?: string; page?: number; pageSize?: number } = {}) {
   const params = new URLSearchParams();
-  if (action) params.set('action', action);
-  return request<{ items: AuditLog[] }>(`/admin/audit-logs?${params.toString()}`);
+  if (input.action) params.set('action', input.action);
+  if (input.page) params.set('page', String(input.page));
+  if (input.pageSize) params.set('pageSize', String(input.pageSize));
+  return request<{
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    items: AuditLog[];
+  }>(`/admin/audit-logs?${params.toString()}`);
 }
 
 export async function listRedeemPackages() {
@@ -603,11 +611,24 @@ export async function recordPromptTemplateUse(id: number) {
   return request<{ item: PromptTemplate }>(`/prompt-templates/${id}/use`, { method: 'POST' });
 }
 
-export async function listAdminPromptTemplates(params: { search?: string; status?: string } = {}) {
+export async function listAdminPromptTemplates(params: {
+  search?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+} = {}) {
   const query = new URLSearchParams();
   if (params.search) query.set('search', params.search);
   if (params.status) query.set('status', params.status);
-  return request<{ items: PromptTemplate[] }>(`/admin/prompt-templates?${query.toString()}`);
+  if (params.page) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  return request<{
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    items: PromptTemplate[];
+  }>(`/admin/prompt-templates?${query.toString()}`);
 }
 
 export async function createAdminPromptTemplate(input: {

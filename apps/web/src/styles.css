@@ -1103,6 +1103,14 @@ textarea {
   margin-bottom: 18px;
 }
 
+.auditToolbar {
+  justify-content: flex-start;
+}
+
+.auditToolbar input {
+  width: min(420px, 100%);
+}
+
 .filterGroup {
   display: flex;
   flex-wrap: wrap;

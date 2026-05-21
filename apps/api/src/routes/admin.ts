@@ -415,18 +415,38 @@ router.get('/users/:id/generations', async (req, res, next) => {
 router.get('/audit-logs', async (req, res, next) => {
   try {
     const action = typeof req.query.action === 'string' ? req.query.action : '';
+    const requestedPage = Number(req.query.page || 1);
+    const requestedPageSize = Number(req.query.pageSize || 20);
+    const requestedSafePage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const pageSize = Number.isInteger(requestedPageSize)
+      ? Math.min(Math.max(requestedPageSize, 1), 100)
+      : 20;
     const conditions: string[] = [];
-    const params: string[] = [];
+    const params: Array<string | number> = [];
     if (action) {
       conditions.push('action = ?');
       params.push(action);
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const [rows] = await getPool().query(
-      `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT 200`,
+    const [countRows] = await getPool().query<Array<{ total: number } & import('mysql2').RowDataPacket>>(
+      `SELECT COUNT(*) AS total FROM audit_logs ${where}`,
       params
     );
-    res.json({ items: rows });
+    const total = Number(countRows[0]?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(requestedSafePage, totalPages);
+    const offset = (page - 1) * pageSize;
+    const [rows] = await getPool().query(
+      `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
+    );
+    res.json({
+      page,
+      pageSize,
+      total,
+      totalPages,
+      items: rows
+    });
   } catch (error) {
     next(error);
   }

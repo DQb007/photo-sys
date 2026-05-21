@@ -8,6 +8,7 @@ import {
   type PromptTemplate,
   type PromptTemplateStatus
 } from '../api';
+import { Pagination } from '../Pagination';
 import { SelectField } from '../SelectField';
 
 const emptyForm = {
@@ -30,6 +31,12 @@ const statusOptions = statusFilterOptions.slice(1);
 
 type TemplateForm = typeof emptyForm;
 
+const templatePageSize = 10;
+const emptyTemplateFilters = {
+  search: '',
+  status: ''
+};
+
 export function AdminPromptTemplatesPage() {
   const [items, setItems] = useState<PromptTemplate[]>([]);
   const [form, setForm] = useState<TemplateForm>(emptyForm);
@@ -38,6 +45,10 @@ export function AdminPromptTemplatesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [filters, setFilters] = useState(emptyTemplateFilters);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -59,14 +70,22 @@ export function AdminPromptTemplatesPage() {
     setIsLoading(true);
     setError('');
     try {
-      const payload = await listAdminPromptTemplates({ search: search.trim(), status });
+      const payload = await listAdminPromptTemplates({
+        search: filters.search,
+        status: filters.status,
+        page,
+        pageSize: templatePageSize
+      });
       setItems(payload.items);
+      setPage(payload.page);
+      setTotal(payload.total);
+      setTotalPages(payload.totalPages);
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取提示词模板失败');
     } finally {
       setIsLoading(false);
     }
-  }, [search, status]);
+  }, [filters, page]);
 
   useEffect(() => {
     void load();
@@ -169,6 +188,14 @@ export function AdminPromptTemplatesPage() {
   function resetFilters() {
     setSearch('');
     setStatus('');
+    setPage(1);
+    setFilters(emptyTemplateFilters);
+  }
+
+  function submitFilters(event: FormEvent) {
+    event.preventDefault();
+    setPage(1);
+    setFilters({ search: search.trim(), status });
   }
 
   return (
@@ -195,18 +222,18 @@ export function AdminPromptTemplatesPage() {
       <section className="promptAdminStats" aria-label="提示词模板统计">
         <div className="panel statCard">
           <span>模板总数</span>
-          <strong>{items.length}</strong>
+          <strong>{total}</strong>
         </div>
         <div className="panel statCard">
-          <span>启用中</span>
+          <span>本页启用</span>
           <strong>{activeCount}</strong>
         </div>
         <div className="panel statCard">
-          <span>已停用</span>
+          <span>本页停用</span>
           <strong>{disabledCount}</strong>
         </div>
         <div className="panel statCard">
-          <span>变量 / 使用</span>
+          <span>本页变量 / 使用</span>
           <strong>{totalVariables} / {totalUsageCount}</strong>
         </div>
       </section>
@@ -219,10 +246,7 @@ export function AdminPromptTemplatesPage() {
           </div>
           <form
             className="tableActions promptAdminFilters"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void load();
-            }}
+            onSubmit={submitFilters}
           >
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模板" />
             <SelectField value={status} options={statusFilterOptions} onChange={setStatus} />
@@ -314,6 +338,8 @@ export function AdminPromptTemplatesPage() {
           </tbody>
         </table>
       </section>
+
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {isFormOpen && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-admin-form-title">

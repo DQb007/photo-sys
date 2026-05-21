@@ -39,8 +39,16 @@ router.get('/prompt-templates', async (req, res, next) => {
   try {
     const status = req.query.status === 'active' || req.query.status === 'disabled' ? req.query.status : '';
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    const items = await listAdminPromptTemplates({ status, search });
-    res.json({ items: items.map(serializePromptTemplate) });
+    const page = Number(req.query.page || 1);
+    const pageSize = Number(req.query.pageSize || 10);
+    const result = await listAdminPromptTemplates({ status, search, page, pageSize });
+    res.json({
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+      items: result.items.map(serializePromptTemplate)
+    });
   } catch (error) {
     next(error);
   }
