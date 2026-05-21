@@ -1172,6 +1172,7 @@ code {
   grid-template-columns: minmax(0, 1.1fr) minmax(360px, 460px);
   gap: 22px;
   align-items: stretch;
+  animation: authShellIn 620ms ease both;
 }
 
 .authHero,
@@ -1194,6 +1195,7 @@ code {
     linear-gradient(145deg, rgba(12, 18, 18, 0.88), rgba(31, 111, 91, 0.42));
   background-size: 30px 30px, 30px 30px, auto;
   color: #fff;
+  animation: authGridDrift 18s linear infinite;
 }
 
 .authHero::after {
@@ -1208,6 +1210,18 @@ code {
   box-shadow:
     inset 0 0 0 26px rgba(255, 255, 255, 0.03),
     inset 0 0 0 58px rgba(255, 255, 255, 0.025);
+  animation: authOrbit 16s linear infinite;
+}
+
+.authHero::before {
+  content: "";
+  position: absolute;
+  inset: -35% auto auto -18%;
+  width: 58%;
+  height: 170%;
+  background: linear-gradient(90deg, transparent, rgba(158, 230, 205, 0.12), transparent);
+  transform: rotate(18deg);
+  animation: authScan 7s ease-in-out infinite;
 }
 
 .authBrandLockup {
@@ -1216,6 +1230,7 @@ code {
   display: flex;
   align-items: center;
   gap: 14px;
+  animation: authFloat 5s ease-in-out infinite;
 }
 
 .authBrandLockup img {
@@ -1246,6 +1261,7 @@ code {
   z-index: 1;
   max-width: 650px;
   padding: 58px 0 34px;
+  animation: authRiseIn 700ms ease 80ms both;
 }
 
 .authHeroCopy h1 {
@@ -1275,6 +1291,7 @@ code {
   color: rgba(255, 255, 255, 0.86);
   font-size: 15px;
   font-weight: 800;
+  animation: authRiseIn 700ms ease 160ms both;
 }
 
 .authFeatureGrid {
@@ -1292,6 +1309,26 @@ code {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(14px);
   border-radius: 8px;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  animation: authRiseIn 700ms ease both;
+}
+
+.authFeatureGrid > div:nth-child(1) {
+  animation-delay: 220ms;
+}
+
+.authFeatureGrid > div:nth-child(2) {
+  animation-delay: 300ms;
+}
+
+.authFeatureGrid > div:nth-child(3) {
+  animation-delay: 380ms;
+}
+
+.authFeatureGrid > div:hover {
+  transform: translateY(-4px);
+  border-color: rgba(158, 230, 205, 0.42);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .authFeatureGrid svg {
@@ -1330,6 +1367,11 @@ code {
   gap: 9px;
   color: rgba(255, 255, 255, 0.7);
   font-size: 13px;
+  animation: authRiseIn 700ms ease 460ms both;
+}
+
+.authFlow svg {
+  animation: authArrowPulse 1.8s ease-in-out infinite;
 }
 
 .authPanel {
@@ -1338,6 +1380,7 @@ code {
   padding: 30px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(22px);
+  animation: authPanelIn 660ms ease 120ms both;
 }
 
 .authPanelHeader h2 {
@@ -1378,6 +1421,115 @@ code {
   padding: 28px 0 6px;
   text-align: center;
   color: var(--muted);
+}
+
+@keyframes authShellIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authGridDrift {
+  from {
+    background-position: 0 0, 0 0, 0 0;
+  }
+  to {
+    background-position: 60px 0, 0 60px, 0 0;
+  }
+}
+
+@keyframes authOrbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes authScan {
+  0%,
+  28% {
+    transform: translateX(-30%) rotate(18deg);
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    transform: translateX(240%) rotate(18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes authFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes authRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes authPanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes authArrowPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .authShell,
+  .authHero,
+  .authHero::before,
+  .authHero::after,
+  .authBrandLockup,
+  .authHeroCopy,
+  .authSlogan,
+  .authFeatureGrid > div,
+  .authFlow,
+  .authFlow svg,
+  .authPanel {
+    animation: none;
+  }
+
+  .authFeatureGrid > div {
+    transition: none;
+  }
 }
 
 .statsGrid {
