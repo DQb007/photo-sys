@@ -823,7 +823,8 @@
 
 .adminChatSwitchGrid {
   display: grid;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-top: 14px;
 }
 
@@ -4269,6 +4270,10 @@ th {
   }
 
   .adminChatSettingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminChatSwitchGrid {
     grid-template-columns: 1fr;
   }
 
