@@ -301,18 +301,38 @@
   font: inherit;
 }
 
+.adminUserSearch input:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .adminUsersPanel table {
   min-width: 980px;
 }
 
 .adminUsersPanel th {
+  background: linear-gradient(180deg, #fffdf8 0%, #f7f3ea 100%);
   color: var(--muted);
   font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0;
+  text-align: center;
+  vertical-align: middle;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
 
 .adminUsersPanel td {
+  text-align: center;
   vertical-align: middle;
+}
+
+.adminUsersPanel th:first-child,
+.adminUsersPanel td:first-child,
+.adminUsersPanel th:last-child,
+.adminUsersPanel td:last-child {
+  text-align: left;
 }
 
 .adminUserIdentity {
