@@ -709,6 +709,8 @@ textarea {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
 }
 
 .adminGenerationCard {
@@ -783,6 +785,9 @@ textarea {
 
 .historyBody {
   padding: 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .historyMeta,
@@ -812,6 +817,7 @@ textarea {
   position: relative;
   display: block;
   width: 100%;
+  min-height: 72px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -837,7 +843,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0;
-  margin: 0 0 14px;
+  margin: auto 0 14px;
 }
 
 .historyBody dl > div {
