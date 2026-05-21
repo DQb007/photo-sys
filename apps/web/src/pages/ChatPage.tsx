@@ -34,6 +34,8 @@ const readableAttachmentTypes = [
   'application/javascript',
   'text/'
 ];
+const typingIntervalMs = 22;
+const typingChunkSize = 2;
 
 function MessageAttachments({ metadata }: { metadata: unknown }) {
   const attachments = readMessageAttachments(metadata);
@@ -65,6 +67,7 @@ export function ChatPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isTypingAssistant, setIsTypingAssistant] = useState(false);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -75,9 +78,13 @@ export function ChatPage() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachMenuRef = useRef<HTMLDivElement | null>(null);
+  const typingQueueRef = useRef('');
+  const typingTimerRef = useRef<number | null>(null);
+  const pendingFinalAssistantRef = useRef<ChatMessage | null>(null);
 
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
+  const isAnswering = isStreaming || isTypingAssistant;
 
   const load = useCallback(async () => {
     setError('');
@@ -141,6 +148,8 @@ export function ChatPage() {
     return () => window.removeEventListener('photo-sys:open-chat-history', openChatHistory);
   }, []);
 
+  useEffect(() => () => clearTypingTimer(), []);
+
   async function selectConversation(id: number) {
     setActiveConversationId(id);
     setIsHistoryOpen(false);
@@ -169,6 +178,7 @@ export function ChatPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (isAnswering) return;
     if (!settings?.enabled) {
       setError('AI 对话当前不可用');
       return;
@@ -198,6 +208,7 @@ export function ChatPage() {
       setInput('');
       setAttachments([]);
       setIsStreaming(true);
+      resetTypingState();
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -216,15 +227,20 @@ export function ChatPage() {
             ]);
           }
           if (eventPayload.event === 'delta') {
-            setMessages((current) => updateLastAssistant(current, eventPayload.data.delta));
+            enqueueAssistantDelta(eventPayload.data.delta);
           }
           if (eventPayload.event === 'completed') {
-            setMessages((current) => current.map((item) =>
-              item.id === eventPayload.data.assistantMessage.id ? eventPayload.data.assistantMessage : item
-            ));
+            pendingFinalAssistantRef.current = eventPayload.data.assistantMessage;
+            if (typingQueueRef.current) {
+              setIsTypingAssistant(true);
+              scheduleAssistantTyping();
+            } else {
+              commitPendingFinalAssistant();
+            }
             setConversations((current) => upsertConversation(current, eventPayload.data.conversation));
           }
           if (eventPayload.event === 'failed') {
+            flushAssistantTyping();
             if (eventPayload.data.assistantMessage) {
               setMessages((current) => current.map((item) =>
                 item.id === eventPayload.data.assistantMessage?.id ? eventPayload.data.assistantMessage : item
@@ -256,7 +272,70 @@ export function ChatPage() {
 
   function stopStreaming() {
     abortRef.current?.abort();
+    flushAssistantTyping();
     setMessage('已停止生成');
+  }
+
+  function clearTypingTimer() {
+    if (typingTimerRef.current === null) return;
+    window.clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = null;
+  }
+
+  function resetTypingState() {
+    clearTypingTimer();
+    typingQueueRef.current = '';
+    pendingFinalAssistantRef.current = null;
+    setIsTypingAssistant(false);
+  }
+
+  function enqueueAssistantDelta(delta: string) {
+    if (!delta) return;
+    typingQueueRef.current += delta;
+    setIsTypingAssistant(true);
+    scheduleAssistantTyping();
+  }
+
+  function scheduleAssistantTyping() {
+    if (typingTimerRef.current !== null) return;
+    typingTimerRef.current = window.setTimeout(tickAssistantTyping, typingIntervalMs);
+  }
+
+  function tickAssistantTyping() {
+    typingTimerRef.current = null;
+    const nextChunk = typingQueueRef.current.slice(0, typingChunkSize);
+    typingQueueRef.current = typingQueueRef.current.slice(nextChunk.length);
+    if (nextChunk) {
+      setMessages((current) => updateLastAssistant(current, nextChunk));
+    }
+
+    if (typingQueueRef.current) {
+      scheduleAssistantTyping();
+      return;
+    }
+
+    commitPendingFinalAssistant();
+    setIsTypingAssistant(false);
+  }
+
+  function flushAssistantTyping() {
+    clearTypingTimer();
+    const queued = typingQueueRef.current;
+    typingQueueRef.current = '';
+    if (queued) {
+      setMessages((current) => updateLastAssistant(current, queued));
+    }
+    commitPendingFinalAssistant();
+    setIsTypingAssistant(false);
+  }
+
+  function commitPendingFinalAssistant() {
+    const finalAssistant = pendingFinalAssistantRef.current;
+    if (!finalAssistant) return;
+    pendingFinalAssistantRef.current = null;
+    setMessages((current) => current.map((item) =>
+      item.id === finalAssistant.id ? finalAssistant : item
+    ));
   }
 
   async function copyMessage(content: string) {
@@ -434,7 +513,7 @@ export function ChatPage() {
             <textarea
               value={input}
               placeholder="输入消息..."
-              disabled={isStreaming || !settings?.enabled || models.length === 0}
+              disabled={isAnswering || !settings?.enabled || models.length === 0}
               maxLength={settings?.maxInputChars || undefined}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
@@ -481,7 +560,7 @@ export function ChatPage() {
                   onChange={(value) => setSelectedModelId(Number(value))}
                 />
               </div>
-              {isStreaming ? (
+              {isAnswering ? (
                 <button className="dangerButton" type="button" onClick={stopStreaming}>
                   <Square size={16} />
                   停止
