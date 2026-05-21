@@ -1,5 +1,5 @@
 import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard, Edit3, Menu, MessageSquarePlus, Send, Square, Trash2, X } from 'lucide-react';
+import { Clipboard, Edit3, Menu, MessageSquarePlus, Paperclip, Send, Square, Trash2, X } from 'lucide-react';
 import {
   createChatConversation,
   deleteChatConversation,
@@ -18,6 +18,21 @@ import { SelectField } from '../SelectField';
 
 const MarkdownMessage = lazy(() => import('../MarkdownMessage').then((module) => ({ default: module.MarkdownMessage })));
 
+interface ChatAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  content?: string;
+}
+
+const readableAttachmentTypes = [
+  'application/json',
+  'application/xml',
+  'application/javascript',
+  'text/'
+];
+
 export function ChatPage() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -29,13 +44,14 @@ export function ChatPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingConversation, setEditingConversation] = useState<ChatConversation | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deletingConversation, setDeletingConversation] = useState<ChatConversation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
@@ -74,6 +90,16 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, isStreaming]);
 
+  useEffect(() => {
+    function onPaste(event: ClipboardEvent) {
+      if (!(event.target instanceof Node) || !document.querySelector('.chatPage')?.contains(event.target)) return;
+      const files = Array.from(event.clipboardData?.files || []);
+      if (files.length > 0) void addFiles(files);
+    }
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, []);
+
   async function selectConversation(id: number) {
     setActiveConversationId(id);
     setIsHistoryOpen(false);
@@ -110,7 +136,7 @@ export function ChatPage() {
       setError('请先选择可用模型');
       return;
     }
-    const content = input.trim();
+    const content = buildMessageContent(input.trim(), attachments);
     if (!content) return;
     if (settings.maxInputChars && content.length > settings.maxInputChars) {
       setError(`消息不能超过 ${settings.maxInputChars} 个字符`);
@@ -129,7 +155,7 @@ export function ChatPage() {
       }
 
       setInput('');
-      setEditingMessageId(null);
+      setAttachments([]);
       setIsStreaming(true);
       const controller = new AbortController();
       abortRef.current = controller;
@@ -203,7 +229,22 @@ export function ChatPage() {
 
   function editMessage(item: ChatMessage) {
     setInput(item.content);
-    setEditingMessageId(item.id);
+    setAttachments([]);
+  }
+
+  async function addFiles(files: File[]) {
+    const next = await Promise.all(files.slice(0, 6).map(async (file) => ({
+      id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+      name: file.name,
+      type: file.type || 'unknown',
+      size: file.size,
+      content: isReadableAttachment(file) ? await file.text().catch(() => undefined) : undefined
+    })));
+    setAttachments((current) => [...current, ...next].slice(0, 6));
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((current) => current.filter((item) => item.id !== id));
   }
 
   function openRename(conversation: ChatConversation) {
@@ -337,6 +378,18 @@ export function ChatPage() {
           </div>
 
           <form className="chatComposer" onSubmit={submit}>
+            {attachments.length > 0 && (
+              <div className="chatAttachmentList">
+                {attachments.map((item) => (
+                  <span className="chatAttachmentChip" key={item.id}>
+                    {item.name}
+                    <button type="button" onClick={() => removeAttachment(item.id)} aria-label="移除附件">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <textarea
               value={input}
               placeholder="输入消息..."
@@ -345,7 +398,20 @@ export function ChatPage() {
               onChange={(event) => setInput(event.target.value)}
             />
             <div className="chatComposerActions">
-              <span>{editingMessageId ? '修改后发送 · ' : ''}{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
+              <button className="iconButton chatAttachButton" type="button" onClick={() => fileInputRef.current?.click()} aria-label="上传附件">
+                <Paperclip size={16} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                hidden
+                onChange={(event) => {
+                  void addFiles(Array.from(event.target.files || []));
+                  event.target.value = '';
+                }}
+              />
+              <span>{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
               <span>{settings?.messageCreditCost ? `每条 ${settings.messageCreditCost} 积分` : '免费使用'}</span>
               <div className="chatComposerModel">
                 <SelectField
@@ -417,6 +483,27 @@ function updateLastAssistant(items: ChatMessage[], delta: string) {
 function upsertConversation(items: ChatConversation[], item: ChatConversation) {
   return [item, ...items.filter((current) => current.id !== item.id)]
     .sort((a, b) => new Date(b.lastMessageAt || b.updatedAt).getTime() - new Date(a.lastMessageAt || a.updatedAt).getTime());
+}
+
+function isReadableAttachment(file: File) {
+  return readableAttachmentTypes.some((type) => file.type.startsWith(type))
+    || /\.(csv|json|log|md|txt|xml|yaml|yml)$/i.test(file.name);
+}
+
+function buildMessageContent(content: string, attachments: ChatAttachment[]) {
+  if (attachments.length === 0) return content;
+  const attachmentText = attachments.map((item) => {
+    const header = `文件：${item.name}（${item.type || 'unknown'}，${formatFileSize(item.size)}）`;
+    if (!item.content) return `${header}\n文件内容未读取，请根据文件名和类型判断用户意图。`;
+    return `${header}\n\`\`\`\n${item.content.slice(0, 12000)}\n\`\`\``;
+  }).join('\n\n');
+  return [content, `附件：\n${attachmentText}`].filter(Boolean).join('\n\n');
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function formatDate(value: string) {
