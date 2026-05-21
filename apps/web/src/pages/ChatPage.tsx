@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Edit3, Menu, MessageSquarePlus, RefreshCcw, Send, Square, Trash2, X } from 'lucide-react';
+import { Edit3, Menu, MessageSquarePlus, Send, Square, Trash2, X } from 'lucide-react';
 import {
   createChatConversation,
   deleteChatConversation,
@@ -26,7 +26,6 @@ export function ChatPage() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingConversation, setEditingConversation] = useState<ChatConversation | null>(null);
@@ -40,7 +39,6 @@ export function ChatPage() {
   const selectedModel = models.find((item) => item.id === selectedModelId) || null;
 
   const load = useCallback(async () => {
-    setIsLoading(true);
     setError('');
     try {
       const [settingsPayload, modelsPayload, conversationsPayload] = await Promise.all([
@@ -63,8 +61,6 @@ export function ChatPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取 AI 对话数据失败');
-    } finally {
-      setIsLoading(false);
     }
   }, [activeConversationId]);
 
@@ -237,10 +233,6 @@ export function ChatPage() {
             <Menu size={16} />
             历史
           </button>
-          <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>
-            <RefreshCcw size={16} />
-            刷新
-          </button>
         </div>
       </header>
 
@@ -250,7 +242,10 @@ export function ChatPage() {
       <div className="chatLayout">
         <aside className={isHistoryOpen ? 'chatSidebar open' : 'chatSidebar'}>
           <div className="chatSidebarHeader">
-            <strong>对话历史</strong>
+            <div>
+              <strong>对话</strong>
+              <span>{conversations.length} 条历史</span>
+            </div>
             <button className="iconButton chatSidebarClose" type="button" onClick={() => setIsHistoryOpen(false)} aria-label="关闭历史">
               <X size={16} />
             </button>
@@ -287,13 +282,12 @@ export function ChatPage() {
 
         <section className="panel chatPanel">
           <div className="chatPanelHeader">
-            <div>
-              <span>当前对话</span>
+            <div className="chatPanelTitle">
               <h2>{activeConversation?.title || '新对话'}</h2>
+              <span>{selectedModel ? selectedModel.name : '选择一个模型开始对话'}</span>
             </div>
             <div className="chatModelSelect">
               <SelectField
-                label="模型"
                 value={String(selectedModelId || '')}
                 options={modelOptions}
                 onChange={(value) => setSelectedModelId(Number(value))}
@@ -301,21 +295,21 @@ export function ChatPage() {
             </div>
           </div>
 
-          {!settings?.enabled && (
-            <div className="emptyState">
-              <Bot size={28} />
-              <p>AI 对话当前已关闭。</p>
-            </div>
-          )}
+          <div className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
+            {!settings?.enabled && (
+              <div className="chatEmptyState">
+                <strong>AI 对话当前已关闭</strong>
+                <p>请在后台启用对话功能后再使用。</p>
+              </div>
+            )}
 
-          {settings?.enabled && messages.length === 0 && (
-            <div className="emptyState">
-              <Bot size={28} />
-              <p>选择模型后发送第一条消息，开始新的对话。</p>
-            </div>
-          )}
+            {settings?.enabled && messages.length === 0 && (
+              <div className="chatEmptyState">
+                <strong>开始一次新的对话</strong>
+                <p>{selectedModel ? `当前模型：${selectedModel.name}` : '先选择一个可用模型，然后发送第一条消息。'}</p>
+              </div>
+            )}
 
-          <div className="chatMessageList">
             {messages.map((item) => (
               <article className={`chatMessage ${item.role}`} key={item.id}>
                 <div className="chatMessageBubble">
@@ -331,10 +325,6 @@ export function ChatPage() {
           </div>
 
           <form className="chatComposer" onSubmit={submit}>
-            <div className="chatComposerMeta">
-              <span>{selectedModel ? selectedModel.name : '未选择模型'}</span>
-              <span>{settings?.messageCreditCost ? `每条 ${settings.messageCreditCost} 积分` : '免费使用'}</span>
-            </div>
             <textarea
               value={input}
               placeholder="输入消息..."
@@ -344,6 +334,7 @@ export function ChatPage() {
             />
             <div className="chatComposerActions">
               <span>{input.length}{settings?.maxInputChars ? ` / ${settings.maxInputChars}` : ''}</span>
+              <span>{settings?.messageCreditCost ? `每条 ${settings.messageCreditCost} 积分` : '免费使用'}</span>
               {isStreaming ? (
                 <button className="dangerButton" type="button" onClick={stopStreaming}>
                   <Square size={16} />
