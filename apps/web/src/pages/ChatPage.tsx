@@ -237,7 +237,7 @@ export function ChatPage() {
       </header>
 
       {error && <div className="errorBox">{error}</div>}
-      {message && <div className="hintBox">{message}</div>}
+      {message && <div className="toastNotice" role="status">{message}</div>}
 
       <div className="chatLayout">
         <aside className={isHistoryOpen ? 'chatSidebar open' : 'chatSidebar'}>

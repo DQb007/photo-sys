@@ -294,7 +294,7 @@ export function PromptLibraryPage() {
               <p>{renderedPrompt}</p>
             </div>
 
-            {message && <div className="hintBox">{message}</div>}
+            {message && <div className="toastNotice" role="status">{message}</div>}
 
             <div className="modalActions">
               <button className="ghostButton" type="button" disabled={missingVariables.length > 0} onClick={() => void copyPrompt()}>

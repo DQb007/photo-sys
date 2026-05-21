@@ -116,7 +116,7 @@ export function AdminSettingsPage() {
         </div>
       </header>
       {error && <div className="errorBox">{error}</div>}
-      {message && <div className="hintBox">{message}</div>}
+      {message && <div className="toastNotice" role="status">{message}</div>}
       {isDirty && <div className="hintBox">有未保存的配置修改。</div>}
       <form className="adminForm" onSubmit={save}>
         <section className="panel formPanel">
@@ -228,7 +228,7 @@ export function AdminSettingsPage() {
             </button>
           </div>
           {mailError && <div className="inlineError">{mailError}</div>}
-          {mailMessage && <div className="hintBox">{mailMessage}</div>}
+          {mailMessage && <div className="toastNotice" role="status">{mailMessage}</div>}
         </section>
 
         <section className="panel formPanel">

@@ -128,7 +128,7 @@ export function SettingsPage() {
           </label>
         </div>
         {passwordError && <div className="inlineError">{passwordError}</div>}
-        {passwordMessage && <div className="hintBox">{passwordMessage}</div>}
+        {passwordMessage && <div className="toastNotice" role="status">{passwordMessage}</div>}
         <button className="primaryButton compact" type="submit" disabled={isChangingPassword}>
           <KeyRound size={16} />
           {isChangingPassword ? '修改中' : '修改密码'}
@@ -162,7 +162,7 @@ export function SettingsPage() {
           </div>
         </form>
         {redeemError && <div className="inlineError">{redeemError}</div>}
-        {redeemMessage && <div className="hintBox">{redeemMessage}</div>}
+        {redeemMessage && <div className="toastNotice" role="status">{redeemMessage}</div>}
         <div className="creditList">
           {creditItems.length === 0 && <div className="emptyLine">暂无积分流水</div>}
           {creditItems.map((item) => (

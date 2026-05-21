@@ -51,7 +51,7 @@ export function RegisterPage() {
           <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={8} required />
         </label>
         {error && <div className="errorBox">{error}</div>}
-        {message && <div className="hintBox">{message}</div>}
+        {message && <div className="toastNotice" role="status">{message}</div>}
         <button className="primaryButton" disabled={isLoading}>
           <UserPlus size={18} />
           {isLoading ? '注册中' : '注册'}

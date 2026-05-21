@@ -194,7 +194,7 @@ export function AdminRedeemCodesPage() {
       </header>
 
       {error && <div className="errorBox">{error}</div>}
-      {message && <div className="hintBox">{message}</div>}
+      {message && <div className="toastNotice" role="status">{message}</div>}
 
       <div className="redeemAdminGrid">
         <section className="panel formPanel">
