@@ -224,7 +224,8 @@ async function touchConversationInConnection(
     await connection.execute(
       `UPDATE chat_conversations
        SET last_message_at = CURRENT_TIMESTAMP,
-           title = CASE WHEN title_is_auto = 1 THEN ? ELSE title END
+           title = CASE WHEN title_is_auto = 1 THEN ? ELSE title END,
+           title_is_auto = CASE WHEN title_is_auto = 1 THEN 0 ELSE title_is_auto END
        WHERE id = ?`,
       [autoTitle(userContentForTitle), conversationId]
     );

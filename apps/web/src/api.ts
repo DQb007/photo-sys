@@ -253,6 +253,14 @@ export interface ChatMessage {
   updatedAt: string;
 }
 
+export interface ChatMessageAttachment {
+  name: string;
+  type: string;
+  size: number;
+  dataUrl?: string;
+  content?: string;
+}
+
 export type ChatStreamEvent =
   | { event: 'message_created'; data: { userMessage: ChatMessage; assistantMessage: ChatMessage } }
   | { event: 'delta'; data: { delta: string } }
@@ -703,6 +711,7 @@ export async function streamChatMessage(input: {
   conversationId: number;
   content: string;
   chatModelId: number;
+  attachments?: ChatMessageAttachment[];
   signal?: AbortSignal;
   onEvent: (event: ChatStreamEvent) => void;
 }) {
@@ -711,7 +720,8 @@ export async function streamChatMessage(input: {
     headers: authHeaders(),
     body: JSON.stringify({
       content: input.content,
-      chatModelId: input.chatModelId
+      chatModelId: input.chatModelId,
+      attachments: input.attachments || []
     }),
     signal: input.signal
   });

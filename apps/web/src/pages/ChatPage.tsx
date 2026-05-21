@@ -10,6 +10,7 @@ import {
   streamChatMessage,
   updateChatConversation,
   type ChatConversation,
+  type ChatMessageAttachment,
   type ChatMessage,
   type ChatModel,
   type ChatSettings
@@ -24,6 +25,7 @@ interface ChatAttachment {
   type: string;
   size: number;
   content?: string;
+  dataUrl?: string;
 }
 
 const readableAttachmentTypes = [
@@ -32,6 +34,25 @@ const readableAttachmentTypes = [
   'application/javascript',
   'text/'
 ];
+
+function MessageAttachments({ metadata }: { metadata: unknown }) {
+  const attachments = readMessageAttachments(metadata);
+  if (attachments.length === 0) return null;
+  return (
+    <div className="chatMessageAttachments">
+      {attachments.map((item, index) => (
+        <div className="chatMessageAttachment" key={`${item.name}-${index}`}>
+          {item.dataUrl && item.type.startsWith('image/') ? (
+            <img src={item.dataUrl} alt={item.name} />
+          ) : (
+            <Paperclip size={14} />
+          )}
+          <span>{item.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function ChatPage() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -148,7 +169,7 @@ export function ChatPage() {
       setError('请先选择可用模型');
       return;
     }
-    const content = buildMessageContent(input.trim(), attachments);
+    const content = input.trim() || firstAttachmentPrompt(attachments);
     if (!content) return;
     if (settings.maxInputChars && content.length > settings.maxInputChars) {
       setError(`消息不能超过 ${settings.maxInputChars} 个字符`);
@@ -175,6 +196,7 @@ export function ChatPage() {
       await streamChatMessage({
         conversationId,
         content,
+        attachments: attachments.map(toMessageAttachment),
         chatModelId: selectedModelId,
         signal: controller.signal,
         onEvent: (eventPayload) => {
@@ -250,6 +272,7 @@ export function ChatPage() {
       name: file.name,
       type: file.type || 'unknown',
       size: file.size,
+      dataUrl: file.type.startsWith('image/') ? await readFileAsDataUrl(file).catch(() => undefined) : undefined,
       content: isReadableAttachment(file) ? await file.text().catch(() => undefined) : undefined
     })));
     setAttachments((current) => [...current, ...next].slice(0, 6));
@@ -372,6 +395,7 @@ export function ChatPage() {
                   ) : (
                     <p>{item.content || (item.status === 'streaming' ? '生成中...' : '')}</p>
                   )}
+                  {item.role === 'user' && <MessageAttachments metadata={item.metadata} />}
                   {item.errorMessage && <span className="chatMessageError">{item.errorMessage}</span>}
                   <div className="chatMessageTools">
                     <button className="iconButton" type="button" onClick={() => void copyMessage(item.content)} aria-label="复制">
@@ -517,20 +541,46 @@ function isReadableAttachment(file: File) {
     || /\.(csv|json|log|md|txt|xml|yaml|yml)$/i.test(file.name);
 }
 
-function buildMessageContent(content: string, attachments: ChatAttachment[]) {
-  if (attachments.length === 0) return content;
-  const attachmentText = attachments.map((item) => {
-    const header = `文件：${item.name}（${item.type || 'unknown'}，${formatFileSize(item.size)}）`;
-    if (!item.content) return `${header}\n文件内容未读取，请根据文件名和类型判断用户意图。`;
-    return `${header}\n\`\`\`\n${item.content.slice(0, 12000)}\n\`\`\``;
-  }).join('\n\n');
-  return [content, `附件：\n${attachmentText}`].filter(Boolean).join('\n\n');
+function firstAttachmentPrompt(attachments: ChatAttachment[]) {
+  if (attachments.length === 0) return '';
+  const imageCount = attachments.filter((item) => item.type.startsWith('image/')).length;
+  if (imageCount > 0) return imageCount === 1 ? '请分析这张图片。' : `请分析这 ${imageCount} 张图片。`;
+  return `请分析附件：${attachments.map((item) => item.name).join('、')}`;
 }
 
-function formatFileSize(size: number) {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+function toMessageAttachment(item: ChatAttachment): ChatMessageAttachment {
+  return {
+    name: item.name,
+    type: item.type || 'application/octet-stream',
+    size: item.size,
+    dataUrl: item.dataUrl,
+    content: item.content?.slice(0, 12000)
+  };
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Read file failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function readMessageAttachments(metadata: unknown): ChatMessageAttachment[] {
+  const parsed = typeof metadata === 'string' ? safeJson(metadata) : metadata;
+  if (!parsed || typeof parsed !== 'object') return [];
+  const raw = (parsed as { attachments?: unknown }).attachments;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is ChatMessageAttachment => Boolean(item && typeof item === 'object' && 'name' in item));
+}
+
+function safeJson(value: string) {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 function formatDate(value: string) {

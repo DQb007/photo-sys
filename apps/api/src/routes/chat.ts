@@ -40,7 +40,14 @@ const conversationPatchSchema = z.object({
 
 const sendMessageSchema = z.object({
   content: z.string().trim().min(1),
-  chatModelId: z.number().int().min(1)
+  chatModelId: z.number().int().min(1),
+  attachments: z.array(z.object({
+    name: z.string().trim().min(1).max(240),
+    type: z.string().trim().max(120).optional().default('application/octet-stream'),
+    size: z.number().int().min(0).max(10 * 1024 * 1024),
+    dataUrl: z.string().max(14 * 1024 * 1024).optional(),
+    content: z.string().max(12000).optional()
+  })).max(6).optional().default([])
 });
 
 router.use(requireUser);
@@ -169,7 +176,8 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
         chatModelId: model.id,
         modelNameSnapshot: model.name,
         modelKeySnapshot: model.model_key,
-        creditCost
+        creditCost,
+        metadata: parsed.attachments.length ? { attachments: parsed.attachments } : null
       });
       if (creditCost > 0) {
         const debit = await applyCreditTransactionInConnection(connection, {
