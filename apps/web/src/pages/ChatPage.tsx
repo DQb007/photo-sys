@@ -300,7 +300,7 @@ export function ChatPage() {
           </div>
 
           <div className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
-            {!settings?.enabled && (
+            {settings && !settings.enabled && (
               <div className="chatEmptyState">
                 <strong>AI 对话当前已关闭</strong>
                 <p>请在后台启用对话功能后再使用。</p>
