@@ -295,6 +295,12 @@
   margin-bottom: 18px;
 }
 
+.adminUserToolbar .selectTrigger {
+  height: 48px;
+  min-height: 48px;
+  border-radius: 8px;
+}
+
 .adminUserSearch {
   min-height: 48px;
   border: 1px solid var(--line);
