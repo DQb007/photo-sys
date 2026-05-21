@@ -1168,10 +1168,10 @@ code {
 
 .authPage {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   place-items: center;
-  padding: 42px 24px;
+  padding: 28px 24px;
   background:
     radial-gradient(circle at 20% 12%, rgba(134, 235, 204, 0.32), transparent 26%),
     radial-gradient(circle at 76% 82%, rgba(31, 111, 91, 0.18), transparent 28%),
@@ -1186,11 +1186,11 @@ code {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(100deg, transparent 0 42%, rgba(158, 230, 205, 0.16) 48%, transparent 56%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 12px);
-  opacity: 0.56;
-  transform: translateX(-55%);
-  animation: authPageSweep 4.8s ease-in-out infinite;
+    linear-gradient(105deg, transparent 0 18%, rgba(158, 230, 205, 0.28) 24%, transparent 34%),
+    linear-gradient(105deg, transparent 0 58%, rgba(255, 255, 255, 0.36) 62%, transparent 70%);
+  opacity: 0.5;
+  transform: translateX(-70%);
+  animation: authPageSweep 5.6s linear infinite;
 }
 
 .authPage::after {
@@ -1296,12 +1296,13 @@ code {
   position: relative;
   z-index: 1;
   width: min(1120px, 100%);
-  min-height: min(720px, calc(100vh - 84px));
+  min-height: auto;
+  max-height: calc(100vh - 56px);
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(360px, 460px);
   gap: 22px;
   align-items: stretch;
-  animation: authShellIn 620ms ease both, authShellFloat 7s ease-in-out 900ms infinite;
+  animation: authShellIn 620ms ease both;
 }
 
 .authHero,
@@ -1315,6 +1316,7 @@ code {
   position: relative;
   overflow: hidden;
   padding: 34px;
+  min-height: 600px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1324,7 +1326,7 @@ code {
     linear-gradient(145deg, rgba(12, 18, 18, 0.88), rgba(31, 111, 91, 0.42));
   background-size: 30px 30px, 30px 30px, auto;
   color: #fff;
-  animation: authGridDrift 6s linear infinite, authHeroGlow 5s ease-in-out infinite;
+  animation: authGridDrift 12s linear infinite;
 }
 
 .authHero::after {
@@ -1390,7 +1392,7 @@ code {
   position: relative;
   z-index: 1;
   max-width: 650px;
-  padding: 42px 0 18px;
+  padding: 34px 0 22px;
   animation: authRiseIn 700ms ease 80ms both;
 }
 
@@ -1410,96 +1412,9 @@ code {
 
 .authHeroCopy p:not(.eyebrow) {
   max-width: 560px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 16px;
   line-height: 1.8;
-}
-
-.authLiveDemo {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  min-height: 170px;
-  margin: 2px 0 22px;
-  border: 1px solid rgba(158, 230, 205, 0.24);
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(158, 230, 205, 0.24), transparent 34%),
-    linear-gradient(90deg, rgba(158, 230, 205, 0.08) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(158, 230, 205, 0.08) 1px, transparent 1px),
-    rgba(255, 255, 255, 0.06);
-  background-size: auto, 28px 28px, 28px 28px, auto;
-  box-shadow: inset 0 0 44px rgba(158, 230, 205, 0.1);
-  overflow: hidden;
-  animation: authLiveGrid 4.5s linear infinite;
-}
-
-.authLiveFrame {
-  position: relative;
-  width: min(300px, 70%);
-  aspect-ratio: 1;
-}
-
-.authLiveCore,
-.authLiveOrbit,
-.authLiveTrace {
-  position: absolute;
-  display: block;
-  left: 50%;
-  top: 50%;
-}
-
-.authLiveCore {
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border-radius: 50%;
-  background: #9ee6cd;
-  box-shadow:
-    0 0 18px rgba(158, 230, 205, 0.95),
-    0 0 70px rgba(158, 230, 205, 0.5);
-  animation: authLiveCore 1.35s ease-in-out infinite;
-}
-
-.authLiveOrbit {
-  border: 1px solid rgba(158, 230, 205, 0.42);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.authLiveOrbitOne {
-  width: 128px;
-  height: 128px;
-  animation: authLiveOrbit 3s linear infinite;
-}
-
-.authLiveOrbitTwo {
-  width: 210px;
-  height: 210px;
-  border-style: dashed;
-  opacity: 0.72;
-  animation: authLiveOrbit 6s linear reverse infinite;
-}
-
-.authLiveTrace {
-  width: 120px;
-  height: 2px;
-  transform-origin: left center;
-  background: linear-gradient(90deg, rgba(158, 230, 205, 0.95), transparent);
-  box-shadow: 0 0 18px rgba(158, 230, 205, 0.5);
-}
-
-.authLiveTraceOne {
-  animation: authLiveTraceOne 2.4s linear infinite;
-}
-
-.authLiveTraceTwo {
-  animation: authLiveTraceTwo 3.1s linear infinite;
-}
-
-.authLiveTraceThree {
-  animation: authLiveTraceThree 3.8s linear infinite;
 }
 
 .authSlogan {
@@ -1527,7 +1442,7 @@ code {
 
 .authFeatureGrid > div {
   min-width: 0;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(14px);
@@ -1565,7 +1480,7 @@ code {
 
 .authFeatureGrid span {
   margin-top: 8px;
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -1577,7 +1492,7 @@ code {
 }
 
 .authCopyGrid > div {
-  min-height: 142px;
+  min-height: 126px;
 }
 
 .authFlow {
@@ -1724,15 +1639,11 @@ code {
 }
 
 @keyframes authPageSweep {
-  0%,
-  18% {
-    transform: translateX(-58%);
+  from {
+    transform: translateX(-78%);
   }
-  55% {
-    transform: translateX(58%);
-  }
-  100% {
-    transform: translateX(58%);
+  to {
+    transform: translateX(78%);
   }
 }
 
@@ -1742,16 +1653,6 @@ code {
   }
   to {
     background-position: 60px 0, 0 60px, 0 0;
-  }
-}
-
-@keyframes authHeroGlow {
-  0%,
-  100% {
-    box-shadow: 0 32px 90px rgba(25, 24, 21, 0.24), inset 0 0 0 rgba(158, 230, 205, 0);
-  }
-  50% {
-    box-shadow: 0 32px 90px rgba(25, 24, 21, 0.24), inset 0 0 72px rgba(158, 230, 205, 0.14);
   }
 }
 
@@ -1797,63 +1698,6 @@ code {
   }
   50% {
     background-position: -20% 0;
-  }
-}
-
-@keyframes authLiveGrid {
-  from {
-    background-position: 0 0, 0 0, 0 0, 0 0;
-  }
-  to {
-    background-position: 0 0, 28px 0, 0 28px, 0 0;
-  }
-}
-
-@keyframes authLiveCore {
-  0%,
-  100% {
-    transform: scale(0.82);
-    opacity: 0.72;
-  }
-  50% {
-    transform: scale(1.22);
-    opacity: 1;
-  }
-}
-
-@keyframes authLiveOrbit {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg) scale(0.96);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(360deg) scale(1.04);
-  }
-}
-
-@keyframes authLiveTraceOne {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes authLiveTraceTwo {
-  from {
-    transform: rotate(118deg);
-  }
-  to {
-    transform: rotate(478deg);
-  }
-}
-
-@keyframes authLiveTraceThree {
-  from {
-    transform: rotate(236deg);
-  }
-  to {
-    transform: rotate(596deg);
   }
 }
 
@@ -1934,10 +1778,6 @@ code {
   .authBrandLockup,
   .authHeroCopy,
   .authHeroCopy h1,
-  .authLiveDemo,
-  .authLiveCore,
-  .authLiveOrbit,
-  .authLiveTrace,
   .authSlogan,
   .authFeatureGrid > div,
   .authFlow,
@@ -2796,7 +2636,9 @@ th {
 
 @media (max-width: 900px) {
   .authPage {
+    height: auto;
     min-height: 100dvh;
+    overflow: auto;
     padding: 18px;
     background:
       radial-gradient(circle at 20% 0%, rgba(31, 111, 91, 0.28), transparent 34%),
@@ -2805,6 +2647,7 @@ th {
   }
 
   .authShell {
+    max-height: none;
     min-height: auto;
     grid-template-columns: 1fr;
     gap: 14px;
