@@ -318,10 +318,7 @@ export function ChatPage() {
 
   return (
     <div className="page chatPage">
-      <header className="pageHeader chatPageHeader">
-        <div>
-          <h1>AI 对话</h1>
-        </div>
+      <header className="chatPageHeader">
         <div className="chatHeaderActions">
           <button className="ghostButton chatHistoryToggle" type="button" onClick={() => setIsHistoryOpen(true)}>
             <Menu size={16} />
