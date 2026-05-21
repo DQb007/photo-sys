@@ -191,7 +191,6 @@ export function AdminUsersPage() {
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索邮箱或昵称" />
         </label>
         <SelectField
-          label="角色"
           value={role}
           options={[
             { label: '全部角色', value: '' },
@@ -201,7 +200,6 @@ export function AdminUsersPage() {
           onChange={setRole}
         />
         <SelectField
-          label="状态"
           value={status}
           options={[
             { label: '全部状态', value: '' },
