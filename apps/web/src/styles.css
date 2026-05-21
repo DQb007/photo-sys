@@ -213,7 +213,7 @@
 
 .chatMessage.user .chatMessageBubble {
   border-radius: 16px;
-  padding-bottom: 42px;
+  padding: 13px 15px;
   background: #f3f4f2;
   color: var(--ink);
   border-color: transparent;
@@ -430,23 +430,35 @@
   transition: opacity 0.16s ease;
 }
 
+.chatMessage.user .chatMessageTools {
+  right: 4px;
+  bottom: -32px;
+}
+
 .chatMessageBubble:hover .chatMessageTools,
 .chatMessageBubble:focus-within .chatMessageTools {
   opacity: 1;
 }
 
 .chatMessageTools .iconButton {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--ink);
+  background: transparent;
+  color: var(--muted);
 }
 
 .chatMessage.user .chatMessageTools .iconButton {
-  border-color: rgba(222, 216, 206, 0.78);
-  background: rgba(255, 255, 255, 0.9);
+  border: 0;
+  background: transparent;
   color: var(--muted);
+}
+
+.chatMessageTools .iconButton:hover,
+.chatMessage.user .chatMessageTools .iconButton:hover {
+  background: rgba(235, 233, 227, 0.8);
+  color: var(--ink);
 }
 
 .chatEmptyState {
@@ -668,11 +680,11 @@
   width: 34px;
   min-width: 34px;
   height: 34px;
-  border: 0;
+  border: 0 !important;
   border-radius: 999px;
-  background: transparent;
+  background: transparent !important;
   color: var(--muted);
-  box-shadow: none;
+  box-shadow: none !important;
 }
 
 .chatAttachButton:hover {
