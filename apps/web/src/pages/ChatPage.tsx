@@ -432,6 +432,11 @@ export function ChatPage() {
               disabled={isStreaming || !settings?.enabled || models.length === 0}
               maxLength={settings?.maxInputChars || undefined}
               onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }}
             />
             <div className="chatComposerActions">
               <div className="chatAttachWrap" ref={attachMenuRef}>

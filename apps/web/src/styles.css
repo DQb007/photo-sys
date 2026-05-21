@@ -212,11 +212,11 @@
 }
 
 .chatMessage.user .chatMessageBubble {
-  border-radius: 14px;
+  border-radius: 16px;
   padding-bottom: 42px;
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  background: #f3f4f2;
+  color: var(--ink);
+  border-color: transparent;
 }
 
 .chatMessageAttachments {
@@ -230,7 +230,8 @@
   max-width: 210px;
   min-height: 32px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(222, 216, 206, 0.8);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -243,7 +244,7 @@
   height: 38px;
   border-radius: 8px;
   object-fit: cover;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .chatMessageAttachment span {
@@ -443,9 +444,9 @@
 }
 
 .chatMessage.user .chatMessageTools .iconButton {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border-color: rgba(222, 216, 206, 0.78);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--muted);
 }
 
 .chatEmptyState {
@@ -669,8 +670,9 @@
   height: 34px;
   border: 0;
   border-radius: 999px;
-  background: rgba(245, 244, 241, 0.95);
+  background: transparent;
   color: var(--muted);
+  box-shadow: none;
 }
 
 .chatAttachButton:hover {
