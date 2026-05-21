@@ -14,7 +14,7 @@ import {
 } from '../api';
 import { formatDuration, generationElapsedMs } from '../time';
 
-export function HistoryPage() {
+export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [items, setItems] = useState<Generation[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -72,7 +72,7 @@ export function HistoryPage() {
     <div className="page">
       <header className="pageHeader">
         <div>
-          <h1>生成历史</h1>
+          <h1>{mode === 'admin' ? '图片管理' : '生成历史'}</h1>
         </div>
         <button className="ghostButton" onClick={() => void load()}>
           <RefreshCcw size={16} />

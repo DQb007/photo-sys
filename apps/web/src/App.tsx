@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Activity, BookOpen, Clock3, ImagePlus, LogOut, Menu, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
+import { Activity, BookOpen, Clock3, Images, ImagePlus, LogOut, Menu, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -117,6 +117,10 @@ function ProtectedShell() {
                 <Activity size={18} />
                 运行状态
               </NavLink>
+              <NavLink to="/admin/generations" onClick={() => setIsSidebarOpen(false)}>
+                <Images size={18} />
+                图片管理
+              </NavLink>
               <NavLink to="/admin/settings" onClick={() => setIsSidebarOpen(false)}>
                 <SlidersHorizontal size={18} />
                 配置管理
@@ -159,6 +163,7 @@ function ProtectedShell() {
           <Route path="/settings" element={<UserOnly><SettingsPage /></UserOnly>} />
           <Route path="/admin/overview" element={<AdminOnly><AdminOverviewPage /></AdminOnly>} />
           <Route path="/admin/status" element={<AdminOnly><AdminStatusPage /></AdminOnly>} />
+          <Route path="/admin/generations" element={<AdminOnly><HistoryPage mode="admin" /></AdminOnly>} />
           <Route path="/admin/settings" element={<AdminOnly><AdminSettingsPage /></AdminOnly>} />
           <Route path="/admin/users" element={<AdminOnly><AdminUsersPage /></AdminOnly>} />
           <Route path="/admin/users/:id/generations" element={<AdminOnly><AdminUserGenerationsPage /></AdminOnly>} />
