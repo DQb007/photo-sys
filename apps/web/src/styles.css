@@ -977,17 +977,25 @@ textarea {
   font-weight: 800;
   line-height: 1.35;
   text-align: center;
-  animation: toastIn 180ms ease-out;
+  pointer-events: none;
+  animation: toastLifecycle 1s ease forwards;
 }
 
-@keyframes toastIn {
-  from {
+@keyframes toastLifecycle {
+  0% {
     opacity: 0;
     transform: translate(-50%, -8px);
   }
-  to {
+
+  18%,
+  78% {
     opacity: 1;
     transform: translate(-50%, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -8px);
   }
 }
 
