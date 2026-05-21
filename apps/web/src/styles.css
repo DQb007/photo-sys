@@ -284,7 +284,9 @@
 }
 
 .chatComposer textarea:focus {
+  border-color: transparent;
   outline: none;
+  box-shadow: none;
 }
 
 .chatComposerActions span:first-child {
@@ -296,16 +298,33 @@
 }
 
 .chatComposerModel {
-  width: 188px;
+  flex: 0 0 220px;
+  width: 220px;
+  min-width: 220px;
 }
 
 .chatComposerModel .selectTrigger {
   min-height: 36px;
+  width: 100%;
   border-radius: 999px;
   border-color: transparent;
   background: transparent;
   padding: 0 13px;
   font-size: 13px;
+}
+
+.chatComposerModel .selectTrigger span {
+  min-width: 0;
+  max-width: 160px;
+}
+
+.chatComposerModel .selectMenu {
+  top: auto;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: auto;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 48px));
 }
 
 .chatComposerModel .selectTrigger:hover {
