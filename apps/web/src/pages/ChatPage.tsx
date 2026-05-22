@@ -1,12 +1,11 @@
-import { FormEvent, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard, Edit3, Menu, MessageSquarePlus, Paperclip, Plus, Send, Square, Trash2, X } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Clipboard, Edit3, MessageSquarePlus, Paperclip, Plus, Send, Square, Trash2, X } from 'lucide-react';
 import {
   createChatConversation,
   deleteChatConversation,
-  getChatSettings,
+  getChatBootstrap,
   listChatConversations,
   listChatMessages,
-  listChatModels,
   streamChatMessage,
   updateChatConversation,
   type ChatConversation,
@@ -16,8 +15,20 @@ import {
   type ChatSettings
 } from '../api';
 import { SelectField } from '../SelectField';
+import { MarkdownMessage } from '../MarkdownMessage';
 
-const MarkdownMessage = lazy(() => import('../MarkdownMessage').then((module) => ({ default: module.MarkdownMessage })));
+type ChatBootstrapPayload = Awaited<ReturnType<typeof getChatBootstrap>>;
+
+let chatBootstrapPromise: Promise<ChatBootstrapPayload> | null = null;
+
+function loadChatBootstrapOnce() {
+  if (!chatBootstrapPromise) {
+    chatBootstrapPromise = getChatBootstrap().finally(() => {
+      chatBootstrapPromise = null;
+    });
+  }
+  return chatBootstrapPromise;
+}
 
 interface ChatAttachment {
   id: string;
@@ -34,8 +45,8 @@ const readableAttachmentTypes = [
   'application/javascript',
   'text/'
 ];
-const typingIntervalMs = 22;
-const typingChunkSize = 2;
+const typingIntervalMs = 12;
+const typingChunkSize = 3;
 
 function MessageAttachments({ metadata }: { metadata: unknown }) {
   const attachments = readMessageAttachments(metadata);
@@ -75,9 +86,14 @@ export function ChatPage() {
   const [editingTitle, setEditingTitle] = useState('');
   const [deletingConversation, setDeletingConversation] = useState<ChatConversation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const submitLockRef = useRef(false);
+  const shouldRestoreInputFocusRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachMenuRef = useRef<HTMLDivElement | null>(null);
+  const messageCacheRef = useRef(new Map<number, ChatMessage[]>());
+  const activeConversationIdRef = useRef<number | null>(null);
   const typingQueueRef = useRef('');
   const typingTimerRef = useRef<number | null>(null);
   const pendingFinalAssistantRef = useRef<ChatMessage | null>(null);
@@ -86,35 +102,63 @@ export function ChatPage() {
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
   const isAnswering = isStreaming || isTypingAssistant;
 
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const [settingsPayload, modelsPayload, conversationsPayload] = await Promise.all([
-        getChatSettings(),
-        listChatModels(),
-        listChatConversations()
-      ]);
-      setSettings(settingsPayload);
-      setModels(modelsPayload.items);
-      setConversations(conversationsPayload.items);
-      const defaultId = modelsPayload.defaultModelId || modelsPayload.items[0]?.id || 0;
-      setSelectedModelId((current) => current || defaultId);
-      const firstConversation = conversationsPayload.items[0] || null;
-      if (firstConversation && !activeConversationId) {
-        setActiveConversationId(firstConversation.id);
-        const messagesPayload = await listChatMessages(firstConversation.id);
-        setMessages(messagesPayload.items);
-      } else if (!firstConversation) {
-        setMessages([]);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '读取 AI 对话数据失败');
-    }
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
   }, [activeConversationId]);
 
   useEffect(() => {
+    if (isAnswering || !shouldRestoreInputFocusRef.current) return;
+    shouldRestoreInputFocusRef.current = false;
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }, [isAnswering]);
+
+  function setCachedMessages(conversationId: number | null, next: ChatMessage[]) {
+    setMessages(next);
+    if (conversationId) {
+      messageCacheRef.current.set(conversationId, next);
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      setError('');
+      try {
+        const payload = await loadChatBootstrapOnce();
+        if (!isMounted) return;
+        setSettings(payload.settings);
+        setModels(payload.models.items);
+        setConversations(payload.conversations.items);
+        const defaultId = payload.models.defaultModelId || payload.models.items[0]?.id || 0;
+        setSelectedModelId((current) => current || defaultId);
+        if (activeConversationIdRef.current) return;
+        if (payload.activeConversationId) {
+          messageCacheRef.current.set(payload.activeConversationId, payload.messages.items);
+          setActiveConversationId(payload.activeConversationId);
+          setCachedMessages(payload.activeConversationId, payload.messages.items);
+        } else {
+          setCachedMessages(null, []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : '读取 AI 对话数据失败');
+        }
+      }
+    }
     void load();
-  }, [load]);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.add('chatBodyLocked');
+    document.body.classList.add('chatBodyLocked');
+    return () => {
+      document.documentElement.classList.remove('chatBodyLocked');
+      document.body.classList.remove('chatBodyLocked');
+    };
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -152,11 +196,19 @@ export function ChatPage() {
 
   async function selectConversation(id: number) {
     setActiveConversationId(id);
+    activeConversationIdRef.current = id;
     setIsHistoryOpen(false);
     setError('');
+    const cachedMessages = messageCacheRef.current.get(id);
+    if (cachedMessages) {
+      setCachedMessages(id, cachedMessages);
+    } else {
+      setCachedMessages(id, []);
+    }
     try {
       const payload = await listChatMessages(id);
-      setMessages(payload.items);
+      if (activeConversationIdRef.current !== id) return;
+      setCachedMessages(id, payload.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取消息失败');
     }
@@ -169,6 +221,8 @@ export function ChatPage() {
       const payload = await createChatConversation();
       setConversations((current) => [payload.item, ...current]);
       setActiveConversationId(payload.item.id);
+      activeConversationIdRef.current = payload.item.id;
+      messageCacheRef.current.set(payload.item.id, []);
       setMessages([]);
       setIsHistoryOpen(false);
     } catch (err) {
@@ -178,6 +232,7 @@ export function ChatPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitLockRef.current) return;
     if (isAnswering) return;
     if (!settings?.enabled) {
       setError('AI 对话当前不可用');
@@ -196,12 +251,15 @@ export function ChatPage() {
 
     setError('');
     setMessage('');
+    submitLockRef.current = true;
     let conversationId = activeConversationId;
+    let shouldRefreshMessages = true;
     try {
       if (!conversationId) {
         const payload = await createChatConversation();
         conversationId = payload.item.id;
         setActiveConversationId(conversationId);
+        activeConversationIdRef.current = conversationId;
         setConversations((current) => [payload.item, ...current]);
       }
 
@@ -220,16 +278,23 @@ export function ChatPage() {
         signal: controller.signal,
         onEvent: (eventPayload) => {
           if (eventPayload.event === 'message_created') {
-            setMessages((current) => [
-              ...current,
-              eventPayload.data.userMessage,
-              eventPayload.data.assistantMessage
-            ]);
+            setMessages((current) => {
+              const conversationMessages = messageCacheRef.current.get(eventPayload.data.userMessage.conversationId) || current;
+              const next = [
+                ...conversationMessages,
+                eventPayload.data.userMessage,
+                eventPayload.data.assistantMessage
+              ];
+              const uniqueNext = uniqueMessagesById(next);
+              messageCacheRef.current.set(eventPayload.data.userMessage.conversationId, uniqueNext);
+              return activeConversationIdRef.current === eventPayload.data.userMessage.conversationId ? uniqueNext : current;
+            });
           }
           if (eventPayload.event === 'delta') {
             enqueueAssistantDelta(eventPayload.data.delta);
           }
           if (eventPayload.event === 'completed') {
+            shouldRefreshMessages = false;
             pendingFinalAssistantRef.current = eventPayload.data.assistantMessage;
             if (typingQueueRef.current) {
               setIsTypingAssistant(true);
@@ -241,10 +306,15 @@ export function ChatPage() {
           }
           if (eventPayload.event === 'failed') {
             flushAssistantTyping();
-            if (eventPayload.data.assistantMessage) {
-              setMessages((current) => current.map((item) =>
-                item.id === eventPayload.data.assistantMessage?.id ? eventPayload.data.assistantMessage : item
-              ));
+            const failedAssistantMessage = eventPayload.data.assistantMessage;
+            if (failedAssistantMessage) {
+              setMessages((current) => {
+                const next = current.map((item) =>
+                  item.id === failedAssistantMessage.id ? failedAssistantMessage : item
+                );
+                messageCacheRef.current.set(failedAssistantMessage.conversationId, next);
+                return next;
+              });
             }
             setError(eventPayload.data.error || 'AI 回复失败');
           }
@@ -255,9 +325,14 @@ export function ChatPage() {
         setError(err instanceof Error ? err.message : '发送消息失败');
       }
     } finally {
+      submitLockRef.current = false;
       setIsStreaming(false);
       abortRef.current = null;
       void refreshConversations();
+      if (conversationId && shouldRefreshMessages) {
+        void refreshConversationMessages(conversationId);
+      }
+      shouldRestoreInputFocusRef.current = true;
     }
   }
 
@@ -270,8 +345,22 @@ export function ChatPage() {
     }
   }
 
+  async function refreshConversationMessages(conversationId: number) {
+    try {
+      const payload = await listChatMessages(conversationId);
+      messageCacheRef.current.set(conversationId, payload.items);
+      if (activeConversationIdRef.current === conversationId) {
+        setMessages(payload.items);
+      }
+    } catch {
+      return;
+    }
+  }
+
   function stopStreaming() {
     abortRef.current?.abort();
+    submitLockRef.current = false;
+    shouldRestoreInputFocusRef.current = true;
     flushAssistantTyping();
     setMessage('已停止生成');
   }
@@ -306,7 +395,11 @@ export function ChatPage() {
     const nextChunk = typingQueueRef.current.slice(0, typingChunkSize);
     typingQueueRef.current = typingQueueRef.current.slice(nextChunk.length);
     if (nextChunk) {
-      setMessages((current) => updateLastAssistant(current, nextChunk));
+      setMessages((current) => {
+        const next = updateLastAssistant(current, nextChunk);
+        cacheMessagesForActiveConversation(next);
+        return next;
+      });
     }
 
     if (typingQueueRef.current) {
@@ -323,7 +416,11 @@ export function ChatPage() {
     const queued = typingQueueRef.current;
     typingQueueRef.current = '';
     if (queued) {
-      setMessages((current) => updateLastAssistant(current, queued));
+      setMessages((current) => {
+        const next = updateLastAssistant(current, queued);
+        cacheMessagesForActiveConversation(next);
+        return next;
+      });
     }
     commitPendingFinalAssistant();
     setIsTypingAssistant(false);
@@ -333,9 +430,20 @@ export function ChatPage() {
     const finalAssistant = pendingFinalAssistantRef.current;
     if (!finalAssistant) return;
     pendingFinalAssistantRef.current = null;
-    setMessages((current) => current.map((item) =>
-      item.id === finalAssistant.id ? finalAssistant : item
-    ));
+    setMessages((current) => {
+      const next = current.map((item) =>
+        item.id === finalAssistant.id ? finalAssistant : item
+      );
+      messageCacheRef.current.set(finalAssistant.conversationId, next);
+      return next;
+    });
+  }
+
+  function cacheMessagesForActiveConversation(next: ChatMessage[]) {
+    const conversationId = next[0]?.conversationId || activeConversationId;
+    if (conversationId) {
+      messageCacheRef.current.set(conversationId, next);
+    }
   }
 
   async function copyMessage(content: string) {
@@ -405,15 +513,6 @@ export function ChatPage() {
 
   return (
     <div className="page chatPage">
-      <header className="chatPageHeader">
-        <div className="chatHeaderActions">
-          <button className="ghostButton chatHistoryToggle" type="button" onClick={() => setIsHistoryOpen(true)}>
-            <Menu size={16} />
-            历史
-          </button>
-        </div>
-      </header>
-
       {error && <div className="errorBox">{error}</div>}
       {message && <div className="toastNotice" role="status">{message}</div>}
 
@@ -453,12 +552,6 @@ export function ChatPage() {
         {isHistoryOpen && <button className="chatHistoryBackdrop" type="button" aria-label="关闭历史" onClick={() => setIsHistoryOpen(false)} />}
 
         <section className="panel chatPanel">
-          <div className="chatPanelHeader">
-            <div className="chatPanelTitle">
-              <h2>{activeConversation?.title || '新对话'}</h2>
-            </div>
-          </div>
-
           <div className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
             {settings && !settings.enabled && (
               <div className="chatEmptyState">
@@ -472,9 +565,9 @@ export function ChatPage() {
                 <div className="chatMessageBubble">
                   {item.role === 'assistant' ? (
                     <div className="chatMarkdown">
-                      <Suspense fallback={<p>{item.content || (item.status === 'streaming' ? '生成中...' : '')}</p>}>
-                        <MarkdownMessage content={item.content || (item.status === 'streaming' ? '生成中...' : '')} />
-                      </Suspense>
+                      <MarkdownMessage
+                        content={item.content || (item.status === 'streaming' ? '生成中...' : '')}
+                      />
                     </div>
                   ) : (
                     <p>{item.content || (item.status === 'streaming' ? '生成中...' : '')}</p>
@@ -511,6 +604,7 @@ export function ChatPage() {
               </div>
             )}
             <textarea
+              ref={inputRef}
               value={input}
               placeholder="输入消息..."
               disabled={isAnswering || !settings?.enabled || models.length === 0}
@@ -561,14 +655,12 @@ export function ChatPage() {
                 />
               </div>
               {isAnswering ? (
-                <button className="dangerButton" type="button" onClick={stopStreaming}>
+                <button className="dangerButton" type="button" onClick={stopStreaming} aria-label="停止">
                   <Square size={16} />
-                  停止
                 </button>
               ) : (
-                <button className="primaryButton compact" type="submit" disabled={(!input.trim() && attachments.length === 0) || !settings?.enabled || !selectedModelId}>
+                <button className="primaryButton compact" type="submit" disabled={(!input.trim() && attachments.length === 0) || !settings?.enabled || !selectedModelId} aria-label="发送">
                   <Send size={16} />
-                  发送
                 </button>
               )}
             </div>
@@ -618,6 +710,15 @@ function updateLastAssistant(items: ChatMessage[], delta: string) {
     }
   }
   return next;
+}
+
+function uniqueMessagesById(items: ChatMessage[]) {
+  const seen = new Set<number>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 }
 
 function upsertConversation(items: ChatConversation[], item: ChatConversation) {

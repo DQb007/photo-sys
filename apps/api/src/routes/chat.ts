@@ -6,7 +6,6 @@ import { httpError } from '../errors.js';
 import { getAppSettings, type AppSettings } from '../settingsService.js';
 import {
   getActiveChatModelWithSecret,
-  getDefaultChatModel,
   listActiveChatModels,
   serializeChatModel
 } from '../chatModels.js';
@@ -17,6 +16,7 @@ import {
   getChatMessageById,
   listChatConversations,
   listChatMessages,
+  listChatMessagesForKnownConversation,
   listCompletedHistoryMessages,
   markChatMessageRefunded,
   serializeChatConversation,
@@ -52,6 +52,41 @@ const sendMessageSchema = z.object({
 
 router.use(requireUser);
 
+router.get('/bootstrap', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    if (!req.user) throw httpError(401, 'Please sign in');
+    const [settings, models, conversations] = await Promise.all([
+      getAppSettings() as Promise<AppSettings>,
+      listActiveChatModels(),
+      listChatConversations(req.user.id)
+    ]);
+    const firstConversation = conversations[0] || null;
+    const defaultModel = models.find((item) => item.is_default) || models[0] || null;
+    const messages = firstConversation ? await listChatMessagesForKnownConversation(firstConversation.id, req.user.id) : [];
+    res.json({
+      settings: {
+        enabled: settings.chat.enabled,
+        messageCreditCost: settings.chat.messageCreditCost,
+        maxInputChars: settings.chat.maxInputChars,
+        maxHistoryMessages: settings.chat.maxHistoryMessages
+      },
+      models: {
+        items: models.map((item) => serializeChatModel(item)),
+        defaultModelId: defaultModel?.id || null
+      },
+      conversations: {
+        items: conversations.map(serializeChatConversation)
+      },
+      activeConversationId: firstConversation?.id || null,
+      messages: {
+        items: messages.map(serializeChatMessage)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/settings', async (_req, res, next) => {
   try {
     const settings = await getAppSettings() as AppSettings;
@@ -68,10 +103,8 @@ router.get('/settings', async (_req, res, next) => {
 
 router.get('/models', async (_req, res, next) => {
   try {
-    const [items, defaultModel] = await Promise.all([
-      listActiveChatModels(),
-      getDefaultChatModel()
-    ]);
+    const items = await listActiveChatModels();
+    const defaultModel = items.find((item) => item.is_default) || items[0] || null;
     res.json({
       items: items.map((item) => serializeChatModel(item)),
       defaultModelId: defaultModel?.id || null

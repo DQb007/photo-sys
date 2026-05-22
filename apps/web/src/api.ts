@@ -89,6 +89,9 @@ export interface AppSettings {
     initialBalance: number;
     refundOnFailure: boolean;
   };
+  generation: {
+    imageConcurrency: number;
+  };
   chat: {
     enabled: boolean;
     messageCreditCost: number;
@@ -680,6 +683,16 @@ export async function deleteAdminPromptTemplate(id: number) {
 
 export async function getChatSettings() {
   return request<ChatSettings>('/chat/settings');
+}
+
+export async function getChatBootstrap() {
+  return request<{
+    settings: ChatSettings;
+    models: { items: ChatModel[]; defaultModelId: number | null };
+    conversations: { items: ChatConversation[] };
+    activeConversationId: number | null;
+    messages: { items: ChatMessage[] };
+  }>('/chat/bootstrap');
 }
 
 export async function listChatModels() {

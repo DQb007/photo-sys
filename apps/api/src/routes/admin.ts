@@ -56,6 +56,9 @@ const settingsPatchSchema = z.object({
     costPerImage: z.number().int().min(0).max(100000).optional(),
     initialBalance: z.number().int().min(0).max(1000000).optional(),
     refundOnFailure: z.boolean().optional()
+  }).optional(),
+  generation: z.object({
+    imageConcurrency: z.number().int().min(1).max(20).optional()
   }).optional()
 });
 

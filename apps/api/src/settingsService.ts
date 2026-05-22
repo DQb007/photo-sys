@@ -34,6 +34,9 @@ const defaults = {
     initialBalance: 0,
     refundOnFailure: true
   },
+  generation: {
+    imageConcurrency: 10
+  },
   chat: {
     enabled: true,
     messageCreditCost: 1,
@@ -70,6 +73,9 @@ const settingsSchema = z.object({
     costPerImage: z.number().int().min(0).max(100000),
     initialBalance: z.number().int().min(0).max(1000000),
     refundOnFailure: z.boolean()
+  }),
+  generation: z.object({
+    imageConcurrency: z.number().int().min(1).max(20)
   }),
   chat: z.object({
     enabled: z.boolean(),
@@ -108,6 +114,7 @@ const definitions: Record<string, {
   'credits.costPerImage': { category: 'credits', type: 'number', description: 'Credits charged per image' },
   'credits.initialBalance': { category: 'credits', type: 'number', description: 'Initial credits for new users' },
   'credits.refundOnFailure': { category: 'credits', type: 'boolean', description: 'Refund credits when generation fails' },
+  'generation.imageConcurrency': { category: 'generation', type: 'number', description: 'Maximum concurrent image generation jobs' },
   'chat.enabled': { category: 'chat', type: 'boolean', description: 'Enable AI chat' },
   'chat.messageCreditCost': { category: 'chat', type: 'number', description: 'Credits charged per user chat message' },
   'chat.systemPrompt': { category: 'chat', type: 'string', description: 'Global AI chat system prompt' },
@@ -134,6 +141,7 @@ export type AppSettingsPatch = {
   registration?: Partial<AppSettings['registration']>;
   mail?: Partial<AppSettings['mail']>;
   credits?: Partial<AppSettings['credits']>;
+  generation?: Partial<AppSettings['generation']>;
   chat?: Partial<AppSettings['chat']>;
 };
 
@@ -252,6 +260,7 @@ function flattenSettings(settings: AppSettings) {
     'credits.costPerImage': settings.credits.costPerImage,
     'credits.initialBalance': settings.credits.initialBalance,
     'credits.refundOnFailure': settings.credits.refundOnFailure,
+    'generation.imageConcurrency': settings.generation.imageConcurrency,
     'chat.enabled': settings.chat.enabled,
     'chat.messageCreditCost': settings.chat.messageCreditCost,
     'chat.systemPrompt': settings.chat.systemPrompt,
@@ -282,6 +291,10 @@ function mergeSettingsPatch(current: AppSettings, patch: AppSettingsPatch): AppS
     credits: {
       ...current.credits,
       ...(patch.credits || {})
+    },
+    generation: {
+      ...current.generation,
+      ...(patch.generation || {})
     },
     chat: {
       ...current.chat,

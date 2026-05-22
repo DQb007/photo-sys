@@ -4,6 +4,9 @@ import remarkGfm from 'remark-gfm';
 import { Clipboard } from 'lucide-react';
 import { isValidElement, type ReactNode } from 'react';
 
+const markdownRemarkPlugins = [remarkGfm];
+const markdownRehypePlugins = [rehypeHighlight];
+
 function extractText(node: unknown): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);
   if (!node || typeof node !== 'object') return '';
@@ -35,8 +38,8 @@ function CodeBlock({ className, children, node }: { className?: string; children
 export function MarkdownMessage({ content }: { content: string }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeHighlight]}
+      remarkPlugins={markdownRemarkPlugins}
+      rehypePlugins={markdownRehypePlugins}
       components={{
         pre({ children, node }) {
           const child = Array.isArray(children) ? children[0] : children;

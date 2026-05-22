@@ -273,6 +273,21 @@ export function AdminSettingsPage() {
           </label>
         </section>
 
+        <section className="panel formPanel">
+          <div className="panelTitle"><h2>图片生成</h2></div>
+          <label className="field">
+            <span>并发处理数</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={settings.generation.imageConcurrency}
+              onChange={(event) => setGeneration('imageConcurrency', Number(event.target.value))}
+            />
+          </label>
+          <p className="fieldHint">最多同时处理多少个图片生成任务，保存后对后续取队列任务生效。</p>
+        </section>
+
         <div className="stickyActions">
           <button className="ghostButton" type="button" onClick={() => void resetDefaults()}>
             <RotateCcw size={16} />
@@ -338,6 +353,15 @@ export function AdminSettingsPage() {
       setIsDirty(true);
       setMessage('');
       return { ...current, credits: { ...current.credits, [key]: value } };
+    });
+  }
+
+  function setGeneration<K extends keyof AppSettings['generation']>(key: K, value: AppSettings['generation'][K]) {
+    setSettings((current) => {
+      if (!current) return current;
+      setIsDirty(true);
+      setMessage('');
+      return { ...current, generation: { ...current.generation, [key]: value } };
     });
   }
 

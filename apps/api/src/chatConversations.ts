@@ -73,6 +73,10 @@ export async function softDeleteChatConversation(id: number, userId: number) {
 
 export async function listChatMessages(conversationId: number, userId: number) {
   await getChatConversationForUser(conversationId, userId);
+  return listChatMessagesForKnownConversation(conversationId, userId);
+}
+
+export async function listChatMessagesForKnownConversation(conversationId: number, userId: number) {
   const [rows] = await getPool().query<ChatMessageRow[]>(
     `SELECT * FROM chat_messages
      WHERE conversation_id = ? AND user_id = ?

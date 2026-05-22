@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Gift, KeyRound, ShoppingCart } from 'lucide-react';
 import { changePassword, getCreditBalance, listCreditTransactions, redeemCode, type CreditTransaction } from '../api';
 
+const creditPageSize = 10;
+
 const emptyPasswordForm = {
   oldPassword: '',
   newPassword: '',
@@ -15,6 +17,10 @@ export function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [creditItems, setCreditItems] = useState<CreditTransaction[]>([]);
+  const [creditPage, setCreditPage] = useState(1);
+  const [creditTotal, setCreditTotal] = useState(0);
+  const [creditTotalPages, setCreditTotalPages] = useState(1);
+  const [isLoadingMoreCredits, setIsLoadingMoreCredits] = useState(false);
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemMessage, setRedeemMessage] = useState('');
   const [redeemError, setRedeemError] = useState('');
@@ -28,10 +34,28 @@ export function SettingsPage() {
   async function loadCredits() {
     const [balancePayload, transactionsPayload] = await Promise.all([
       getCreditBalance(),
-      listCreditTransactions(1, 10)
+      listCreditTransactions(1, creditPageSize)
     ]);
     setCreditBalance(balancePayload.balance);
     setCreditItems(transactionsPayload.items);
+    setCreditPage(transactionsPayload.page);
+    setCreditTotal(transactionsPayload.total);
+    setCreditTotalPages(transactionsPayload.totalPages);
+  }
+
+  async function loadMoreCredits() {
+    if (isLoadingMoreCredits || creditPage >= creditTotalPages) return;
+
+    setIsLoadingMoreCredits(true);
+    try {
+      const payload = await listCreditTransactions(creditPage + 1, creditPageSize);
+      setCreditItems((current) => [...current, ...payload.items]);
+      setCreditPage(payload.page);
+      setCreditTotal(payload.total);
+      setCreditTotalPages(payload.totalPages);
+    } finally {
+      setIsLoadingMoreCredits(false);
+    }
   }
 
   async function submitPassword(event: FormEvent) {
@@ -178,6 +202,18 @@ export function SettingsPage() {
             </div>
           ))}
         </div>
+        {creditItems.length > 0 && (
+          <div className="creditListFooter">
+            <span>
+              已显示 {creditItems.length} / {creditTotal}
+            </span>
+            {creditPage < creditTotalPages && (
+              <button className="ghostButton compact" type="button" onClick={loadMoreCredits} disabled={isLoadingMoreCredits}>
+                {isLoadingMoreCredits ? '加载中' : '查看更多'}
+              </button>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );
