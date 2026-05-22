@@ -180,7 +180,12 @@ export interface PromptTemplate {
   createdAt: string;
   updatedAt: string;
   isFavorite: boolean;
-  variables: string[];
+  variables: PromptTemplateVariable[];
+}
+
+export interface PromptTemplateVariable {
+  name: string;
+  defaultValue: string;
 }
 
 export interface AuditLog {

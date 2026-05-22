@@ -395,13 +395,16 @@ export function AdminPromptTemplatesPage() {
                 </div>
               )}
               <div className="variableHelp">
-                <p>变量写法: 在提示词正文中输入 <code>{'{变量名}'}</code>, 用户使用模板时会填写这些变量。</p>
+                <p>
+                  变量写法: 简单变量用 <code>{'{变量名}'}</code>;
+                  带默认值用 <code>{'{argument name="变量名" default="默认值"}'}</code>。
+                </p>
                 <div className="variablePreview">
                   <span>已识别变量</span>
                   {detectedVariables.length > 0 ? (
                     <div>
                       {detectedVariables.map((item) => (
-                        <strong key={item}>{item}</strong>
+                        <strong key={item.name}>{item.defaultValue ? `${item.name}: ${item.defaultValue}` : item.name}</strong>
                       ))}
                     </div>
                   ) : (
@@ -468,13 +471,33 @@ function normalizeForm(form: TemplateForm) {
 }
 
 function parseTemplateVariables(promptText: string) {
-  const variables: string[] = [];
+  const variables: Array<{ name: string; defaultValue: string }> = [];
   const seen = new Set<string>();
-  for (const match of promptText.matchAll(/\{\s*([\p{L}\p{N}_-]+)\s*\}/gu)) {
-    const name = match[1]?.trim();
+  for (const match of promptText.matchAll(/\{\s*([^{}]+?)\s*\}/gu)) {
+    const variable = parseTemplateVariableToken(match[1]?.trim() || '');
+    if (!variable) continue;
+    const name = variable.name.trim();
     if (!name || seen.has(name)) continue;
     seen.add(name);
-    variables.push(name);
+    variables.push({ ...variable, name });
   }
   return variables;
+}
+
+function parseTemplateVariableToken(token: string) {
+  if (/^[\p{L}\p{N}_-]+$/u.test(token)) {
+    return { name: token, defaultValue: '' };
+  }
+  const argumentMatch = token.match(/^argument\b([\s\S]*)$/u);
+  if (!argumentMatch) return null;
+  const attrs: Record<string, string> = {};
+  for (const match of (argumentMatch[1] || '').matchAll(/([a-zA-Z][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
+    attrs[match[1]] = match[2] ?? match[3] ?? '';
+  }
+  const name = attrs.name?.trim();
+  if (!name) return null;
+  return {
+    name,
+    defaultValue: attrs.default?.trim() || ''
+  };
 }

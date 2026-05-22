@@ -34,18 +34,52 @@ export interface PromptTemplateWithFavorite extends PromptTemplateRow {
   is_favorite?: 0 | 1;
 }
 
-const variablePattern = /\{\s*([\p{L}\p{N}_-]+)\s*\}/gu;
+export interface PromptTemplateVariable {
+  name: string;
+  defaultValue: string;
+}
+
+const promptVariablePattern = /\{\s*([^{}]+?)\s*\}/gu;
+const simpleVariablePattern = /^[\p{L}\p{N}_-]+$/u;
+const argumentAttributePattern = /([a-zA-Z][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 
 export function parsePromptVariables(promptText: string) {
-  const variables: string[] = [];
+  const variables: PromptTemplateVariable[] = [];
   const seen = new Set<string>();
-  for (const match of promptText.matchAll(variablePattern)) {
-    const name = match[1]?.trim();
+  for (const match of promptText.matchAll(promptVariablePattern)) {
+    const variable = parsePromptVariableToken(match[1]?.trim() || '');
+    if (!variable) continue;
+    const name = variable.name.trim();
     if (!name || seen.has(name)) continue;
     seen.add(name);
-    variables.push(name);
+    variables.push({ ...variable, name });
   }
   return variables;
+}
+
+function parsePromptVariableToken(token: string): PromptTemplateVariable | null {
+  if (simpleVariablePattern.test(token)) {
+    return { name: token, defaultValue: '' };
+  }
+  const argumentMatch = token.match(/^argument\b([\s\S]*)$/u);
+  if (!argumentMatch) return null;
+  const attrs = parseArgumentAttributes(argumentMatch[1] || '');
+  const name = attrs.name?.trim();
+  if (!name) return null;
+  return {
+    name,
+    defaultValue: attrs.default?.trim() || ''
+  };
+}
+
+function parseArgumentAttributes(source: string) {
+  const attrs: Record<string, string> = {};
+  for (const match of source.matchAll(argumentAttributePattern)) {
+    const key = match[1];
+    const value = match[2] ?? match[3] ?? '';
+    attrs[key] = value;
+  }
+  return attrs;
 }
 
 export function serializePromptTemplate(row: PromptTemplateWithFavorite) {

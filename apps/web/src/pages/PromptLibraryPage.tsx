@@ -5,7 +5,8 @@ import {
   listPromptTemplates,
   recordPromptTemplateUse,
   unfavoritePromptTemplate,
-  type PromptTemplate
+  type PromptTemplate,
+  type PromptTemplateVariable
 } from '../api';
 import { Pagination } from '../Pagination';
 
@@ -59,7 +60,7 @@ export function PromptLibraryPage() {
     return renderPrompt(activeTemplate.promptText, variables);
   }, [activeTemplate, variables]);
 
-  const missingVariables = activeTemplate?.variables.filter((item) => !variables[item]?.trim()) ?? [];
+  const missingVariables = activeTemplate?.variables.filter((item) => !item.defaultValue && !variables[item.name]?.trim()) ?? [];
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
 
@@ -102,7 +103,7 @@ export function PromptLibraryPage() {
 
   function openUseModal(template: PromptTemplate) {
     setActiveTemplate(template);
-    setVariables(Object.fromEntries(template.variables.map((item) => [item, ''])));
+    setVariables(Object.fromEntries(template.variables.map((item) => [item.name, ''])));
     setMessage('');
     setError('');
   }
@@ -272,12 +273,12 @@ export function PromptLibraryPage() {
             {activeTemplate.variables.length > 0 ? (
               <div className="variableGrid">
                 {activeTemplate.variables.map((item) => (
-                  <label className="field" key={item}>
-                    <span>{item}</span>
+                  <label className="field" key={item.name}>
+                    <span>{item.name}</span>
                     <input
-                      value={variables[item] || ''}
-                      onChange={(event) => setVariables((current) => ({ ...current, [item]: event.target.value }))}
-                      placeholder={`填写${item}`}
+                      value={variables[item.name] || ''}
+                      onChange={(event) => setVariables((current) => ({ ...current, [item.name]: event.target.value }))}
+                      placeholder={item.defaultValue ? `默认: ${item.defaultValue}` : `填写${item.name}`}
                     />
                   </label>
                 ))}
@@ -356,8 +357,28 @@ export function PromptLibraryPage() {
 }
 
 function renderPrompt(promptText: string, values: Record<string, string>) {
-  return promptText.replace(/\{\s*([\p{L}\p{N}_-]+)\s*\}/gu, (match, rawName: string) => {
-    const value = values[rawName.trim()];
-    return value?.trim() || match;
+  return promptText.replace(/\{\s*([^{}]+?)\s*\}/gu, (match, rawToken: string) => {
+    const variable = parsePromptVariableToken(rawToken.trim());
+    if (!variable) return match;
+    const value = values[variable.name]?.trim();
+    return value || variable.defaultValue || match;
   });
+}
+
+function parsePromptVariableToken(token: string): PromptTemplateVariable | null {
+  if (/^[\p{L}\p{N}_-]+$/u.test(token)) {
+    return { name: token, defaultValue: '' };
+  }
+  const argumentMatch = token.match(/^argument\b([\s\S]*)$/u);
+  if (!argumentMatch) return null;
+  const attrs: Record<string, string> = {};
+  for (const match of (argumentMatch[1] || '').matchAll(/([a-zA-Z][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
+    attrs[match[1]] = match[2] ?? match[3] ?? '';
+  }
+  const name = attrs.name?.trim();
+  if (!name) return null;
+  return {
+    name,
+    defaultValue: attrs.default?.trim() || ''
+  };
 }
