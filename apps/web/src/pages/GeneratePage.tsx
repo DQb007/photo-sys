@@ -21,6 +21,7 @@ export function GeneratePage() {
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pollError, setPollError] = useState('');
   const [creditBalance, setCreditBalance] = useState(user?.creditBalance ?? 0);
   const [costPerImage, setCostPerImage] = useState(1);
   const [creditsEnabled, setCreditsEnabled] = useState(true);
@@ -77,6 +78,7 @@ export function GeneratePage() {
       try {
         const latest = await getGeneration(generation.id);
         setGeneration(latest);
+        setPollError('');
         if (!['pending', 'processing'].includes(latest.status)) {
           sessionStorage.removeItem(activeGenerationKey);
         }
@@ -88,9 +90,17 @@ export function GeneratePage() {
     return () => window.clearInterval(timer);
   }, [generation]);
 
+  useEffect(() => {
+    if (generation && !['pending', 'processing'].includes(generation.status)) {
+      setError('');
+      setPollError('');
+    }
+  }, [generation?.id, generation?.status]);
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setPollError('');
     setIsLoading(true);
 
     const formData = new FormData();
@@ -126,6 +136,7 @@ export function GeneratePage() {
   async function cancelActiveGeneration() {
     if (!generation || generation.status !== 'pending') return;
     setError('');
+    setPollError('');
     setIsCancelling(true);
     try {
       const payload = await cancelGeneration(generation.id);
@@ -143,6 +154,8 @@ export function GeneratePage() {
   }
 
   const elapsedLabel = generation ? formatDuration(generationElapsedMs(generation, now)) : '';
+  const canShowFormError = !generation || ['pending', 'processing'].includes(generation.status);
+  const formError = canShowFormError ? error || pollError : '';
 
   function restoreFormFromGeneration(restoredGeneration: Generation) {
     setPrompt(restoredGeneration.prompt);
@@ -156,6 +169,7 @@ export function GeneratePage() {
     setGeneration(null);
     setReferenceImages([]);
     setError('');
+    setPollError('');
     setPrompt('');
     setSize(sizes[0]);
     setQuality(qualities[0]);
@@ -249,7 +263,7 @@ export function GeneratePage() {
             </div>
           ) : null}
 
-          {error && <div className="errorBox">{error}</div>}
+          {formError && <div className="errorBox">{formError}</div>}
 
           <div className="creditSummary">
             <span>当前余额 {creditBalance}</span>
