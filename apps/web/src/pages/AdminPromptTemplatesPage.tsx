@@ -10,6 +10,7 @@ import {
 } from '../api';
 import { Pagination } from '../Pagination';
 import { SelectField } from '../SelectField';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 const emptyForm = {
   title: '',
@@ -54,6 +55,8 @@ export function AdminPromptTemplatesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useBodyScrollLock(Boolean(isFormOpen || deleteTarget));
 
   const activeCount = items.filter((item) => item.status === 'active').length;
   const disabledCount = items.filter((item) => item.status === 'disabled').length;

@@ -14,6 +14,7 @@ import {
 } from '../api';
 import { Pagination } from '../Pagination';
 import { formatDuration, generationElapsedMs } from '../time';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [items, setItems] = useState<Generation[]>([]);
@@ -32,6 +33,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [toastMessage, setToastMessage] = useState('');
   const [preview, setPreview] = useState<{ url: string; prompt: string } | null>(null);
   const [now, setNow] = useState(Date.now());
+
+  useBodyScrollLock(Boolean(deleteTarget || detailTarget || promptTarget || preview));
 
   const load = useCallback(async (nextPage = page, nextStatus = statusFilter) => {
     setIsLoading(true);

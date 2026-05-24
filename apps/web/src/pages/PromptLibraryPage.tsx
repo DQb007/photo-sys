@@ -9,6 +9,7 @@ import {
   type PromptTemplateVariable
 } from '../api';
 import { Pagination } from '../Pagination';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 type PromptScope = 'all' | 'favorites';
 const pageSize = 12;
@@ -27,6 +28,8 @@ export function PromptLibraryPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isUsing, setIsUsing] = useState(false);
+
+  useBodyScrollLock(Boolean(activeTemplate || previewTemplate));
 
   const load = useCallback(async () => {
     setIsLoading(true);

@@ -6,6 +6,7 @@ import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import { deleteGeneration, downloadUrl, getAdminUserGenerations, type Generation, type User } from '../api';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 export function AdminUserGenerationsPage() {
   const params = useParams();
@@ -15,6 +16,8 @@ export function AdminUserGenerationsPage() {
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<{ item: Generation; index: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
+
+  useBodyScrollLock(Boolean(preview || deleteTarget));
 
   async function load() {
     setError('');

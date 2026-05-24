@@ -17,6 +17,7 @@ import {
 } from '../api';
 import { SelectField } from '../SelectField';
 import { MarkdownMessage } from '../MarkdownMessage';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 type ChatBootstrapPayload = Awaited<ReturnType<typeof getChatBootstrap>>;
 
@@ -123,6 +124,8 @@ export function ChatPage() {
     ? visibleConversations.find((item) => item.id === openConversationMenuId) || null
     : null;
   const isAnswering = isStreaming || isTypingAssistant;
+
+  useBodyScrollLock(Boolean(editingConversation || deletingConversation));
 
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId;

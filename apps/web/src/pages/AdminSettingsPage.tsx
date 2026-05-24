@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { MailCheck, RotateCcw, Save, X } from 'lucide-react';
 import { getAdminSettings, resetAdminSettings, testAdminEmail, updateAdminSettings, type AppSettings } from '../api';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 type ConfirmAction = 'save' | 'reset';
 
@@ -15,6 +16,8 @@ export function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+
+  useBodyScrollLock(Boolean(confirmAction));
 
   useEffect(() => {
     getAdminSettings()

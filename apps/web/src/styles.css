@@ -2574,6 +2574,12 @@ code {
   text-align: right;
 }
 
+html.modalBodyLocked,
+body.modalBodyLocked {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .modalBackdrop {
   position: fixed;
   inset: 0;

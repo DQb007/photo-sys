@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../auth';
 import { Pagination } from '../Pagination';
 import { SelectField } from '../SelectField';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 const emptyPasswordForm = {
   password: '',
@@ -50,6 +51,8 @@ export function AdminUsersPage() {
   const [creditForm, setCreditForm] = useState(emptyCreditForm);
   const [creditError, setCreditError] = useState('');
   const [isAdjustingCredit, setIsAdjustingCredit] = useState(false);
+
+  useBodyScrollLock(Boolean(passwordTarget || creditTarget));
 
   const summary = useMemo(() => ({
     total,
