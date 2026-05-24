@@ -419,6 +419,7 @@ export function AdminPromptTemplatesPage() {
                 label="状态"
                 value={form.status}
                 options={statusOptions}
+                className="promptAdminStatusSelect"
                 onChange={(value) => setForm({ ...form, status: value as PromptTemplateStatus })}
               />
               <div className="modalActions">

@@ -4815,6 +4815,11 @@ th {
   backdrop-filter: blur(10px);
 }
 
+.promptAdminStatusSelect .selectMenu {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 .exampleImagePreview {
   border: 0;
   background: transparent;
