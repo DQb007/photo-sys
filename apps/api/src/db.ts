@@ -77,6 +77,18 @@ export interface GenerationImageRow extends RowDataPacket {
   created_at: Date;
 }
 
+export interface ReferenceUploadRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  content_sha256: string;
+  storage_key: string;
+  mime_type: string;
+  byte_size: number;
+  original_name: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface UserRow extends RowDataPacket {
   id: number;
   email: string;

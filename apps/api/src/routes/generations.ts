@@ -1,6 +1,9 @@
 import express from 'express';
 import multer from 'multer';
+import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { ResultSetHeader } from 'mysql2/promise';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { getPool, type GenerationImageRow, type GenerationRow } from '../db.js';
@@ -49,6 +52,7 @@ const createGenerationSchema = z.object({
 
 router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (req: AuthenticatedRequest, res, next) => {
   const uploadedFiles = getUploadedFiles(req.files);
+  const newReferenceKeys: string[] = [];
 
   try {
     if (!req.user) throw httpError(401, '请先登录');
@@ -56,9 +60,8 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
     const pool = getPool();
     const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
     const creditCost = calculateGenerationCreditCost(parsed.count, settings);
-    const referenceImagePaths = uploadedFiles.map((file) =>
-      path.relative(config.storageDir, file.path).replaceAll('\\', '/')
-    );
+    const resolvedReferenceImages = await resolveReferenceImagePaths(req.user.id, uploadedFiles, newReferenceKeys);
+    const referenceImagePaths = resolvedReferenceImages.map((item) => item.storageKey);
     const referenceImagePath = referenceImagePaths.length ? JSON.stringify(referenceImagePaths) : null;
 
     const connection = await pool.getConnection();
@@ -108,6 +111,9 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
     const generation = await getGenerationById(generationId, req.user);
     res.status(202).json({ generation: serializeGeneration(generation) });
   } catch (error) {
+    if (newReferenceKeys.length) {
+      await Promise.all(newReferenceKeys.map((key) => removeReferenceUpload(key)));
+    }
     await Promise.all(uploadedFiles.map((file) => {
       const key = path.relative(config.storageDir, file.path).replaceAll('\\', '/');
       return deleteStoredFile(key).catch(() => undefined);
@@ -398,6 +404,60 @@ function getUploadedFiles(files: Express.Multer.File[] | { [fieldname: string]: 
   if (!files) return [];
   if (Array.isArray(files)) return files;
   return Object.values(files).flat();
+}
+
+async function resolveReferenceImagePaths(userId: number, files: Express.Multer.File[], newReferenceKeys: string[]) {
+  const paths: Array<{ storageKey: string; isNew: boolean }> = [];
+  for (const file of files) {
+    const resolved = await resolveReferenceImagePath(userId, file);
+    if (resolved.isNew) newReferenceKeys.push(resolved.storageKey);
+    paths.push(resolved);
+  }
+  return paths;
+}
+
+async function resolveReferenceImagePath(userId: number, file: Express.Multer.File) {
+  const hash = await sha256File(file.path);
+  const storageKey = path.relative(config.storageDir, file.path).replaceAll('\\', '/');
+  const pool = getPool();
+
+  const [existingRows] = await pool.query<Array<{ storage_key: string } & import('mysql2').RowDataPacket>>(
+    'SELECT storage_key FROM reference_uploads WHERE user_id = ? AND content_sha256 = ? LIMIT 1',
+    [userId, hash]
+  );
+  const existingKey = existingRows[0]?.storage_key;
+  if (existingKey) {
+    await deleteStoredFile(storageKey).catch(() => undefined);
+    return { storageKey: existingKey, isNew: false };
+  }
+
+  const [insertResult] = await pool.execute<ResultSetHeader>(
+    `INSERT IGNORE INTO reference_uploads (user_id, content_sha256, storage_key, mime_type, byte_size, original_name)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId, hash, storageKey, file.mimetype, file.size, file.originalname]
+  );
+  if (insertResult.affectedRows < 1) {
+    const [rows] = await pool.query<Array<{ storage_key: string } & import('mysql2').RowDataPacket>>(
+      'SELECT storage_key FROM reference_uploads WHERE user_id = ? AND content_sha256 = ? LIMIT 1',
+      [userId, hash]
+    );
+    const insertedKey = rows[0]?.storage_key;
+    if (insertedKey) {
+      await deleteStoredFile(storageKey).catch(() => undefined);
+      return { storageKey: insertedKey, isNew: false };
+    }
+  }
+  return { storageKey, isNew: true };
+}
+
+async function removeReferenceUpload(storageKey: string) {
+  await getPool().execute('DELETE FROM reference_uploads WHERE storage_key = ?', [storageKey]).catch(() => undefined);
+  await deleteStoredFile(storageKey).catch(() => undefined);
+}
+
+async function sha256File(filePath: string) {
+  const buffer = await fs.readFile(filePath);
+  return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
 export { router as generationsRouter };
