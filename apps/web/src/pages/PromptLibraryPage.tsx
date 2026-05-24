@@ -265,37 +265,39 @@ export function PromptLibraryPage() {
               </button>
             </div>
 
-            {activeTemplate.description && <p className="modalIntro">{activeTemplate.description}</p>}
-            {activeTemplate.exampleImageUrl && (
-              <img className="promptModalExampleImage" src={activeTemplate.exampleImageUrl} alt={`${activeTemplate.title} 示例图`} />
-            )}
+            <div className="promptTemplateModalBody">
+              {activeTemplate.description && <p className="modalIntro">{activeTemplate.description}</p>}
+              {activeTemplate.exampleImageUrl && (
+                <img className="promptModalExampleImage" src={activeTemplate.exampleImageUrl} alt={`${activeTemplate.title} 示例图`} />
+              )}
 
-            {activeTemplate.variables.length > 0 ? (
-              <div className="variableGrid">
-                {activeTemplate.variables.map((item) => (
-                  <label className="field" key={item.name}>
-                    <span>{item.name}</span>
-                    <input
-                      value={variables[item.name] || ''}
-                      onChange={(event) => setVariables((current) => ({ ...current, [item.name]: event.target.value }))}
-                      placeholder={item.defaultValue ? `默认: ${item.defaultValue}` : `填写${item.name}`}
-                    />
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <div className="hintBox">这个模板没有变量，可直接复制或使用。</div>
-            )}
+              {activeTemplate.variables.length > 0 ? (
+                <div className="variableGrid">
+                  {activeTemplate.variables.map((item) => (
+                    <label className="field" key={item.name}>
+                      <span>{item.name}</span>
+                      <input
+                        value={variables[item.name] || ''}
+                        onChange={(event) => setVariables((current) => ({ ...current, [item.name]: event.target.value }))}
+                        placeholder={item.defaultValue ? `默认: ${item.defaultValue}` : `填写${item.name}`}
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="hintBox">这个模板没有变量，可直接复制或使用。</div>
+              )}
 
-            <div className="renderedPromptBox">
-              <div className="panelTitle">
-                <h2>最终提示词</h2>
-                {missingVariables.length > 0 && <span>还有 {missingVariables.length} 项未填写</span>}
+              <div className="renderedPromptBox">
+                <div className="panelTitle">
+                  <h2>最终提示词</h2>
+                  {missingVariables.length > 0 && <span>还有 {missingVariables.length} 项未填写</span>}
+                </div>
+                <p>{renderedPrompt}</p>
               </div>
-              <p>{renderedPrompt}</p>
+
+              {message && <div className="toastNotice" role="status">{message}</div>}
             </div>
-
-            {message && <div className="toastNotice" role="status">{message}</div>}
 
             <div className="modalActions">
               <button className="ghostButton" type="button" disabled={missingVariables.length > 0} onClick={() => void copyPrompt()}>
@@ -337,13 +339,15 @@ export function PromptLibraryPage() {
                   </div>
                   <p>{previewTemplate.promptText}</p>
                 </div>
-                <button className="primaryButton compact" type="button" onClick={() => {
-                  openUseModal(previewTemplate);
-                  setPreviewTemplate(null);
-                }}>
-                  <Sparkles size={16} />
-                  使用模板
-                </button>
+                <div className="promptPreviewActions">
+                  <button className="primaryButton compact" type="button" onClick={() => {
+                    openUseModal(previewTemplate);
+                    setPreviewTemplate(null);
+                  }}>
+                    <Sparkles size={16} />
+                    使用模板
+                  </button>
+                </div>
               </section>
               <section className="promptPreviewImagePanel">
                 <img src={previewTemplate.exampleImageUrl || ''} alt={`${previewTemplate.title} 示例图`} />

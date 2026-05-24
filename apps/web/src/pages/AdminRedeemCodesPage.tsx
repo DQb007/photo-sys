@@ -236,7 +236,11 @@ export function AdminRedeemCodesPage() {
                   <span>{item.credits} 积分 · {item.status === 'active' ? '启用' : '停用'}</span>
                   {item.description && <span>{item.description}</span>}
                 </div>
-                <button className="ghostButton" type="button" onClick={() => void togglePackage(item)}>
+                <button
+                  className={item.status === 'active' ? 'ghostButton packageToggleButton disabled' : 'ghostButton packageToggleButton active'}
+                  type="button"
+                  onClick={() => void togglePackage(item)}
+                >
                   {item.status === 'active' ? '停用' : '启用'}
                 </button>
               </div>

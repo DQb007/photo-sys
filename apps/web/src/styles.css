@@ -181,10 +181,8 @@
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  display: flex;
-  gap: 4px;
+  display: block;
   opacity: 0;
-  pointer-events: none;
   transition: opacity 0.14s ease;
 }
 
@@ -192,12 +190,65 @@
 .chatConversationItem:focus-within .chatConversationActions,
 .chatConversationActions:focus-within {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .chatConversationItem:hover,
 .chatConversationItem:focus-within {
-  padding-right: 74px;
+  padding-right: 52px;
+}
+
+.chatConversationMenuButton {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.chatConversationMenuButton:hover,
+.chatConversationMenuButton[aria-expanded="true"] {
+  background: var(--nav-active-bg);
+  color: var(--ink);
+}
+
+.chatConversationMenu {
+  position: fixed;
+  z-index: 80;
+  min-width: 132px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-solid);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+}
+
+.chatConversationMenu button {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chatConversationMenu button:hover {
+  background: var(--nav-active-bg);
+}
+
+.chatConversationMenu button.danger {
+  color: var(--danger);
 }
 
 .chatPanel {
@@ -778,9 +829,9 @@
 
 .adminChatGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 18px;
 }
 
@@ -801,7 +852,8 @@
 
 .adminChatCard {
   padding: 0;
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
   background: var(--panel);
   box-shadow: 0 22px 60px rgba(25, 24, 21, 0.075);
   display: grid;
@@ -815,10 +867,10 @@
 
 .adminChatPanelTitle {
   align-items: flex-start;
-  padding: 20px;
-  margin: 0 0 20px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--panel-soft), transparent);
+  padding: 20px 20px 8px;
+  margin: 0 0 12px;
+  border-bottom: 0;
+  background: transparent;
 }
 
 .adminChatPanelTitle > div {
@@ -871,7 +923,7 @@
 }
 
 .adminChatPromptTextarea {
-  min-height: 168px;
+  min-height: 260px;
   resize: vertical;
   border-radius: var(--radius-md);
   background:
@@ -882,7 +934,7 @@
 }
 
 .adminChatSaveButton {
-  justify-self: start;
+  justify-self: end;
   margin-top: 28px !important;
   margin-bottom: 22px;
 }
@@ -919,7 +971,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 33px;
   margin-bottom: 22px;
   padding-top: 0;
 }
@@ -927,6 +979,12 @@
 .adminChatActions .primaryButton,
 .adminChatActions .ghostButton {
   margin-top: 0;
+}
+
+@media (max-width: 1100px) {
+  .adminChatGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .adminChatModelList {
@@ -1177,15 +1235,6 @@
   padding: 0 14px;
   box-shadow: var(--field-glow);
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-}
-
-.adminUserSearch::after {
-  content: "";
-  position: absolute;
-  inset: 7px auto 7px 43px;
-  width: 1px;
-  background: var(--line);
-  opacity: 0.7;
 }
 
 .adminUserSearch svg {
@@ -2392,6 +2441,7 @@ textarea {
   border: 1px solid color-mix(in srgb, var(--danger) 26%, var(--line));
   background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
+  margin-left: auto;
 }
 
 .historyCard .cardActions .ghostButton:hover,
@@ -2544,6 +2594,16 @@ code {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
   padding: 18px;
+}
+
+.renameConversationModal {
+  display: grid;
+  gap: 16px;
+}
+
+.renameConversationModal .field,
+.renameConversationModal .modalActions {
+  margin: 0;
 }
 
 .settingsConfirmModal {
@@ -2777,15 +2837,54 @@ code {
 
 .promptFullText {
   overflow: auto;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, var(--field-bg-strong), var(--field-bg)),
-    var(--field-bg);
-  border-radius: var(--radius-md);
-  padding: 16px;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 4px 0;
   line-height: 1.75;
   white-space: pre-wrap;
-  box-shadow: var(--field-glow);
+  box-shadow: none;
+}
+
+.promptFullText,
+.promptTemplateModalBody,
+.promptPreviewLayout,
+.promptAdminModal .compactStack {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 42%, transparent) transparent;
+}
+
+.promptFullText::-webkit-scrollbar,
+.promptTemplateModalBody::-webkit-scrollbar,
+.promptPreviewLayout::-webkit-scrollbar,
+.promptAdminModal .compactStack::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.promptFullText::-webkit-scrollbar-track,
+.promptTemplateModalBody::-webkit-scrollbar-track,
+.promptPreviewLayout::-webkit-scrollbar-track,
+.promptAdminModal .compactStack::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.promptFullText::-webkit-scrollbar-thumb,
+.promptTemplateModalBody::-webkit-scrollbar-thumb,
+.promptPreviewLayout::-webkit-scrollbar-thumb,
+.promptAdminModal .compactStack::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 34%, transparent);
+  background-clip: padding-box;
+}
+
+.promptFullText::-webkit-scrollbar-thumb:hover,
+.promptTemplateModalBody::-webkit-scrollbar-thumb:hover,
+.promptPreviewLayout::-webkit-scrollbar-thumb:hover,
+.promptAdminModal .compactStack::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 54%, transparent);
+  background-clip: padding-box;
 }
 
 .copyState {
@@ -2807,25 +2906,21 @@ code {
 }
 
 .modalHeader .iconButton,
-.modalClose,
-.chatSidebarClose {
-  border-color: var(--line);
-  background:
-    linear-gradient(180deg, var(--field-bg-strong), var(--panel-soft)),
-    var(--panel-soft);
-  color: var(--ink);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.1);
+.modalClose {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
 .modalHeader .iconButton:hover,
-.modalClose:hover,
-.chatSidebarClose:hover {
-  border-color: var(--accent-border);
+.modalClose:hover {
+  border-color: transparent;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  transform: translateY(-1px);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.14);
+  transform: none;
+  box-shadow: none;
 }
 
 .confirmModal p {
@@ -3689,6 +3784,10 @@ code {
   font-size: 30px;
 }
 
+.adminOverviewThemePanel {
+  margin-top: 18px;
+}
+
 .adminForm {
   display: grid;
   gap: 18px;
@@ -3703,7 +3802,11 @@ code {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.redeemAdminGrid > .panel {
+  height: 100%;
 }
 
 .packageList {
@@ -3730,6 +3833,36 @@ code {
   color: var(--muted);
   font-size: 12px;
   margin-top: 4px;
+}
+
+.packageToggleButton {
+  min-height: 36px;
+  margin-top: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.packageToggleButton.active {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(180deg, var(--field-bg-strong), var(--accent-soft)),
+    var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.packageToggleButton.disabled {
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--line));
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.packageToggleButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.1);
 }
 
 .generatedCodesPanel,
@@ -4151,24 +4284,41 @@ th {
 .promptTemplateModal {
   width: min(760px, 94vw);
   max-height: min(760px, 88vh);
-  overflow: auto;
+  overflow: hidden;
   background: var(--panel-solid);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
-  padding: 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.promptTemplateModal > .modalHeader {
+  flex: 0 0 auto;
+  padding: 18px 20px 15px;
+  border-bottom: 0;
+  background:
+    linear-gradient(180deg, var(--panel-soft), transparent),
+    var(--panel-solid);
+  backdrop-filter: blur(10px);
+}
+
+.promptTemplateModalBody {
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 20px 4px;
   display: grid;
   gap: 16px;
 }
 
-.promptTemplateModal > .modalHeader {
-  position: sticky;
-  top: -18px;
-  z-index: 2;
-  margin: -18px -18px 0;
-  padding: 18px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+.promptTemplateModal > .modalActions {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 14px 20px 16px;
+  border-top: 0;
+  background:
+    linear-gradient(0deg, var(--panel-solid) 72%, transparent),
+    var(--panel-solid);
   backdrop-filter: blur(10px);
 }
 
@@ -4208,11 +4358,14 @@ th {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .promptPreviewModal .modalHeader {
+  flex: 0 0 auto;
   padding: 18px 22px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
   background:
     linear-gradient(180deg, var(--panel-soft), transparent),
     var(--panel-solid);
@@ -4220,28 +4373,33 @@ th {
 }
 
 .promptPreviewModal .modalHeader span {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--amber);
-  font-size: 12px;
-  font-weight: 900;
+  margin-bottom: 0;
 }
 
 .promptPreviewLayout {
   display: grid;
   grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.08fr);
   gap: 28px;
-  max-height: calc(90vh - 82px);
+  min-height: 0;
   overflow: auto;
   padding: 24px;
-  background:
-    radial-gradient(circle at 18% 12%, var(--accent-soft), transparent 28%),
-    transparent;
+  background: transparent;
+}
+
+.promptPreviewActions {
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+}
+
+.promptPreviewActions .primaryButton {
+  width: 100%;
 }
 
 .promptPreviewText {
   display: grid;
-  align-content: start;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  align-content: stretch;
   gap: 14px;
 }
 
@@ -4269,13 +4427,11 @@ th {
 
 .promptPreviewPrompt {
   min-height: 320px;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, var(--field-bg-strong), var(--field-bg)),
-    var(--field-bg);
-  border-radius: var(--radius-md);
-  padding: 18px;
-  box-shadow: var(--field-glow);
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .promptPreviewPrompt p {
@@ -4289,13 +4445,11 @@ th {
 .promptPreviewImagePanel {
   display: grid;
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, var(--field-bg-strong), var(--panel-soft)),
-    var(--panel-soft);
-  padding: 12px;
-  box-shadow: var(--field-glow);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .promptPreviewImagePanel img {
@@ -4316,13 +4470,11 @@ th {
 }
 
 .renderedPromptBox {
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, var(--field-bg-strong), var(--field-bg)),
-    var(--field-bg);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  box-shadow: var(--field-glow);
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .renderedPromptBox .panelTitle {
@@ -4613,7 +4765,7 @@ th {
 .promptAdminModal .modalHeader {
   flex: 0 0 auto;
   padding: 18px 20px 15px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
   background:
     linear-gradient(180deg, var(--panel-soft), transparent),
     var(--panel-solid);
@@ -4650,7 +4802,7 @@ th {
   bottom: -20px;
   margin: 2px -20px -20px;
   padding: 14px 20px 16px;
-  border-top: 1px solid var(--line);
+  border-top: 0;
   background:
     linear-gradient(0deg, var(--panel-solid) 72%, transparent),
     var(--panel-solid);
@@ -4658,11 +4810,11 @@ th {
 }
 
 .exampleImagePreview {
-  border: 1px solid var(--line);
-  background: var(--panel-soft);
-  border-radius: var(--radius-md);
-  padding: 10px;
-  box-shadow: var(--field-glow);
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .exampleImagePreview img {
@@ -4676,13 +4828,11 @@ th {
 .variableHelp {
   display: grid;
   gap: 10px;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, var(--field-bg-strong), var(--panel-soft)),
-    var(--panel-soft);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  box-shadow: var(--field-glow);
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .variableHelp p {
@@ -5300,33 +5450,20 @@ th {
   }
 
   .chatSidebar .chatConversationItem {
-    padding-right: 82px;
+    padding-right: 52px;
   }
 
   .chatSidebar .chatConversationActions {
     opacity: 1;
-    pointer-events: auto;
   }
 
-  .chatSidebar .chatConversationActions .iconButton {
+  .chatSidebar .chatConversationMenuButton {
     width: 34px;
     height: 34px;
-    border-color: var(--accent-border);
-    background: linear-gradient(180deg, var(--field-bg-strong), var(--accent-soft));
-    color: var(--accent-strong);
-    box-shadow: var(--field-glow);
   }
 
-  .chatSidebar .chatConversationActions .iconButton:hover {
-    border-color: var(--accent-border);
-    background: var(--accent-soft);
-    color: var(--accent-strong);
-  }
-
-  .chatSidebar .chatConversationActions .iconButton:last-child {
-    border-color: color-mix(in srgb, var(--danger) 38%, transparent);
-    background: var(--danger-soft);
-    color: var(--danger);
+  .chatConversationMenu {
+    min-width: 132px;
   }
 
   .chatMessageList {
@@ -5342,6 +5479,7 @@ th {
     margin: 8px auto;
     padding: 7px;
     border-radius: 22px;
+    overflow: visible;
   }
 
   .chatComposer textarea {
@@ -5354,7 +5492,39 @@ th {
     min-height: 34px;
     gap: 6px;
     padding-left: 8px;
-    overflow: hidden;
+    overflow: visible;
+  }
+
+  .chatComposerActions > span {
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 12px;
+  }
+
+  .chatAttachWrap {
+    margin-right: auto;
+  }
+
+  .chatComposerModel {
+    flex: 0 0 128px;
+    width: 128px;
+    min-width: 128px;
+  }
+
+  .chatComposerModel .selectTrigger {
+    min-height: 36px;
+    padding: 0 11px;
+  }
+
+  .chatComposerModel .selectTrigger span {
+    max-width: 86px;
+  }
+
+  .chatComposerModel .selectMenu {
+    right: 0;
+    left: auto;
+    min-width: min(260px, calc(100vw - 80px));
+    max-width: calc(100vw - 32px);
   }
 
   .chatComposer .primaryButton.compact,

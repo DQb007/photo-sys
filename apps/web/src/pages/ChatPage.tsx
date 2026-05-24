@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard, Edit3, MessageSquarePlus, Paperclip, Plus, Send, Square, Trash2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Clipboard, Edit3, MessageSquarePlus, MoreVertical, Paperclip, Pin, Plus, Send, Square, Trash2, X } from 'lucide-react';
 import {
   createChatConversation,
   deleteChatConversation,
@@ -39,6 +40,11 @@ interface ChatAttachment {
   dataUrl?: string;
 }
 
+interface ConversationMenuPosition {
+  top: number;
+  left: number;
+}
+
 const readableAttachmentTypes = [
   'application/json',
   'application/xml',
@@ -47,6 +53,7 @@ const readableAttachmentTypes = [
 ];
 const typingIntervalMs = 12;
 const typingChunkSize = 3;
+const pinnedConversationsKey = 'pinnedChatConversationIds';
 
 function MessageAttachments({ metadata }: { metadata: unknown }) {
   const attachments = readMessageAttachments(metadata);
@@ -85,6 +92,9 @@ export function ChatPage() {
   const [editingConversation, setEditingConversation] = useState<ChatConversation | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deletingConversation, setDeletingConversation] = useState<ChatConversation | null>(null);
+  const [openConversationMenuId, setOpenConversationMenuId] = useState<number | null>(null);
+  const [conversationMenuPosition, setConversationMenuPosition] = useState<ConversationMenuPosition | null>(null);
+  const [pinnedConversationIds, setPinnedConversationIds] = useState<number[]>(() => readPinnedConversationIds());
   const abortRef = useRef<AbortController | null>(null);
   const submitLockRef = useRef(false);
   const shouldRestoreInputFocusRef = useRef(false);
@@ -100,11 +110,52 @@ export function ChatPage() {
 
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
+  const pinnedConversationIdSet = useMemo(() => new Set(pinnedConversationIds), [pinnedConversationIds]);
+  const visibleConversations = useMemo(() => {
+    return [...conversations].sort((first, second) => {
+      const firstPinned = pinnedConversationIdSet.has(first.id);
+      const secondPinned = pinnedConversationIdSet.has(second.id);
+      if (firstPinned !== secondPinned) return firstPinned ? -1 : 1;
+      return 0;
+    });
+  }, [conversations, pinnedConversationIdSet]);
+  const openConversationMenu = openConversationMenuId
+    ? visibleConversations.find((item) => item.id === openConversationMenuId) || null
+    : null;
   const isAnswering = isStreaming || isTypingAssistant;
 
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId;
   }, [activeConversationId]);
+
+  useEffect(() => {
+    window.localStorage.setItem(pinnedConversationsKey, JSON.stringify(pinnedConversationIds));
+  }, [pinnedConversationIds]);
+
+  useEffect(() => {
+    if (openConversationMenuId === null) return;
+    function onPointerDown(event: PointerEvent) {
+      if (event.target instanceof Element && event.target.closest('.chatConversationMenuWrap')) return;
+      setOpenConversationMenuId(null);
+      setConversationMenuPosition(null);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [openConversationMenuId]);
+
+  useEffect(() => {
+    if (openConversationMenuId === null) return;
+    function closeConversationMenu() {
+      setOpenConversationMenuId(null);
+      setConversationMenuPosition(null);
+    }
+    window.addEventListener('resize', closeConversationMenu);
+    window.addEventListener('scroll', closeConversationMenu, true);
+    return () => {
+      window.removeEventListener('resize', closeConversationMenu);
+      window.removeEventListener('scroll', closeConversationMenu, true);
+    };
+  }, [openConversationMenuId]);
 
   useEffect(() => {
     if (isAnswering || !shouldRestoreInputFocusRef.current) return;
@@ -198,6 +249,8 @@ export function ChatPage() {
     setActiveConversationId(id);
     activeConversationIdRef.current = id;
     setIsHistoryOpen(false);
+    setOpenConversationMenuId(null);
+    setConversationMenuPosition(null);
     setError('');
     const cachedMessages = messageCacheRef.current.get(id);
     if (cachedMessages) {
@@ -478,8 +531,29 @@ export function ChatPage() {
   }
 
   function openRename(conversation: ChatConversation) {
+    setOpenConversationMenuId(null);
+    setConversationMenuPosition(null);
     setEditingConversation(conversation);
     setEditingTitle(conversation.title);
+  }
+
+  function togglePinnedConversation(id: number) {
+    setPinnedConversationIds((current) => (
+      current.includes(id) ? current.filter((item) => item !== id) : [id, ...current]
+    ));
+    setOpenConversationMenuId(null);
+    setConversationMenuPosition(null);
+  }
+
+  function toggleConversationMenu(id: number, button: HTMLButtonElement) {
+    setOpenConversationMenuId((current) => {
+      if (current === id) {
+        setConversationMenuPosition(null);
+        return null;
+      }
+      setConversationMenuPosition(getConversationMenuPosition(button));
+      return id;
+    });
   }
 
   async function submitRename(event: FormEvent) {
@@ -526,30 +600,68 @@ export function ChatPage() {
             新建对话
           </button>
           <div className="chatConversationList">
-            {conversations.map((item) => (
-              <button
+            {visibleConversations.map((item) => (
+              <div
                 className={item.id === activeConversationId ? 'chatConversationItem active' : 'chatConversationItem'}
-                type="button"
+                role="button"
+                tabIndex={0}
                 key={item.id}
                 onClick={() => void selectConversation(item.id)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  void selectConversation(item.id);
+                }}
               >
-                <span>{item.title}</span>
+                <span>{pinnedConversationIdSet.has(item.id) ? '固定 · ' : ''}{item.title}</span>
                 <small>{formatDate(item.lastMessageAt || item.updatedAt)}</small>
-                <span className="chatConversationActions" onClick={(event) => event.stopPropagation()}>
-                  <button className="iconButton" type="button" onClick={() => openRename(item)} aria-label="重命名">
-                    <Edit3 size={14} />
-                  </button>
-                  <button className="iconButton" type="button" onClick={() => setDeletingConversation(item)} aria-label="删除">
-                    <Trash2 size={14} />
+                <span className="chatConversationActions chatConversationMenuWrap" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    className="chatConversationMenuButton"
+                    type="button"
+                    onClick={(event) => toggleConversationMenu(item.id, event.currentTarget)}
+                    aria-label="打开对话操作菜单"
+                    aria-expanded={openConversationMenuId === item.id}
+                  >
+                    <MoreVertical size={17} />
                   </button>
                 </span>
-              </button>
+              </div>
             ))}
             {conversations.length === 0 && <div className="emptyLine">暂无对话</div>}
           </div>
         </aside>
 
         {isHistoryOpen && <button className="chatHistoryBackdrop" type="button" aria-label="关闭历史" onClick={() => setIsHistoryOpen(false)} />}
+
+        {openConversationMenu && conversationMenuPosition && createPortal(
+          <div
+            className="chatConversationMenu chatConversationMenuWrap"
+            role="menu"
+            style={{
+              top: conversationMenuPosition.top,
+              left: conversationMenuPosition.left
+            }}
+          >
+            <button type="button" role="menuitem" onClick={() => togglePinnedConversation(openConversationMenu.id)}>
+              <Pin size={14} />
+              {pinnedConversationIdSet.has(openConversationMenu.id) ? '取消固定' : '固定'}
+            </button>
+            <button type="button" role="menuitem" onClick={() => openRename(openConversationMenu)}>
+              <Edit3 size={14} />
+              重命名
+            </button>
+            <button className="danger" type="button" role="menuitem" onClick={() => {
+              setOpenConversationMenuId(null);
+              setConversationMenuPosition(null);
+              setDeletingConversation(openConversationMenu);
+            }}>
+              <Trash2 size={14} />
+              删除
+            </button>
+          </div>,
+          document.body
+        )}
 
         <section className="panel chatPanel">
           <div className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
@@ -670,10 +782,9 @@ export function ChatPage() {
 
       {editingConversation && (
         <div className="modalBackdrop" role="dialog" aria-modal="true">
-          <form className="confirmModal" onSubmit={submitRename}>
+          <form className="confirmModal renameConversationModal" onSubmit={submitRename}>
             <h2>重命名对话</h2>
             <label className="field">
-              <span>标题</span>
               <input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} autoFocus />
             </label>
             <div className="modalActions">
@@ -726,6 +837,23 @@ function upsertConversation(items: ChatConversation[], item: ChatConversation) {
     .sort((a, b) => new Date(b.lastMessageAt || b.updatedAt).getTime() - new Date(a.lastMessageAt || a.updatedAt).getTime());
 }
 
+function getConversationMenuPosition(button: HTMLButtonElement): ConversationMenuPosition {
+  const rect = button.getBoundingClientRect();
+  const menuWidth = 132;
+  const menuHeight = 120;
+  const gap = 6;
+  const viewportPadding = 8;
+  const top = rect.bottom + gap + menuHeight > window.innerHeight - viewportPadding
+    ? Math.max(viewportPadding, rect.top - gap - menuHeight)
+    : rect.bottom + gap;
+  const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
+  const left = Math.min(
+    maxLeft,
+    Math.max(viewportPadding, rect.right - menuWidth)
+  );
+  return { top, left };
+}
+
 function isReadableAttachment(file: File) {
   return readableAttachmentTypes.some((type) => file.type.startsWith(type))
     || /\.(csv|json|log|md|txt|xml|yaml|yml)$/i.test(file.name);
@@ -755,6 +883,16 @@ function readFileAsDataUrl(file: File) {
     reader.onerror = () => reject(reader.error || new Error('Read file failed'));
     reader.readAsDataURL(file);
   });
+}
+
+function readPinnedConversationIds() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(pinnedConversationsKey) || '[]') as unknown;
+    return Array.isArray(parsed) ? parsed.filter((item): item is number => Number.isInteger(item)) : [];
+  } catch {
+    return [];
+  }
 }
 
 function readMessageAttachments(metadata: unknown): ChatMessageAttachment[] {

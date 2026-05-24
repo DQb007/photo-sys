@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CopyPlus, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
+import { Check, CopyPlus, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -28,7 +28,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
   const [detailTarget, setDetailTarget] = useState<Generation | null>(null);
   const [promptTarget, setPromptTarget] = useState<Generation | null>(null);
-  const [copyState, setCopyState] = useState('');
+  const [isPromptCopied, setIsPromptCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [preview, setPreview] = useState<{ url: string; prompt: string } | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -119,6 +120,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       </section>
 
       {error && <div className="errorBox">{error}</div>}
+      {toastMessage && <div className="toastNotice" role="status">{toastMessage}</div>}
 
       {!isLoading && items.length === 0 && (
         <div className="panel emptyState">还没有生成记录。</div>
@@ -154,7 +156,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               </div>
               <button className="promptPreview" onClick={() => {
                 setPromptTarget(item);
-                setCopyState('');
+                setIsPromptCopied(false);
               }}>
                 <p>{item.prompt}</p>
               </button>
@@ -164,16 +166,18 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                 <div><dt>耗时</dt><dd>{formatDuration(generationElapsedMs(item, now))}</dd></div>
               </dl>
               <div className="cardActions">
-                <button
-                  className="ghostButton"
-                  onClick={() => {
-                    sessionStorage.setItem('reusePrompt', item.prompt);
-                    window.location.href = '/generate';
-                  }}
-                >
-                  <CopyPlus size={15} />
-                  复用
-                </button>
+                {mode !== 'admin' && (
+                  <button
+                    className="ghostButton"
+                    onClick={() => {
+                      sessionStorage.setItem('reusePrompt', item.prompt);
+                      window.location.href = '/generate';
+                    }}
+                  >
+                    <CopyPlus size={15} />
+                    复用
+                  </button>
+                )}
                 <button className="dangerButton" onClick={() => setDeleteTarget(item)}>
                   <Trash2 size={15} />
                   删除
@@ -264,21 +268,25 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
           <div className="promptModal">
             <div className="modalHeader">
               <h2 id="prompt-title">完整提示词</h2>
-              <button className="iconButton" onClick={() => setPromptTarget(null)} aria-label="关闭">
+              <button className="iconButton" onClick={() => {
+                setPromptTarget(null);
+                setIsPromptCopied(false);
+              }} aria-label="关闭">
                 <X size={18} />
               </button>
             </div>
             <div className="promptFullText">{promptTarget.prompt}</div>
             <div className="modalActions">
-              <span className="copyState">{copyState}</span>
               <button
                 className="ghostButton"
                 onClick={async () => {
                   await navigator.clipboard.writeText(promptTarget.prompt);
-                  setCopyState('已复制');
+                  setIsPromptCopied(true);
+                  setToastMessage('复制成功');
+                  window.setTimeout(() => setToastMessage(''), 1000);
                 }}
               >
-                <CopyPlus size={15} />
+                {isPromptCopied ? <Check size={15} /> : <CopyPlus size={15} />}
                 复制提示词
               </button>
             </div>
