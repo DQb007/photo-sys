@@ -205,7 +205,7 @@ export function AdminPromptTemplatesPage() {
           <h1>提示词管理</h1>
         </div>
         <div className="pageHeaderActions">
-          <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>
+          <button className="ghostButton refreshButton" type="button" disabled={isLoading} onClick={() => void load()}>
             <RefreshCcw size={16} />
             刷新
           </button>
@@ -251,7 +251,7 @@ export function AdminPromptTemplatesPage() {
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模板" />
             <SelectField value={status} options={statusFilterOptions} onChange={setStatus} />
             <button className="ghostButton" type="submit">筛选</button>
-            <button className="ghostButton" type="button" onClick={resetFilters}>
+            <button className="ghostButton resetButton" type="button" onClick={resetFilters}>
               <RotateCcw size={16} />
               重置
             </button>
@@ -291,7 +291,7 @@ export function AdminPromptTemplatesPage() {
                 </td>
                 <td>
                   <span className={item.status === 'active' ? 'adminStatusPill active' : 'adminStatusPill disabled'}>
-                    {item.status === 'active' ? '启用' : '停用'}
+                    <span>{item.status === 'active' ? '启用' : '停用'}</span>
                   </span>
                 </td>
                 <td>

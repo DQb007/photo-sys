@@ -19,20 +19,23 @@ import { PromptLibraryPage } from './pages/PromptLibraryPage';
 import { AdminPromptTemplatesPage } from './pages/AdminPromptTemplatesPage';
 import { ChatPage } from './pages/ChatPage';
 import { AdminChatPage } from './pages/AdminChatPage';
+import { ThemeProvider } from './theme';
 
 const appName = '炫步 AI';
 const brandIconSrc = '/brand-icon.png';
 
 export function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/*" element={<ProtectedShell />} />
-      </Routes>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/*" element={<ProtectedShell />} />
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

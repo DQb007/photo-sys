@@ -5,11 +5,16 @@ import { useAuth } from '../auth';
 import { SelectField } from '../SelectField';
 import { formatDuration, generationElapsedMs } from '../time';
 
-const sizes = ['1024x1024', '1024x1536', '1536x1024'];
 const qualities = ['auto', 'high', 'medium', 'low'];
-const sizeOptions = sizes.map((item) => ({ label: item, value: item }));
+const sizeOptions = [
+  { label: '方图 1:1', value: '1024x1024' },
+  { label: '竖图 2:3', value: '1024x1536' },
+  { label: '横图 3:2', value: '1536x1024' }
+];
+const sizes = sizeOptions.map((item) => item.value);
 const qualityOptions = qualities.map((item) => ({ label: item, value: item }));
 const activeGenerationKey = 'activeGenerationId';
+const generationWaitMessage = '生成大约需要2-3mins，请耐心等候，您可以进行其他操作';
 
 export function GeneratePage() {
   const { user } = useAuth();
@@ -20,6 +25,7 @@ export function GeneratePage() {
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
   const [creditBalance, setCreditBalance] = useState(user?.creditBalance ?? 0);
@@ -97,8 +103,15 @@ export function GeneratePage() {
     }
   }, [generation?.id, generation?.status]);
 
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(''), 5000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    setMessage('');
     setError('');
     setPollError('');
     setIsLoading(true);
@@ -115,6 +128,7 @@ export function GeneratePage() {
     try {
       const nextGeneration = await createGeneration(formData);
       setGeneration(nextGeneration);
+      setMessage(generationWaitMessage);
       restoreFormFromGeneration(nextGeneration);
       sessionStorage.setItem(activeGenerationKey, String(nextGeneration.id));
       getCreditBalance()
@@ -126,6 +140,7 @@ export function GeneratePage() {
         .catch(() => undefined);
     } catch (err) {
       const typed = err as Error & { generation?: Generation };
+      setMessage('');
       setError(typed.message);
       if (typed.generation) setGeneration(typed.generation);
     } finally {
@@ -135,6 +150,7 @@ export function GeneratePage() {
 
   async function cancelActiveGeneration() {
     if (!generation || generation.status !== 'pending') return;
+    setMessage('');
     setError('');
     setPollError('');
     setIsCancelling(true);
@@ -168,6 +184,7 @@ export function GeneratePage() {
     sessionStorage.removeItem(activeGenerationKey);
     setGeneration(null);
     setReferenceImages([]);
+    setMessage('');
     setError('');
     setPollError('');
     setPrompt('');
@@ -187,6 +204,8 @@ export function GeneratePage() {
           {creditsEnabled ? `${creditBalance} 积分` : '积分未启用'}
         </div>
       </header>
+
+      {message && <div className="toastNotice generationWaitNotice" role="status">{message}</div>}
 
       <div className="generateGrid">
         <form className="panel formPanel" onSubmit={onSubmit}>

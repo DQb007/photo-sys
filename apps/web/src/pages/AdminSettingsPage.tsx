@@ -289,7 +289,7 @@ export function AdminSettingsPage() {
         </section>
 
         <div className="stickyActions">
-          <button className="ghostButton" type="button" onClick={() => void resetDefaults()}>
+          <button className="ghostButton resetButton" type="button" onClick={() => void resetDefaults()}>
             <RotateCcw size={16} />
             恢复默认
           </button>

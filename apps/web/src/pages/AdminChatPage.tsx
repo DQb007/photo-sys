@@ -168,7 +168,7 @@ export function AdminChatPage() {
           <h1>模型管理</h1>
           <p>配置用户端 AI 对话开关、计费规则和可用模型。</p>
         </div>
-        <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>
+        <button className="ghostButton refreshButton" type="button" disabled={isLoading} onClick={() => void load()}>
           <RefreshCcw size={16} />
           刷新
         </button>

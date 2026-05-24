@@ -15,13 +15,19 @@ export function Pagination({ page, totalPages, total, onPageChange, className = 
 
   if (typeof total === 'number' && total <= 0) return null;
 
+  function changePage(nextPage: number) {
+    if (nextPage === page) return;
+    onPageChange(nextPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
     <div className={`paginationBar appPagination ${className}`.trim()}>
       <button
         className="ghostButton"
         type="button"
         disabled={!canGoPrev}
-        onClick={() => onPageChange(Math.max(1, page - 1))}
+        onClick={() => changePage(Math.max(1, page - 1))}
       >
         <ChevronLeft size={16} />
         上一页
@@ -34,7 +40,7 @@ export function Pagination({ page, totalPages, total, onPageChange, className = 
         className="ghostButton"
         type="button"
         disabled={!canGoNext}
-        onClick={() => onPageChange(Math.min(safeTotalPages, page + 1))}
+        onClick={() => changePage(Math.min(safeTotalPages, page + 1))}
       >
         下一页
         <ChevronRight size={16} />

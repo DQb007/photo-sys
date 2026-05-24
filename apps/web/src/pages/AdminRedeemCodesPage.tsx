@@ -187,7 +187,7 @@ export function AdminRedeemCodesPage() {
         <div>
           <h1>兑换码管理</h1>
         </div>
-        <button className="ghostButton" type="button" disabled={isLoading} onClick={() => void load()}>
+        <button className="ghostButton refreshButton" type="button" disabled={isLoading} onClick={() => void load()}>
           <RefreshCcw size={16} />
           刷新
         </button>

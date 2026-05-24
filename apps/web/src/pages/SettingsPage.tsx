@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Gift, KeyRound, ShoppingCart } from 'lucide-react';
+import { Gift, KeyRound, Palette, ShoppingCart } from 'lucide-react';
 import { changePassword, getCreditBalance, listCreditTransactions, redeemCode, type CreditTransaction } from '../api';
+import { useTheme, type AppTheme } from '../theme';
 
 const creditPageSize = 10;
 
@@ -11,6 +12,7 @@ const emptyPasswordForm = {
 };
 
 export function SettingsPage() {
+  const { theme, setTheme, themeLabels } = useTheme();
   const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -117,6 +119,36 @@ export function SettingsPage() {
           <h1>账号设置</h1>
         </div>
       </header>
+
+      <section className="panel settingsPanel themeSettingsPanel">
+        <div className="panelTitle">
+          <div>
+            <h2>主题样式</h2>
+            <span>选择你偏好的视觉方向，会自动保存到当前浏览器。</span>
+          </div>
+          <Palette size={18} />
+        </div>
+        <div className="themeChoiceGrid" role="radiogroup" aria-label="主题样式">
+          {(['studio', 'ink'] as AppTheme[]).map((item) => (
+            <button
+              key={item}
+              className={theme === item ? `themeChoice active ${item}` : `themeChoice ${item}`}
+              type="button"
+              role="radio"
+              aria-checked={theme === item}
+              onClick={() => setTheme(item)}
+            >
+              <span className="themePreview" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <strong>{themeLabels[item]}</strong>
+              <small>{item === 'studio' ? '暗房光感、图片优先，适合专业创作台。' : '宣纸底色、墨绿细线，保留中文品牌温润感。'}</small>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <form className="panel settingsPanel passwordSettingsPanel" onSubmit={submitPassword}>
         <div className="panelTitle">

@@ -153,7 +153,7 @@ export function PromptLibraryPage() {
           <button className="primaryButton compact" type="submit">
             搜索
           </button>
-          <button className="ghostButton compact" type="button" onClick={resetFilters}>
+          <button className="ghostButton compact resetButton" type="button" onClick={resetFilters}>
             <RotateCcw size={16} />
             重置
           </button>
@@ -218,9 +218,9 @@ export function PromptLibraryPage() {
               </div>
             )}
             <div className="promptCardHeader">
-              <div>
+              <div className="promptTitleLine">
                 <h2>{item.title}</h2>
-                <span>{item.category || '未分类'}</span>
+                <span className="promptCategoryTag">{item.category || '未分类'}</span>
               </div>
               <button
                 className={item.isFavorite ? 'iconButton favoriteActive' : 'iconButton'}
@@ -256,9 +256,9 @@ export function PromptLibraryPage() {
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-template-title">
           <div className="promptTemplateModal">
             <div className="modalHeader">
-              <div>
+              <div className="promptTitleLine">
                 <h2 id="prompt-template-title">{activeTemplate.title}</h2>
-                <span>{activeTemplate.category || '未分类'}</span>
+                <span className="promptCategoryTag">{activeTemplate.category || '未分类'}</span>
               </div>
               <button className="iconButton" type="button" onClick={() => setActiveTemplate(null)} aria-label="关闭">
                 <X size={18} />
@@ -316,9 +316,9 @@ export function PromptLibraryPage() {
           <button className="promptPreviewScrim" type="button" aria-label="关闭预览" onClick={() => setPreviewTemplate(null)} />
           <div className="promptPreviewModal">
             <div className="modalHeader">
-              <div>
-                <span>{previewTemplate.category || '未分类'}</span>
+              <div className="promptTitleLine">
                 <h2 id="prompt-preview-title">{previewTemplate.title}</h2>
+                <span className="promptCategoryTag">{previewTemplate.category || '未分类'}</span>
               </div>
               <button className="iconButton" type="button" onClick={() => setPreviewTemplate(null)} aria-label="关闭">
                 <X size={18} />

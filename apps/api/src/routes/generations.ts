@@ -146,7 +146,7 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
     const total = Number(countRows[0]?.total || 0);
 
     const [rows] = await getPool().query<GenerationRow[]>(
-      `SELECT * FROM generations ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      `SELECT * FROM generations ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     );
 

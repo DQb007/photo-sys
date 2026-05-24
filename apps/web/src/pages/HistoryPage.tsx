@@ -105,7 +105,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
           {isLoading ? '刷新中...' : `队列中 ${summary?.queue.waiting ?? 0} · 生成中 ${summary?.statusCounts.processing ?? 0}`}
         </div>
         <button
-          className="ghostButton compact"
+          className="ghostButton compact resetButton"
           type="button"
           onClick={() => {
             setPage(1);
@@ -146,11 +146,11 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               <div className="historyMeta">
                 {item.errorMessage ? (
                   <button className={`statusTag statusButton ${item.status}`} onClick={() => setDetailTarget(item)}>
-                    {item.status}
+                    {generationStatusLabel(item.status)}
                   </button>
-                ) : (
-                  <span className={`statusTag ${item.status}`}>{item.status}</span>
-                )}
+                ) : item.status !== 'succeeded' ? (
+                  <span className={`statusTag ${item.status}`}>{generationStatusLabel(item.status)}</span>
+                ) : null}
               </div>
               <button className="promptPreview" onClick={() => {
                 setPromptTarget(item);
@@ -197,7 +197,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         ))}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={(nextPage) => void load(nextPage, statusFilter)} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {deleteTarget && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="delete-title">
@@ -308,4 +308,15 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       )}
     </div>
   );
+}
+
+function generationStatusLabel(status: Generation['status']) {
+  const labels: Record<Generation['status'], string> = {
+    pending: '排队中',
+    processing: '生成中',
+    succeeded: '已完成',
+    failed: '失败',
+    cancelled: '已取消'
+  };
+  return labels[status] || status;
 }

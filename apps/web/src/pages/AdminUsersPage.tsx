@@ -209,7 +209,7 @@ export function AdminUsersPage() {
           <Search size={16} />
           搜索
         </button>
-        <button className="ghostButton compact" type="button" onClick={resetFilters}>
+        <button className="ghostButton compact resetButton" type="button" onClick={resetFilters}>
           <RotateCcw size={16} />
           重置
         </button>
