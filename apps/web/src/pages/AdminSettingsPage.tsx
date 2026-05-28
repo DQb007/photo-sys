@@ -291,6 +291,44 @@ export function AdminSettingsPage() {
           <p className="fieldHint">最多同时处理多少个图片生成任务，保存后对后续取队列任务生效。</p>
         </section>
 
+        <section className="panel formPanel">
+          <div className="panelTitle"><h2>游客试用</h2></div>
+          <label className="toggleRow">
+            <span>开启游客试用</span>
+            <input type="checkbox" checked={settings.trial.enabled} onChange={(event) => setTrial('enabled', event.target.checked)} />
+          </label>
+          <div className="formRow two">
+            <label className="field">
+              <span>生图试用次数</span>
+              <input type="number" min={0} max={1000} value={settings.trial.generationLimit} onChange={(event) => setTrial('generationLimit', Number(event.target.value))} />
+            </label>
+            <label className="field">
+              <span>对话试用次数</span>
+              <input type="number" min={0} max={1000} value={settings.trial.chatLimit} onChange={(event) => setTrial('chatLimit', Number(event.target.value))} />
+            </label>
+          </div>
+          <div className="formRow two">
+            <label className="field">
+              <span>会话有效期（小时）</span>
+              <input type="number" min={1} max={8760} value={settings.trial.sessionTtlHours} onChange={(event) => setTrial('sessionTtlHours', Number(event.target.value))} />
+            </label>
+            <label className="field">
+              <span>同 IP 每日新会话上限</span>
+              <input type="number" min={1} max={10000} value={settings.trial.maxSessionsPerIpPerDay} onChange={(event) => setTrial('maxSessionsPerIpPerDay', Number(event.target.value))} />
+            </label>
+          </div>
+          <div className="formRow two">
+            <label className="field">
+              <span>游客单次最大图片数</span>
+              <input type="number" min={1} max={4} value={settings.trial.maxImagesPerGeneration} onChange={(event) => setTrial('maxImagesPerGeneration', Number(event.target.value))} />
+            </label>
+            <label className="toggleRow alignEnd">
+              <span>允许游客上传参考图</span>
+              <input type="checkbox" checked={settings.trial.allowReferenceImages} onChange={(event) => setTrial('allowReferenceImages', event.target.checked)} />
+            </label>
+          </div>
+        </section>
+
         <div className="stickyActions">
           <button className="ghostButton resetButton" type="button" onClick={() => void resetDefaults()}>
             <RotateCcw size={16} />
@@ -365,6 +403,15 @@ export function AdminSettingsPage() {
       setIsDirty(true);
       setMessage('');
       return { ...current, generation: { ...current.generation, [key]: value } };
+    });
+  }
+
+  function setTrial<K extends keyof AppSettings['trial']>(key: K, value: AppSettings['trial'][K]) {
+    setSettings((current) => {
+      if (!current) return current;
+      setIsDirty(true);
+      setMessage('');
+      return { ...current, trial: { ...current.trial, [key]: value } };
     });
   }
 

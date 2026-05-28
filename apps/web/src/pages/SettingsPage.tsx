@@ -211,7 +211,7 @@ export function SettingsPage() {
               <Gift size={16} />
               {isRedeeming ? '兑换中' : '兑换'}
             </button>
-            <a className="ghostButton" href="https://pay.x2boot.com/" target="_blank" rel="noreferrer">
+            <a className="ghostButton" href="https://shop.x2boot.com" target="_blank" rel="noreferrer">
               <ShoppingCart size={16} />
               购买兑换码
             </a>

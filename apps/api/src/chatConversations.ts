@@ -10,7 +10,8 @@ import { httpError } from './errors.js';
 
 export interface CreateMessageInput {
   conversationId: number;
-  userId: number;
+  userId?: number | null;
+  guestSessionId?: number | null;
   role: ChatMessageRole;
   content: string;
   status?: ChatMessageStatus;
@@ -23,83 +24,97 @@ export interface CreateMessageInput {
   metadata?: Record<string, unknown> | null;
 }
 
-export async function listChatConversations(userId: number) {
+export interface ChatOwner {
+  userId?: number | null;
+  guestSessionId?: number | null;
+}
+
+export async function listChatConversations(owner: ChatOwner) {
+  const condition = ownerCondition(owner, 'chat_conversations');
   const [rows] = await getPool().query<ChatConversationRow[]>(
     `SELECT * FROM chat_conversations
-     WHERE user_id = ? AND status = 'active'
+     WHERE ${condition.sql} AND status = 'active'
      ORDER BY COALESCE(last_message_at, updated_at) DESC, id DESC`,
-    [userId]
+    condition.params
   );
   return rows;
 }
 
-export async function createChatConversation(userId: number, title = '新对话') {
+export async function createChatConversation(owner: ChatOwner, title = '新对话') {
+  assertOwner(owner);
   const [result] = await getPool().execute<ResultSetHeader>(
-    `INSERT INTO chat_conversations (user_id, title, title_is_auto, status)
-     VALUES (?, ?, 1, 'active')`,
-    [userId, cleanTitle(title)]
+    `INSERT INTO chat_conversations (user_id, guest_session_id, title, title_is_auto, status)
+     VALUES (?, ?, ?, 1, 'active')`,
+    [owner.userId || null, owner.guestSessionId || null, cleanTitle(title)]
   );
-  return getChatConversationForUser(result.insertId, userId);
+  return getChatConversationForOwner(result.insertId, owner);
 }
 
-export async function getChatConversationForUser(id: number, userId: number) {
+export async function getChatConversationForOwner(id: number, owner: ChatOwner) {
+  const condition = ownerCondition(owner, 'chat_conversations');
   const [rows] = await getPool().query<ChatConversationRow[]>(
-    "SELECT * FROM chat_conversations WHERE id = ? AND user_id = ? AND status = 'active'",
-    [id, userId]
+    `SELECT * FROM chat_conversations WHERE id = ? AND ${condition.sql} AND status = 'active'`,
+    [id, ...condition.params]
   );
   const row = rows[0];
   if (!row) throw httpError(404, 'Chat conversation not found');
   return row;
 }
 
-export async function updateChatConversationTitle(id: number, userId: number, title: string) {
-  await getChatConversationForUser(id, userId);
+export const getChatConversationForUser = (id: number, userId: number) => getChatConversationForOwner(id, { userId });
+
+export async function updateChatConversationTitle(id: number, owner: ChatOwner, title: string) {
+  const condition = ownerCondition(owner, 'chat_conversations');
+  await getChatConversationForOwner(id, owner);
   await getPool().execute(
-    'UPDATE chat_conversations SET title = ?, title_is_auto = 0 WHERE id = ? AND user_id = ?',
-    [cleanTitle(title), id, userId]
+    `UPDATE chat_conversations SET title = ?, title_is_auto = 0 WHERE id = ? AND ${condition.sql}`,
+    [cleanTitle(title), id, ...condition.params]
   );
-  return getChatConversationForUser(id, userId);
+  return getChatConversationForOwner(id, owner);
 }
 
-export async function softDeleteChatConversation(id: number, userId: number) {
-  await getChatConversationForUser(id, userId);
+export async function softDeleteChatConversation(id: number, owner: ChatOwner) {
+  const condition = ownerCondition(owner, 'chat_conversations');
+  await getChatConversationForOwner(id, owner);
   await getPool().execute(
     `UPDATE chat_conversations
      SET status = 'deleted', deleted_at = CURRENT_TIMESTAMP
-     WHERE id = ? AND user_id = ?`,
-    [id, userId]
+     WHERE id = ? AND ${condition.sql}`,
+    [id, ...condition.params]
   );
 }
 
-export async function listChatMessages(conversationId: number, userId: number) {
-  await getChatConversationForUser(conversationId, userId);
-  return listChatMessagesForKnownConversation(conversationId, userId);
+export async function listChatMessages(conversationId: number, owner: ChatOwner) {
+  await getChatConversationForOwner(conversationId, owner);
+  return listChatMessagesForKnownConversation(conversationId, owner);
 }
 
-export async function listChatMessagesForKnownConversation(conversationId: number, userId: number) {
+export async function listChatMessagesForKnownConversation(conversationId: number, owner: ChatOwner) {
+  const condition = ownerCondition(owner, 'chat_messages');
   const [rows] = await getPool().query<ChatMessageRow[]>(
     `SELECT * FROM chat_messages
-     WHERE conversation_id = ? AND user_id = ?
+     WHERE conversation_id = ? AND ${condition.sql}
      ORDER BY created_at ASC, id ASC`,
-    [conversationId, userId]
+    [conversationId, ...condition.params]
   );
   return rows;
 }
 
 export async function listCompletedHistoryMessages(
   conversationId: number,
-  userId: number,
+  owner: ChatOwner,
   limit: number
 ) {
+  const condition = ownerCondition(owner, 'chat_messages');
   const [rows] = await getPool().query<ChatMessageRow[]>(
     `SELECT * FROM (
        SELECT * FROM chat_messages
-       WHERE conversation_id = ? AND user_id = ? AND status = 'completed' AND role IN ('user', 'assistant')
+       WHERE conversation_id = ? AND ${condition.sql} AND status = 'completed' AND role IN ('user', 'assistant')
        ORDER BY created_at DESC, id DESC
        LIMIT ?
      ) recent
      ORDER BY created_at ASC, id ASC`,
-    [conversationId, userId, limit]
+    [conversationId, ...condition.params, limit]
   );
   return rows;
 }
@@ -110,12 +125,13 @@ export async function createChatMessageInConnection(
 ) {
   const [result] = await connection.execute<ResultSetHeader>(
     `INSERT INTO chat_messages
-       (conversation_id, user_id, role, content, status, error_message, chat_model_id, model_name_snapshot,
-        model_key_snapshot, credit_cost, credit_transaction_id, metadata_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (conversation_id, user_id, guest_session_id, role, content, status, error_message, chat_model_id, model_name_snapshot,
+         model_key_snapshot, credit_cost, credit_transaction_id, metadata_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.conversationId,
-      input.userId,
+      input.userId || null,
+      input.guestSessionId || null,
       input.role,
       input.content,
       input.status || 'completed',
@@ -188,6 +204,7 @@ export function serializeChatConversation(row: ChatConversationRow) {
   return {
     id: row.id,
     userId: row.user_id,
+    guestSessionId: row.guest_session_id,
     title: row.title,
     titleIsAuto: Boolean(row.title_is_auto),
     status: row.status,
@@ -203,6 +220,7 @@ export function serializeChatMessage(row: ChatMessageRow) {
     id: row.id,
     conversationId: row.conversation_id,
     userId: row.user_id,
+    guestSessionId: row.guest_session_id,
     role: row.role,
     content: row.content,
     status: row.status,
@@ -217,6 +235,18 @@ export function serializeChatMessage(row: ChatMessageRow) {
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
+}
+
+function assertOwner(owner: ChatOwner) {
+  if (owner.userId || owner.guestSessionId) return;
+  throw httpError(401, 'Chat owner is required');
+}
+
+function ownerCondition(owner: ChatOwner, tableName: 'chat_conversations' | 'chat_messages') {
+  assertOwner(owner);
+  const prefix = tableName ? '' : '';
+  if (owner.userId) return { sql: `${prefix}user_id = ?`, params: [owner.userId] as number[] };
+  return { sql: `${prefix}guest_session_id = ?`, params: [owner.guestSessionId as number] };
 }
 
 async function touchConversationInConnection(

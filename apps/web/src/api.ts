@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const tokenKey = 'photoSysAuthToken';
+const guestTokenKey = 'photoSysGuestToken';
 
 export type GenerationStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'cancelled';
 export type UserRole = 'user' | 'admin';
@@ -22,6 +23,22 @@ export interface User {
   updatedAt: string;
 }
 
+export interface GuestSession {
+  id: number;
+  generationLimit: number;
+  generationUsed: number;
+  generationRemaining: number;
+  chatLimit: number;
+  chatUsed: number;
+  chatRemaining: number;
+  expiresAt: string;
+  trial: {
+    enabled: boolean;
+    allowReferenceImages: boolean;
+    maxImagesPerGeneration: number;
+  };
+}
+
 export interface GenerationImage {
   id: number;
   url: string;
@@ -33,7 +50,9 @@ export interface GenerationImage {
 
 export interface Generation {
   id: number;
-  userId: number;
+  userId: number | null;
+  guestSessionId: number | null;
+  ownerEmail: string | null;
   prompt: string;
   model: string;
   status: GenerationStatus;
@@ -99,6 +118,15 @@ export interface AppSettings {
     maxInputChars: number;
     maxHistoryMessages: number;
     requestTimeoutMs: number;
+  };
+  trial: {
+    enabled: boolean;
+    generationLimit: number;
+    chatLimit: number;
+    sessionTtlHours: number;
+    maxSessionsPerIpPerDay: number;
+    allowReferenceImages: boolean;
+    maxImagesPerGeneration: number;
   };
 }
 
@@ -232,7 +260,8 @@ export interface ChatSettings {
 
 export interface ChatConversation {
   id: number;
-  userId: number;
+  userId: number | null;
+  guestSessionId: number | null;
   title: string;
   titleIsAuto: boolean;
   status: 'active' | 'deleted';
@@ -245,7 +274,8 @@ export interface ChatConversation {
 export interface ChatMessage {
   id: number;
   conversationId: number;
-  userId: number;
+  userId: number | null;
+  guestSessionId: number | null;
   role: ChatMessageRole;
   content: string;
   status: ChatMessageStatus;
@@ -296,6 +326,28 @@ export function setAuthToken(token: string) {
 
 export function clearAuthToken() {
   localStorage.removeItem(tokenKey);
+}
+
+export function getGuestToken() {
+  return localStorage.getItem(guestTokenKey);
+}
+
+export function setGuestToken(token: string) {
+  localStorage.setItem(guestTokenKey, token);
+}
+
+export function clearGuestToken() {
+  localStorage.removeItem(guestTokenKey);
+}
+
+export async function createGuestSession() {
+  const payload = await request<{ token: string; session: GuestSession }>('/guest/session', { method: 'POST' }, false);
+  setGuestToken(payload.token);
+  return payload.session;
+}
+
+export async function getGuestSession() {
+  return request<{ session: GuestSession }>('/guest/session');
 }
 
 export async function register(input: { email: string; password: string; displayName?: string }) {
@@ -380,13 +432,14 @@ export async function listGenerations(page = 1) {
   return listGenerationsWithFilter(page, '');
 }
 
-export async function listGenerationsWithFilter(page = 1, status = '', userId?: number) {
+export async function listGenerationsWithFilter(page = 1, status = '', userId?: number, ownerType: 'user' | 'guest' | '' = '') {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: '12'
   });
   if (status) params.set('status', status);
   if (userId) params.set('userId', String(userId));
+  if (ownerType) params.set('ownerType', ownerType);
   const payload = await request<{
     page: number;
     pageSize: number;
@@ -841,6 +894,8 @@ function authHeaders(includeAuth = true) {
   };
   const token = getAuthToken();
   if (includeAuth && token) headers.Authorization = `Bearer ${token}`;
+  const guestToken = getGuestToken();
+  if (includeAuth && guestToken) headers['X-Guest-Token'] = guestToken;
   return headers;
 }
 
@@ -848,6 +903,8 @@ function authOnlyHeaders() {
   const headers: Record<string, string> = {};
   const token = getAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;
+  const guestToken = getGuestToken();
+  if (guestToken) headers['X-Guest-Token'] = guestToken;
   return headers;
 }
 
@@ -855,7 +912,10 @@ async function parseResponse(response: Response) {
   if (response.status === 204) return {};
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401) clearAuthToken();
+    if (response.status === 401) {
+      clearAuthToken();
+      if (payload?.code === 'GUEST_SESSION_EXPIRED') clearGuestToken();
+    }
     throw new ApiError(payload?.error || '请求失败', response.status, payload?.code);
   }
   return payload;
@@ -872,9 +932,13 @@ function withFileTokens(generation: Generation): Generation {
 
 function appendToken(url: string) {
   const token = getAuthToken();
-  if (!token || url.includes('token=')) return url;
+  const guestToken = getGuestToken();
+  if (url.includes('token=') || url.includes('guestToken=')) return url;
+  if (!token && !guestToken) return url;
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}token=${encodeURIComponent(token)}`;
+  return token
+    ? `${url}${separator}token=${encodeURIComponent(token)}`
+    : `${url}${separator}guestToken=${encodeURIComponent(guestToken || '')}`;
 }
 
 function parseSseFrame(frame: string): ChatStreamEvent | null {

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Clipboard, Edit3, MessageSquarePlus, MoreVertical, Paperclip, Pin, Plus, Send, Square, Trash2, X } from 'lucide-react';
 import {
+  ApiError,
   createChatConversation,
   deleteChatConversation,
   getChatBootstrap,
@@ -18,6 +19,7 @@ import {
 import { SelectField } from '../SelectField';
 import { MarkdownMessage } from '../MarkdownMessage';
 import { useBodyScrollLock } from '../useBodyScrollLock';
+import { useAuth } from '../auth';
 
 type ChatBootstrapPayload = Awaited<ReturnType<typeof getChatBootstrap>>;
 
@@ -76,6 +78,7 @@ function MessageAttachments({ metadata }: { metadata: unknown }) {
 }
 
 export function ChatPage() {
+  const auth = useAuth();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -85,6 +88,7 @@ export function ChatPage() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [trialNotice, setTrialNotice] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isTypingAssistant, setIsTypingAssistant] = useState(false);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
@@ -178,6 +182,7 @@ export function ChatPage() {
     async function load() {
       setError('');
       try {
+        if (!auth.user) await auth.ensureGuestSession();
         const payload = await loadChatBootstrapOnce();
         if (!isMounted) return;
         setSettings(payload.settings);
@@ -195,7 +200,7 @@ export function ChatPage() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : '读取 AI 对话数据失败');
+          showChatError(err);
         }
       }
     }
@@ -203,7 +208,7 @@ export function ChatPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [auth]);
 
   useEffect(() => {
     document.documentElement.classList.add('chatBodyLocked');
@@ -248,6 +253,12 @@ export function ChatPage() {
 
   useEffect(() => () => clearTypingTimer(), []);
 
+  useEffect(() => {
+    if (!trialNotice) return;
+    const timer = window.setTimeout(() => setTrialNotice(''), 10000);
+    return () => window.clearTimeout(timer);
+  }, [trialNotice]);
+
   async function selectConversation(id: number) {
     setActiveConversationId(id);
     activeConversationIdRef.current = id;
@@ -274,6 +285,7 @@ export function ChatPage() {
     setError('');
     setMessage('');
     try {
+      if (!auth.user) await auth.ensureGuestSession();
       const payload = await createChatConversation();
       setConversations((current) => [payload.item, ...current]);
       setActiveConversationId(payload.item.id);
@@ -311,6 +323,7 @@ export function ChatPage() {
     let conversationId = activeConversationId;
     let shouldRefreshMessages = true;
     try {
+      if (!auth.user) await auth.ensureGuestSession();
       if (!conversationId) {
         const payload = await createChatConversation();
         conversationId = payload.item.id;
@@ -372,13 +385,13 @@ export function ChatPage() {
                 return next;
               });
             }
-            setError(eventPayload.data.error || 'AI 回复失败');
+            showChatError(eventPayload.data.error || 'AI 回复失败');
           }
         }
       });
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        setError(err instanceof Error ? err.message : '发送消息失败');
+        showChatError(err);
       }
     } finally {
       submitLockRef.current = false;
@@ -419,6 +432,21 @@ export function ChatPage() {
     shouldRestoreInputFocusRef.current = true;
     flushAssistantTyping();
     setMessage('已停止生成');
+  }
+
+  function showChatError(errorValue: unknown) {
+    const text = errorValue instanceof Error ? errorValue.message : String(errorValue || '发送消息失败');
+    if (errorValue instanceof ApiError && errorValue.code === 'TRIAL_IP_LIMIT_EXCEEDED') {
+      setError('');
+      setTrialNotice('当前网络的游客试用创建次数过多，请稍后再试！');
+      return;
+    }
+    if ((errorValue instanceof ApiError && errorValue.code === 'TRIAL_LIMIT_EXCEEDED') || text.includes('AI对话试用次数已用完')) {
+      setError('');
+      setTrialNotice('AI对话试用次数已用完，请前往注册页面注册登录使用！');
+      return;
+    }
+    setError(text);
   }
 
   function clearTypingTimer() {
@@ -592,6 +620,7 @@ export function ChatPage() {
     <div className="page chatPage">
       {error && <div className="errorBox">{error}</div>}
       {message && <div className="toastNotice" role="status">{message}</div>}
+      {trialNotice && <div className="toastNotice chatTrialNotice" role="status">{trialNotice}</div>}
 
       <div className="chatLayout">
         <aside className={isHistoryOpen ? 'chatSidebar open' : 'chatSidebar'}>

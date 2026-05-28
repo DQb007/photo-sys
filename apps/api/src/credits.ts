@@ -164,7 +164,7 @@ export async function refundGenerationCreditsIfNeeded(generationId: number) {
   try {
     await connection.beginTransaction();
     const generation = await lockGenerationForRefund(connection, generationId);
-    if (generation.credit_cost <= 0 || generation.credit_refunded_at) {
+    if (!generation.user_id || generation.credit_cost <= 0 || generation.credit_refunded_at) {
       await connection.commit();
       return null;
     }
@@ -198,7 +198,7 @@ export async function refundCancelledGenerationCreditsInConnection(
   actorUserId?: number | null
 ) {
   const generation = await lockGenerationForRefund(connection, generationId);
-  if (generation.credit_cost <= 0 || generation.credit_refunded_at) {
+  if (!generation.user_id || generation.credit_cost <= 0 || generation.credit_refunded_at) {
     return null;
   }
 

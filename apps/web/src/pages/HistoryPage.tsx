@@ -5,6 +5,7 @@ import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import {
+  ApiError,
   deleteGeneration,
   downloadUrl,
   getGenerationSummary,
@@ -15,13 +16,16 @@ import {
 import { Pagination } from '../Pagination';
 import { formatDuration, generationElapsedMs } from '../time';
 import { useBodyScrollLock } from '../useBodyScrollLock';
+import { useAuth } from '../auth';
 
 export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
+  const auth = useAuth();
   const [items, setItems] = useState<Generation[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState<'user' | 'guest'>('user');
   const [summary, setSummary] = useState<{ statusCounts: Record<string, number>; queue: { waiting: number } } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -31,28 +35,31 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [promptTarget, setPromptTarget] = useState<Generation | null>(null);
   const [isPromptCopied, setIsPromptCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [trialNotice, setTrialNotice] = useState('');
   const [preview, setPreview] = useState<{ url: string; prompt: string } | null>(null);
   const [now, setNow] = useState(Date.now());
 
   useBodyScrollLock(Boolean(deleteTarget || detailTarget || promptTarget || preview));
 
-  const load = useCallback(async (nextPage = page, nextStatus = statusFilter) => {
+  const load = useCallback(async (nextPage = page, nextStatus = statusFilter, nextOwner = ownerFilter) => {
     setIsLoading(true);
     setError('');
     try {
-      const data = await listGenerationsWithFilter(nextPage, nextStatus);
+      if (mode !== 'admin' && !auth.user) await auth.ensureGuestSession();
+      const data = await listGenerationsWithFilter(nextPage, nextStatus, undefined, mode === 'admin' ? nextOwner : '');
       setItems(data.items);
       setPage(data.page);
       setTotal(data.total);
       setTotalPages(data.totalPages);
-      setSummary(await getGenerationSummary());
+      const nextSummary = await getGenerationSummary().catch(() => null);
+      if (nextSummary) setSummary(nextSummary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '读取历史失败');
+      showHistoryError(err);
     } finally {
       setIsLoading(false);
       setHasLoadedOnce(true);
     }
-  }, [page, statusFilter]);
+  }, [auth, mode, ownerFilter, page, statusFilter]);
 
   async function remove(id: number) {
     await deleteGeneration(id);
@@ -69,11 +76,27 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
 
     const timer = window.setInterval(() => {
       setNow(Date.now());
-      void load(page, statusFilter);
+      void load(page, statusFilter, ownerFilter);
     }, 5000);
 
     return () => window.clearInterval(timer);
-  }, [items, load, page, statusFilter]);
+  }, [items, load, ownerFilter, page, statusFilter]);
+
+  useEffect(() => {
+    if (!trialNotice) return;
+    const timer = window.setTimeout(() => setTrialNotice(''), 10000);
+    return () => window.clearTimeout(timer);
+  }, [trialNotice]);
+
+  function showHistoryError(errorValue: unknown) {
+    const message = errorValue instanceof Error ? errorValue.message : '读取历史失败';
+    if (errorValue instanceof ApiError && errorValue.code === 'TRIAL_IP_LIMIT_EXCEEDED') {
+      setError('');
+      setTrialNotice('当前网络的游客试用创建次数过多，请稍后再试！');
+      return;
+    }
+    setError(message.includes('请先登录') ? '' : message);
+  }
 
   return (
     <div className="page">
@@ -105,6 +128,28 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
             </button>
           ))}
         </div>
+        {mode === 'admin' && (
+          <div className="filterGroup ownerFilterGroup">
+            {[
+              { label: '注册用户', value: 'user' },
+              { label: '游客', value: 'guest' }
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                className={ownerFilter === filter.value ? 'filterButton active' : 'filterButton'}
+                type="button"
+                onClick={() => {
+                  const nextOwner = filter.value as typeof ownerFilter;
+                  setPage(1);
+                  setOwnerFilter(nextOwner);
+                  void load(1, statusFilter, nextOwner);
+                }}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="queueSummary">
           {isLoading ? '刷新中...' : `队列中 ${summary?.queue.waiting ?? 0} · 生成中 ${summary?.statusCounts.processing ?? 0}`}
         </div>
@@ -114,7 +159,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
           onClick={() => {
             setPage(1);
             setStatusFilter('');
-            void load(1, '');
+            setOwnerFilter('user');
+            void load(1, '', 'user');
           }}
         >
           <RotateCcw size={16} />
@@ -124,6 +170,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
 
       {error && <div className="errorBox">{error}</div>}
       {toastMessage && <div className="toastNotice" role="status">{toastMessage}</div>}
+      {trialNotice && <div className="toastNotice chatTrialNotice" role="status">{trialNotice}</div>}
 
       {!isLoading && items.length === 0 && (
         <div className="panel emptyState">还没有生成记录。</div>
@@ -131,7 +178,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
 
       <div className={isLoading && hasLoadedOnce ? 'historyGrid refreshing' : 'historyGrid'}>
         {items.map((item) => (
-          <article className="historyCard" key={item.id}>
+          <article className={mode === 'admin' ? 'historyCard adminGenerationCard' : 'historyCard'} key={item.id}>
             <div className="thumbStrip">
               {item.images[0] ? (
                 <button
@@ -149,6 +196,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               </div>
               <div className="historyBody">
               <div className="historyMeta">
+                {mode === 'admin' && <span className={item.guestSessionId ? 'ownerTag guest' : 'ownerTag user'}>{ownerLabel(item)}</span>}
                 {item.errorMessage ? (
                   <button className={`statusTag statusButton ${item.status}`} onClick={() => setDetailTarget(item)}>
                     {generationStatusLabel(item.status)}
@@ -191,7 +239,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                     onClick={async () => {
                       const next = await retryGeneration(item.id);
                       sessionStorage.setItem('activeGenerationId', String(next.id));
-                      await load(1, statusFilter);
+                      await load(1, statusFilter, ownerFilter);
                     }}
                   >
                     <RotateCw size={15} />
@@ -330,4 +378,11 @@ function generationStatusLabel(status: Generation['status']) {
     cancelled: '已取消'
   };
   return labels[status] || status;
+}
+
+function ownerLabel(item: Generation) {
+  if (item.guestSessionId) return `游客 #${item.guestSessionId}`;
+  if (item.ownerEmail) return item.ownerEmail;
+  if (item.userId) return `用户 #${item.userId}`;
+  return '未知来源';
 }

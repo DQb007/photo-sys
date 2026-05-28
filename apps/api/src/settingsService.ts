@@ -44,6 +44,15 @@ const defaults = {
     maxInputChars: 8000,
     maxHistoryMessages: 20,
     requestTimeoutMs: 120000
+  },
+  trial: {
+    enabled: true,
+    generationLimit: 2,
+    chatLimit: 10,
+    sessionTtlHours: 168,
+    maxSessionsPerIpPerDay: 5,
+    allowReferenceImages: false,
+    maxImagesPerGeneration: 1
   }
 };
 
@@ -84,6 +93,15 @@ const settingsSchema = z.object({
     maxInputChars: z.number().int().min(1).max(50000),
     maxHistoryMessages: z.number().int().min(1).max(100),
     requestTimeoutMs: z.number().int().min(1000).max(600000)
+  }),
+  trial: z.object({
+    enabled: z.boolean(),
+    generationLimit: z.number().int().min(0).max(1000),
+    chatLimit: z.number().int().min(0).max(1000),
+    sessionTtlHours: z.number().int().min(1).max(8760),
+    maxSessionsPerIpPerDay: z.number().int().min(1).max(10000),
+    allowReferenceImages: z.boolean(),
+    maxImagesPerGeneration: z.number().int().min(1).max(4)
   })
 });
 
@@ -120,7 +138,14 @@ const definitions: Record<string, {
   'chat.systemPrompt': { category: 'chat', type: 'string', description: 'Global AI chat system prompt' },
   'chat.maxInputChars': { category: 'chat', type: 'number', description: 'Maximum characters per user chat message' },
   'chat.maxHistoryMessages': { category: 'chat', type: 'number', description: 'Maximum historical messages sent to chat model' },
-  'chat.requestTimeoutMs': { category: 'chat', type: 'number', description: 'AI chat upstream request timeout in milliseconds' }
+  'chat.requestTimeoutMs': { category: 'chat', type: 'number', description: 'AI chat upstream request timeout in milliseconds' },
+  'trial.enabled': { category: 'trial', type: 'boolean', description: '是否开启游客试用' },
+  'trial.generationLimit': { category: 'trial', type: 'number', description: '每个游客会话可创建的图片生成任务数' },
+  'trial.chatLimit': { category: 'trial', type: 'number', description: '每个游客会话可发送的 AI 对话条数' },
+  'trial.sessionTtlHours': { category: 'trial', type: 'number', description: '游客会话有效期小时数' },
+  'trial.maxSessionsPerIpPerDay': { category: 'trial', type: 'number', description: '同 IP 每天最多创建游客会话数' },
+  'trial.allowReferenceImages': { category: 'trial', type: 'boolean', description: '游客是否可上传参考图' },
+  'trial.maxImagesPerGeneration': { category: 'trial', type: 'number', description: '游客单次生成最大图片数量' }
 };
 
 let cache: { value: AppSettings; expiresAt: number } | null = null;
@@ -143,6 +168,7 @@ export type AppSettingsPatch = {
   credits?: Partial<AppSettings['credits']>;
   generation?: Partial<AppSettings['generation']>;
   chat?: Partial<AppSettings['chat']>;
+  trial?: Partial<AppSettings['trial']>;
 };
 
 export async function updateAppSettings(
@@ -266,7 +292,14 @@ function flattenSettings(settings: AppSettings) {
     'chat.systemPrompt': settings.chat.systemPrompt,
     'chat.maxInputChars': settings.chat.maxInputChars,
     'chat.maxHistoryMessages': settings.chat.maxHistoryMessages,
-    'chat.requestTimeoutMs': settings.chat.requestTimeoutMs
+    'chat.requestTimeoutMs': settings.chat.requestTimeoutMs,
+    'trial.enabled': settings.trial.enabled,
+    'trial.generationLimit': settings.trial.generationLimit,
+    'trial.chatLimit': settings.trial.chatLimit,
+    'trial.sessionTtlHours': settings.trial.sessionTtlHours,
+    'trial.maxSessionsPerIpPerDay': settings.trial.maxSessionsPerIpPerDay,
+    'trial.allowReferenceImages': settings.trial.allowReferenceImages,
+    'trial.maxImagesPerGeneration': settings.trial.maxImagesPerGeneration
   };
 }
 
@@ -299,6 +332,10 @@ function mergeSettingsPatch(current: AppSettings, patch: AppSettingsPatch): AppS
     chat: {
       ...current.chat,
       ...(patch.chat || {})
+    },
+    trial: {
+      ...current.trial,
+      ...(patch.trial || {})
     }
   };
 }

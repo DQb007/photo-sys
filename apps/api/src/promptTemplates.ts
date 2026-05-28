@@ -17,7 +17,7 @@ export interface PromptTemplateInput {
 }
 
 export interface PromptTemplateListOptions {
-  userId: number;
+  userId?: number | null;
   scope?: 'all' | 'favorites';
   category?: string;
   search?: string;
@@ -105,7 +105,7 @@ export function serializePromptTemplate(row: PromptTemplateWithFavorite) {
 
 export async function listPromptTemplates(options: PromptTemplateListOptions) {
   const conditions = ['t.deleted_at IS NULL', "t.status = 'active'"];
-  const params: Array<string | number> = [options.userId];
+  const params: Array<string | number> = [options.userId || 0];
 
   if (options.scope === 'favorites') {
     conditions.push('f.user_id IS NOT NULL');

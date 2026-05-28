@@ -16,6 +16,25 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_users_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS guest_sessions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  token_hash CHAR(64) NOT NULL,
+  ip_address VARCHAR(100) NULL,
+  user_agent VARCHAR(500) NULL,
+  generation_limit INT UNSIGNED NOT NULL DEFAULT 2,
+  generation_used INT UNSIGNED NOT NULL DEFAULT 0,
+  chat_limit INT UNSIGNED NOT NULL DEFAULT 10,
+  chat_used INT UNSIGNED NOT NULL DEFAULT 0,
+  expires_at TIMESTAMP NOT NULL,
+  last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_guest_sessions_token_hash (token_hash),
+  INDEX idx_guest_sessions_ip_created_at (ip_address, created_at),
+  INDEX idx_guest_sessions_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
@@ -70,7 +89,8 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 CREATE TABLE IF NOT EXISTS generations (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  guest_session_id BIGINT UNSIGNED NULL,
   prompt TEXT NOT NULL,
   model VARCHAR(100) NOT NULL DEFAULT 'gpt-image-2',
   status ENUM('pending', 'processing', 'succeeded', 'failed', 'cancelled') NOT NULL DEFAULT 'pending',
@@ -90,6 +110,7 @@ CREATE TABLE IF NOT EXISTS generations (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   INDEX idx_generations_user_created_at (user_id, created_at),
+  INDEX idx_generations_guest_created_at (guest_session_id, created_at),
   INDEX idx_generations_created_at (created_at),
   INDEX idx_generations_status (status),
   INDEX idx_generations_deleted_at (deleted_at),
@@ -97,6 +118,10 @@ CREATE TABLE IF NOT EXISTS generations (
     FOREIGN KEY (user_id)
     REFERENCES users (id)
     ON DELETE RESTRICT,
+  CONSTRAINT fk_generations_guest_session
+    FOREIGN KEY (guest_session_id)
+    REFERENCES guest_sessions (id)
+    ON DELETE SET NULL,
   CONSTRAINT fk_generations_deleted_by
     FOREIGN KEY (deleted_by)
     REFERENCES users (id)
@@ -164,7 +189,8 @@ CREATE TABLE IF NOT EXISTS chat_models (
 
 CREATE TABLE IF NOT EXISTS chat_conversations (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  guest_session_id BIGINT UNSIGNED NULL,
   title VARCHAR(160) NOT NULL,
   title_is_auto TINYINT(1) NOT NULL DEFAULT 1,
   status ENUM('active', 'deleted') NOT NULL DEFAULT 'active',
@@ -175,16 +201,22 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
   PRIMARY KEY (id),
   INDEX idx_chat_conversations_user_updated (user_id, updated_at),
   INDEX idx_chat_conversations_user_status_last_message (user_id, status, last_message_at),
+  INDEX idx_chat_conversations_guest_status_last_message (guest_session_id, status, last_message_at),
   CONSTRAINT fk_chat_conversations_user
     FOREIGN KEY (user_id)
     REFERENCES users (id)
-    ON DELETE RESTRICT
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_chat_conversations_guest_session
+    FOREIGN KEY (guest_session_id)
+    REFERENCES guest_sessions (id)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS chat_messages (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   conversation_id BIGINT UNSIGNED NOT NULL,
-  user_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  guest_session_id BIGINT UNSIGNED NULL,
   role ENUM('user', 'assistant', 'system') NOT NULL,
   content MEDIUMTEXT NOT NULL,
   status ENUM('streaming', 'completed', 'failed', 'cancelled') NOT NULL DEFAULT 'completed',
@@ -201,6 +233,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   PRIMARY KEY (id),
   INDEX idx_chat_messages_conversation_created (conversation_id, created_at),
   INDEX idx_chat_messages_user_created (user_id, created_at),
+  INDEX idx_chat_messages_guest_created (guest_session_id, created_at),
   INDEX idx_chat_messages_model (chat_model_id),
   INDEX idx_chat_messages_credit_transaction (credit_transaction_id),
   CONSTRAINT fk_chat_messages_conversation
@@ -211,6 +244,10 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     FOREIGN KEY (user_id)
     REFERENCES users (id)
     ON DELETE RESTRICT,
+  CONSTRAINT fk_chat_messages_guest_session
+    FOREIGN KEY (guest_session_id)
+    REFERENCES guest_sessions (id)
+    ON DELETE CASCADE,
   CONSTRAINT fk_chat_messages_model
     FOREIGN KEY (chat_model_id)
     REFERENCES chat_models (id)

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Sys Theme Demos</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10110f;
+      --paper: #f4efe6;
+      --ink: #f4efe6;
+      --muted: #a7a096;
+      --line: rgba(244, 239, 230, 0.16);
+      --accent: #d7a650;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Aptos", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(215, 166, 80, 0.22), transparent 32%),
+        radial-gradient(circle at 88% 18%, rgba(63, 135, 118, 0.26), transparent 34%),
+        linear-gradient(135deg, #10110f, #181713 54%, #0f1413);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 64px 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 32px;
+      align-items: end;
+      margin-bottom: 34px;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-family: Georgia, "Noto Serif SC", serif;
+      font-size: clamp(42px, 7vw, 86px);
+      line-height: 0.92;
+      letter-spacing: -0.065em;
+    }
+
+    .intro {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    a.card {
+      min-height: 360px;
+      color: inherit;
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.24);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    a.card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(244, 239, 230, 0.34);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .studio::before { background: radial-gradient(circle at 70% 20%, rgba(245, 156, 86, 0.28), transparent 34%), linear-gradient(145deg, transparent, rgba(30, 35, 37, 0.92)); }
+    .ink::before { background: radial-gradient(circle at 20% 18%, rgba(51, 100, 82, 0.32), transparent 32%), linear-gradient(145deg, rgba(241, 235, 221, 0.18), rgba(21, 42, 35, 0.62)); }
+    .console::before { background: linear-gradient(135deg, rgba(17, 242, 209, 0.18), transparent 34%), repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 10px); }
+    .minimal::before { background: linear-gradient(145deg, rgba(255,255,255,0.16), transparent 40%), radial-gradient(circle at 76% 76%, rgba(255,255,255,0.18), transparent 34%); }
+
+    .card > * { position: relative; z-index: 1; }
+
+    .mini {
+      height: 150px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 10px;
+      padding: 12px;
+      background: rgba(0,0,0,0.24);
+    }
+
+    .rail, .pane, .tile { border-radius: 12px; background: rgba(255,255,255,0.12); }
+    .pane { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
+    .tile:first-child { grid-column: 1 / -1; }
+
+    h2 { margin: 22px 0 8px; font-size: 22px; }
+    .card p { margin: 0; color: rgba(244, 239, 230, 0.72); line-height: 1.65; }
+    .tag { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+
+    @media (max-width: 980px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      a.card { min-height: 280px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Theme Refactor Preview</p>
+        <h1>四套主题方向 demo</h1>
+      </div>
+      <p class="intro">每个方向都模拟炫步 AI 的主应用结构：侧边导航、生成表单、结果预览、状态数据和操作按钮。先看气质，再决定重构路线。</p>
+    </section>
+
+    <section class="grid" aria-label="主题 demo 列表">
+      <a class="card studio" href="studio.html">
+        <div class="mini"><div class="rail"></div><div class="pane"><div class="tile"></div><div class="tile"></div><div class="tile"></div></div></div>
+        <div><span class="tag">A / Studio</span><h2>影像工作室感</h2><p>像专业创作台，图片优先、暗房光感、参数面板精致。</p></div>
+      </a>
+      <a class="card ink" href="ink-tech.html">
+        <div class="mini"><div class="rail"></div><div class="pane"><div class="tile"></div><div class="tile"></div><div class="tile"></div></div></div>
+        <div><span class="tag">B / Ink Tech</span><h2>东方纸墨科技感</h2><p>宣纸底、墨绿骨架、细线框和温润的 AI 创作气质。</p></div>
+      </a>
+      <a class="card console" href="console.html">
+        <div class="mini"><div class="rail"></div><div class="pane"><div class="tile"></div><div class="tile"></div><div class="tile"></div></div></div>
+        <div><span class="tag">C / Console</span><h2>未来控制台感</h2><p>高对比深色、状态灯、任务调度、适合后台和聊天。</p></div>
+      </a>
+      <a class="card minimal" href="minimal.html">
+        <div class="mini"><div class="rail"></div><div class="pane"><div class="tile"></div><div class="tile"></div><div class="tile"></div></div></div>
+        <div><span class="tag">D / Minimal</span><h2>极简高级感</h2><p>克制留白、强排版、低装饰，用细节建立高级感。</p></div>
+      </a>
+    </section>
+  </main>
+</body>
+</html>

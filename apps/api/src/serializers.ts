@@ -3,12 +3,15 @@ import type { GenerationImageRow, GenerationRow } from './db.js';
 
 export interface GenerationWithImages extends GenerationRow {
   images?: GenerationImageRow[];
+  owner_email?: string | null;
 }
 
 export function serializeGeneration(row: GenerationWithImages) {
   return {
     id: row.id,
     userId: row.user_id,
+    guestSessionId: row.guest_session_id,
+    ownerEmail: row.owner_email || null,
     prompt: row.prompt,
     model: row.model,
     status: row.status,

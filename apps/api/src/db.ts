@@ -47,7 +47,8 @@ export type ChatMessageStatus = 'streaming' | 'completed' | 'failed' | 'cancelle
 
 export interface GenerationRow extends RowDataPacket {
   id: number;
-  user_id: number;
+  user_id: number | null;
+  guest_session_id: number | null;
   prompt: string;
   model: string;
   status: GenerationStatus;
@@ -63,6 +64,21 @@ export interface GenerationRow extends RowDataPacket {
   duration_ms: number | null;
   deleted_at: Date | null;
   deleted_by: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface GuestSessionRow extends RowDataPacket {
+  id: number;
+  token_hash: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  generation_limit: number;
+  generation_used: number;
+  chat_limit: number;
+  chat_used: number;
+  expires_at: Date;
+  last_seen_at: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -187,7 +203,8 @@ export interface ChatModelRow extends RowDataPacket {
 
 export interface ChatConversationRow extends RowDataPacket {
   id: number;
-  user_id: number;
+  user_id: number | null;
+  guest_session_id: number | null;
   title: string;
   title_is_auto: 0 | 1;
   status: ChatConversationStatus;
@@ -200,7 +217,8 @@ export interface ChatConversationRow extends RowDataPacket {
 export interface ChatMessageRow extends RowDataPacket {
   id: number;
   conversation_id: number;
-  user_id: number;
+  user_id: number | null;
+  guest_session_id: number | null;
   role: ChatMessageRole;
   content: string;
   status: ChatMessageStatus;

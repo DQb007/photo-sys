@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2, XCircle } from 'lucide-react';
-import { cancelGeneration, createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
+import { ApiError, cancelGeneration, createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
 import { useAuth } from '../auth';
 import { SelectField } from '../SelectField';
 import { formatDuration, generationElapsedMs } from '../time';
@@ -18,6 +18,7 @@ const generationWaitMessage = '生成大约需要2-3mins，请耐心等候，您
 
 export function GeneratePage() {
   const { user } = useAuth();
+  const auth = useAuth();
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState(sizes[0]);
   const [quality, setQuality] = useState(qualities[0]);
@@ -26,6 +27,7 @@ export function GeneratePage() {
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [trialNotice, setTrialNotice] = useState('');
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
   const [creditBalance, setCreditBalance] = useState(user?.creditBalance ?? 0);
@@ -67,6 +69,10 @@ export function GeneratePage() {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      void auth.ensureGuestSession().catch(showGenerationError);
+      return;
+    }
     getCreditBalance()
       .then((payload) => {
         setCreditBalance(payload.balance);
@@ -109,6 +115,12 @@ export function GeneratePage() {
     return () => window.clearTimeout(timer);
   }, [message]);
 
+  useEffect(() => {
+    if (!trialNotice) return;
+    const timer = window.setTimeout(() => setTrialNotice(''), 10000);
+    return () => window.clearTimeout(timer);
+  }, [trialNotice]);
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setMessage('');
@@ -126,22 +138,27 @@ export function GeneratePage() {
     }
 
     try {
+      if (!user) await auth.ensureGuestSession();
       const nextGeneration = await createGeneration(formData);
       setGeneration(nextGeneration);
       setMessage(generationWaitMessage);
       restoreFormFromGeneration(nextGeneration);
       sessionStorage.setItem(activeGenerationKey, String(nextGeneration.id));
-      getCreditBalance()
-        .then((payload) => {
-          setCreditBalance(payload.balance);
-          setCostPerImage(payload.credits.costPerImage);
-          setCreditsEnabled(payload.credits.enabled);
-        })
-        .catch(() => undefined);
+      if (user) {
+        getCreditBalance()
+          .then((payload) => {
+            setCreditBalance(payload.balance);
+            setCostPerImage(payload.credits.costPerImage);
+            setCreditsEnabled(payload.credits.enabled);
+          })
+          .catch(() => undefined);
+      } else {
+        await auth.refreshGuestSession().catch(() => undefined);
+      }
     } catch (err) {
       const typed = err as Error & { generation?: Generation };
       setMessage('');
-      setError(typed.message);
+      showGenerationError(err);
       if (typed.generation) setGeneration(typed.generation);
     } finally {
       setIsLoading(false);
@@ -172,6 +189,7 @@ export function GeneratePage() {
   const elapsedLabel = generation ? formatDuration(generationElapsedMs(generation, now)) : '';
   const canShowFormError = !generation || ['pending', 'processing'].includes(generation.status);
   const formError = canShowFormError ? error || pollError : '';
+  const placeholderCount = Math.max(1, generation?.count ?? count);
 
   function restoreFormFromGeneration(restoredGeneration: Generation) {
     setPrompt(restoredGeneration.prompt);
@@ -185,12 +203,28 @@ export function GeneratePage() {
     setGeneration(null);
     setReferenceImages([]);
     setMessage('');
+    setTrialNotice('');
     setError('');
     setPollError('');
     setPrompt('');
     setSize(sizes[0]);
     setQuality(qualities[0]);
     setCount(1);
+  }
+
+  function showGenerationError(errorValue: unknown) {
+    const text = errorValue instanceof Error ? errorValue.message : String(errorValue || '生成失败');
+    if (errorValue instanceof ApiError && errorValue.code === 'TRIAL_IP_LIMIT_EXCEEDED') {
+      setError('');
+      setTrialNotice('当前网络的游客试用创建次数过多，请稍后再试！');
+      return;
+    }
+    if ((errorValue instanceof ApiError && errorValue.code === 'TRIAL_LIMIT_EXCEEDED') || text.includes('图片试用次数已用完')) {
+      setError('');
+      setTrialNotice('图片试用次数已用完，请前往注册页面注册登录使用！');
+      return;
+    }
+    setError(text);
   }
 
   return (
@@ -201,11 +235,21 @@ export function GeneratePage() {
         </div>
         <div className="statusPill">
           <Sparkles size={16} />
-          {creditsEnabled ? `${creditBalance} 积分` : '积分未启用'}
+          {user
+            ? (creditsEnabled ? `${creditBalance} 积分` : '积分未启用')
+            : (auth.guestSession ? `游客剩余 ${auth.guestSession.generationRemaining} 次` : '游客试用')}
         </div>
       </header>
 
+      {!user && (
+        <div className="hintBox trialHintBox">
+          <Sparkles size={16} />
+          <span>游客可试用图片生成，次数用完后请登录或注册继续使用。</span>
+        </div>
+      )}
+
       {message && <div className="toastNotice generationWaitNotice" role="status">{message}</div>}
+      {trialNotice && <div className="toastNotice generationTrialNotice" role="status">{trialNotice}</div>}
 
       <div className="generateGrid">
         <form className="panel formPanel" onSubmit={onSubmit}>
@@ -323,11 +367,21 @@ export function GeneratePage() {
           )}
 
           {generation && ['pending', 'processing'].includes(generation.status) && (
-            <div className="progressBox">
-              <Loader2 className="spin" size={20} />
-              <div>
-                <strong>{generation.status === 'pending' ? '排队中' : '生成中'}</strong>
-                <span>已耗时 {elapsedLabel}</span>
+            <div className="generationProgress" aria-live="polite">
+              <div className="progressBox compact">
+                <Loader2 className="spin" size={20} />
+                <div>
+                  <strong>{generation.status === 'pending' ? '排队中' : '生成中'}</strong>
+                  <span>已耗时 {elapsedLabel}</span>
+                </div>
+              </div>
+              <div className="generationSkeletonGrid" aria-label="图片正在生成中">
+                {Array.from({ length: placeholderCount }).map((_, index) => (
+                  <div className="generationSkeletonTile" key={index}>
+                    <div className="generationSkeletonGlow" />
+                    <div className="generationSkeletonLabel">正在生成图片 {index + 1}</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

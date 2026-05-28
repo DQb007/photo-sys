@@ -59,6 +59,15 @@ const settingsPatchSchema = z.object({
   }).optional(),
   generation: z.object({
     imageConcurrency: z.number().int().min(1).max(20).optional()
+  }).optional(),
+  trial: z.object({
+    enabled: z.boolean().optional(),
+    generationLimit: z.number().int().min(0).max(1000).optional(),
+    chatLimit: z.number().int().min(0).max(1000).optional(),
+    sessionTtlHours: z.number().int().min(1).max(8760).optional(),
+    maxSessionsPerIpPerDay: z.number().int().min(1).max(10000).optional(),
+    allowReferenceImages: z.boolean().optional(),
+    maxImagesPerGeneration: z.number().int().min(1).max(4).optional()
   }).optional()
 });
 

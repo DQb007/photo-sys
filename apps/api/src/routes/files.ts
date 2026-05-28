@@ -1,15 +1,15 @@
 import express from 'express';
 import mime from 'mime-types';
-import { requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
+import { optionalUserOrGuest, type AuthenticatedRequest } from '../authMiddleware.js';
 import { getPool } from '../db.js';
 import { httpError } from '../errors.js';
 import { keyFromFileRoute, resolveStorageKey } from '../storage.js';
 
 const router = express.Router();
 
-router.get('/:folder/:filename', requireUser, async (req: AuthenticatedRequest, res, next) => {
+router.get('/:folder/:filename', optionalUserOrGuest, async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, '请先登录');
+    if (!req.user && !req.guestSession) throw httpError(401, '请先登录或开始游客试用');
     const folder = stringParam(req.params.folder);
     if (folder !== 'uploads' && folder !== 'generated') {
       res.status(404).json({ error: 'File not found' });
@@ -18,7 +18,7 @@ router.get('/:folder/:filename', requireUser, async (req: AuthenticatedRequest, 
 
     const filename = stringParam(req.params.filename);
     const key = keyFromFileRoute(folder, filename);
-    await assertCanAccessFile(key, req.user);
+    await assertCanAccessFile(key, req.user, req.guestSession);
     const absolutePath = resolveStorageKey(key);
     res.type(mime.lookup(absolutePath) || 'application/octet-stream');
     if (req.query.download === '1') {
@@ -30,9 +30,9 @@ router.get('/:folder/:filename', requireUser, async (req: AuthenticatedRequest, 
   }
 });
 
-async function assertCanAccessFile(storageKey: string, user: NonNullable<AuthenticatedRequest['user']>) {
-  const [generatedRows] = await getPool().query<Array<{ user_id: number } & import('mysql2').RowDataPacket>>(
-    `SELECT g.user_id
+async function assertCanAccessFile(storageKey: string, user?: AuthenticatedRequest['user'], guestSession?: AuthenticatedRequest['guestSession']) {
+  const [generatedRows] = await getPool().query<Array<{ user_id: number | null; guest_session_id: number | null } & import('mysql2').RowDataPacket>>(
+    `SELECT g.user_id, g.guest_session_id
      FROM generation_images gi
      INNER JOIN generations g ON g.id = gi.generation_id
      WHERE gi.file_path = ?
@@ -40,14 +40,15 @@ async function assertCanAccessFile(storageKey: string, user: NonNullable<Authent
     [storageKey]
   );
 
-  const generatedOwner = generatedRows[0]?.user_id;
+  const generatedOwner = generatedRows[0];
   if (generatedOwner) {
-    if (user.role === 'admin' || generatedOwner === user.id) return;
+    if (user && (user.role === 'admin' || generatedOwner.user_id === user.id)) return;
+    if (guestSession && generatedOwner.guest_session_id === guestSession.id) return;
     throw httpError(403, '无权访问该文件');
   }
 
-  const [referenceRows] = await getPool().query<Array<{ user_id: number; reference_image_path: string | null } & import('mysql2').RowDataPacket>>(
-    `SELECT user_id, reference_image_path
+  const [referenceRows] = await getPool().query<Array<{ user_id: number | null; guest_session_id: number | null; reference_image_path: string | null } & import('mysql2').RowDataPacket>>(
+    `SELECT user_id, guest_session_id, reference_image_path
      FROM generations
      WHERE reference_image_path IS NOT NULL
        AND reference_image_path LIKE ?
@@ -57,7 +58,8 @@ async function assertCanAccessFile(storageKey: string, user: NonNullable<Authent
 
   for (const row of referenceRows) {
     if (!parseReferenceImagePaths(row.reference_image_path).includes(storageKey)) continue;
-    if (user.role === 'admin' || row.user_id === user.id) return;
+    if (user && (user.role === 'admin' || row.user_id === user.id)) return;
+    if (guestSession && row.guest_session_id === guestSession.id) return;
     throw httpError(403, '无权访问该文件');
   }
 

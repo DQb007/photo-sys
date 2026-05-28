@@ -2,18 +2,62 @@ import type express from 'express';
 import { getUserById } from './users.js';
 import { verifyAuthToken } from './tokens.js';
 import { httpError } from './errors.js';
-import type { UserRow } from './db.js';
+import type { GuestSessionRow, UserRow } from './db.js';
+import { getGuestSessionByToken } from './guestSessions.js';
 
 export interface AuthenticatedRequest extends express.Request {
   user?: UserRow;
+  guestSession?: GuestSessionRow;
+}
+
+export async function optionalUserOrGuest(req: AuthenticatedRequest, _res: express.Response, next: express.NextFunction) {
+  try {
+    const queryToken = req.baseUrl === '/files' && typeof req.query.token === 'string' ? req.query.token : '';
+    const token = bearerToken(req) || queryToken;
+    if (token) {
+      try {
+        const payload = verifyAuthToken(token);
+        const userId = Number(payload.sub);
+        if (!Number.isInteger(userId) || userId < 1) throw httpError(401, '登录状态无效');
+        const user = await getUserById(userId);
+        if (!user) throw httpError(401, '登录状态无效');
+        if (user.status === 'disabled') throw httpError(403, '账号已被禁用');
+        req.user = user;
+        next();
+        return;
+      } catch (error) {
+        const guest = await getGuestSessionByToken(token);
+        if (!guest) {
+          const headerGuestToken = req.get('x-guest-token') || '';
+          const headerGuest = headerGuestToken ? await getGuestSessionByToken(headerGuestToken) : null;
+          if (!headerGuest) throw error;
+          req.guestSession = headerGuest;
+          next();
+          return;
+        }
+        req.guestSession = guest;
+        next();
+        return;
+      }
+    }
+
+    const guestToken = req.get('x-guest-token') || (typeof req.query.guestToken === 'string' ? req.query.guestToken : '');
+    if (guestToken) {
+      const guest = await getGuestSessionByToken(guestToken);
+      if (!guest) throw httpError(401, '游客会话已过期，请刷新后重试', 'GUEST_SESSION_EXPIRED');
+      req.guestSession = guest;
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function requireUser(req: AuthenticatedRequest, _res: express.Response, next: express.NextFunction) {
   try {
-    const header = req.get('authorization') || '';
-    const match = header.match(/^Bearer\s+(.+)$/i);
+    const match = bearerToken(req);
     const queryToken = req.baseUrl === '/files' && typeof req.query.token === 'string' ? req.query.token : '';
-    const token = match?.[1] || queryToken;
+    const token = match || queryToken;
     if (!token) {
       throw httpError(401, '请先登录');
     }
@@ -33,6 +77,12 @@ export async function requireUser(req: AuthenticatedRequest, _res: express.Respo
   } catch (error) {
     next(error);
   }
+}
+
+function bearerToken(req: express.Request) {
+  const header = req.get('authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] || '';
 }
 
 export function requireActiveUser(req: AuthenticatedRequest, _res: express.Response, next: express.NextFunction) {

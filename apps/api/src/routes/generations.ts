@@ -14,7 +14,7 @@ import {
 } from '../storage.js';
 import { serializeGeneration } from '../serializers.js';
 import { enqueueGeneration, getQueueSummary, removeGenerationFromQueue } from '../queue.js';
-import { requireActiveUser, requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
+import { optionalUserOrGuest, requireActiveUser, type AuthenticatedRequest } from '../authMiddleware.js';
 import { httpError } from '../errors.js';
 import { writeAuditLog } from '../audit.js';
 import {
@@ -23,6 +23,7 @@ import {
   refundCancelledGenerationCreditsInConnection
 } from '../credits.js';
 import { getAppSettings, type AppSettings } from '../settingsService.js';
+import { consumeGuestGenerationInConnection } from '../guestSessions.js';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -41,7 +42,7 @@ const upload = multer({
 
 const router = express.Router();
 
-router.use(requireUser);
+router.use(optionalUserOrGuest);
 
 const createGenerationSchema = z.object({
   prompt: z.string().trim().min(1, '请输入提示词').max(8000),
@@ -50,17 +51,33 @@ const createGenerationSchema = z.object({
   count: z.coerce.number().int().min(1).max(4).default(1)
 });
 
-router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (req: AuthenticatedRequest, res, next) => {
+router.post('/', upload.array('referenceImages', 4), async (req: AuthenticatedRequest, res, next) => {
   const uploadedFiles = getUploadedFiles(req.files);
   const newReferenceKeys: string[] = [];
 
   try {
-    if (!req.user) throw httpError(401, '请先登录');
+    if (!req.user && !req.guestSession) throw httpError(401, '请先登录或开始游客试用');
+    if (req.user) {
+      if (req.user.status === 'pending_email_verification') {
+        throw httpError(403, '请先完成邮箱验证', 'EMAIL_VERIFICATION_REQUIRED');
+      }
+      if (req.user.status !== 'active') throw httpError(403, '账号不可用');
+    }
     const parsed = createGenerationSchema.parse(req.body);
     const pool = getPool();
     const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
-    const creditCost = calculateGenerationCreditCost(parsed.count, settings);
-    const resolvedReferenceImages = await resolveReferenceImagePaths(req.user.id, uploadedFiles, newReferenceKeys);
+    const isGuest = !req.user && Boolean(req.guestSession);
+    if (isGuest && !settings.trial.enabled) throw httpError(403, '游客试用暂未开放', 'TRIAL_DISABLED');
+    if (isGuest && uploadedFiles.length > 0 && !settings.trial.allowReferenceImages) {
+      throw httpError(403, '游客试用暂不支持上传参考图', 'TRIAL_REFERENCE_DISABLED');
+    }
+    if (isGuest && parsed.count > settings.trial.maxImagesPerGeneration) {
+      throw httpError(422, `游客单次最多生成 ${settings.trial.maxImagesPerGeneration} 张图片`, 'TRIAL_COUNT_LIMIT');
+    }
+    const creditCost = req.user ? calculateGenerationCreditCost(parsed.count, settings) : 0;
+    const resolvedReferenceImages = req.user
+      ? await resolveReferenceImagePaths(req.user.id, uploadedFiles, newReferenceKeys)
+      : uploadedFiles.map((file) => ({ storageKey: path.relative(config.storageDir, file.path).replaceAll('\\', '/'), isNew: true }));
     const referenceImagePaths = resolvedReferenceImages.map((item) => item.storageKey);
     const referenceImagePath = referenceImagePaths.length ? JSON.stringify(referenceImagePaths) : null;
 
@@ -69,10 +86,11 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
     try {
       await connection.beginTransaction();
       const [result] = await connection.execute(
-        `INSERT INTO generations (user_id, prompt, model, status, size, quality, count, credit_cost, reference_image_path)
-         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
+        `INSERT INTO generations (user_id, guest_session_id, prompt, model, status, size, quality, count, credit_cost, reference_image_path)
+         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
         [
-          req.user.id,
+          req.user?.id || null,
+          req.guestSession?.id || null,
           parsed.prompt,
           config.IMAGE_MODEL,
           emptyToNull(parsed.size),
@@ -83,12 +101,16 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
         ]
       );
       generationId = Number((result as { insertId: number }).insertId);
-      await debitGenerationCreditsInConnection(connection, {
-        userId: req.user.id,
-        generationId,
-        creditCost,
-        count: parsed.count
-      });
+      if (req.user) {
+        await debitGenerationCreditsInConnection(connection, {
+          userId: req.user.id,
+          generationId,
+          creditCost,
+          count: parsed.count
+        });
+      } else if (req.guestSession) {
+        await consumeGuestGenerationInConnection(connection, req.guestSession.id);
+      }
       await connection.commit();
     } catch (error) {
       await connection.rollback();
@@ -103,12 +125,12 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
       action: 'generation.created',
       targetType: 'generation',
       targetId: generationId,
-      targetUserId: req.user.id,
-      metadata: { count: parsed.count, creditCost },
+      targetUserId: req.user?.id || null,
+      metadata: { count: parsed.count, creditCost, guestSessionId: req.guestSession?.id || null },
       req
     });
 
-    const generation = await getGenerationById(generationId, req.user);
+    const generation = await getGenerationById(generationId, req.user, req.guestSession);
     res.status(202).json({ generation: serializeGeneration(generation) });
   } catch (error) {
     if (newReferenceKeys.length) {
@@ -124,20 +146,29 @@ router.post('/', requireActiveUser, upload.array('referenceImages', 4), async (r
 
 router.get('/', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, '请先登录');
     const page = Math.max(Number(req.query.page || 1), 1);
     const pageSize = Math.min(Math.max(Number(req.query.pageSize || 12), 1), 50);
     const status = typeof req.query.status === 'string' ? req.query.status : '';
+    const ownerType = req.query.ownerType === 'guest' || req.query.ownerType === 'user' ? req.query.ownerType : '';
     const offset = (page - 1) * pageSize;
 
     const conditions: string[] = ['deleted_at IS NULL'];
     const params: Array<string | number> = [];
-    if (req.user.role !== 'admin') {
+    if (!req.user && req.guestSession) {
+      conditions.push('guest_session_id = ?');
+      params.push(req.guestSession.id);
+    } else if (!req.user) {
+      throw httpError(401, '请先登录或开始游客试用');
+    } else if (req.user.role !== 'admin') {
       conditions.push('user_id = ?');
       params.push(req.user.id);
     } else if (typeof req.query.userId === 'string' && Number.isInteger(Number(req.query.userId))) {
       conditions.push('user_id = ?');
       params.push(Number(req.query.userId));
+    } else if (ownerType === 'guest') {
+      conditions.push('guest_session_id IS NOT NULL');
+    } else if (ownerType === 'user') {
+      conditions.push('user_id IS NOT NULL');
     }
     if (['pending', 'processing', 'succeeded', 'failed', 'cancelled'].includes(status)) {
       conditions.push('status = ?');
@@ -151,8 +182,12 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
     );
     const total = Number(countRows[0]?.total || 0);
 
-    const [rows] = await getPool().query<GenerationRow[]>(
-      `SELECT * FROM generations ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+    const [rows] = await getPool().query<Array<GenerationRow & { owner_email: string | null }>>(
+      `SELECT g.*, u.email AS owner_email
+       FROM generations g
+       LEFT JOIN users u ON u.id = g.user_id
+       ${where.replaceAll('user_id', 'g.user_id').replaceAll('guest_session_id', 'g.guest_session_id').replaceAll('deleted_at', 'g.deleted_at').replaceAll('status', 'g.status')}
+       ORDER BY g.created_at DESC, g.id DESC LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     );
 
@@ -179,9 +214,13 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
 
 router.get('/meta/summary', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, '请先登录');
-    const where = req.user.role === 'admin' ? 'WHERE deleted_at IS NULL' : 'WHERE user_id = ? AND deleted_at IS NULL';
-    const params = req.user.role === 'admin' ? [] : [req.user.id];
+    if (!req.user && !req.guestSession) throw httpError(401, '请先登录或开始游客试用');
+    const where = req.user?.role === 'admin'
+      ? 'WHERE deleted_at IS NULL'
+      : req.user
+        ? 'WHERE user_id = ? AND deleted_at IS NULL'
+        : 'WHERE guest_session_id = ? AND deleted_at IS NULL';
+    const params = req.user?.role === 'admin' ? [] : [req.user?.id || req.guestSession?.id || 0];
     const [statusRows] = await getPool().query<Array<{ status: string; total: number } & import('mysql2').RowDataPacket>>(
       `SELECT status, COUNT(*) AS total FROM generations ${where} GROUP BY status`,
       params
@@ -202,7 +241,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
       return;
     }
 
-    const generation = await getGenerationById(id, req.user);
+    const generation = await getGenerationById(id, req.user, req.guestSession);
     res.json({ generation: serializeGeneration(generation) });
   } catch (error) {
     next(error);
@@ -218,6 +257,7 @@ router.post('/:id/retry', requireActiveUser, async (req: AuthenticatedRequest, r
     }
 
     const original = await getGenerationById(id, req.user);
+    if (!original.user_id) throw httpError(403, '游客生成任务不支持重试');
     const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
     const creditCost = calculateGenerationCreditCost(original.count, settings);
     const pool = getPool();
@@ -366,7 +406,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
   }
 });
 
-async function getGenerationById(id: number, user?: AuthenticatedRequest['user']) {
+async function getGenerationById(id: number, user?: AuthenticatedRequest['user'], guestSession?: AuthenticatedRequest['guestSession']) {
   const [rows] = await getPool().query<GenerationRow[]>('SELECT * FROM generations WHERE id = ? AND deleted_at IS NULL', [id]);
   const row = rows[0];
   if (!row) {
@@ -374,8 +414,11 @@ async function getGenerationById(id: number, user?: AuthenticatedRequest['user']
     (error as Error & { status?: number }).status = 404;
     throw error;
   }
-  if (!user) throw httpError(401, '请先登录');
-  if (user.role !== 'admin' && row.user_id !== user.id) {
+  if (!user && !guestSession) throw httpError(401, '请先登录或开始游客试用');
+  if (guestSession) {
+    if (row.guest_session_id !== guestSession.id) throw httpError(403, '无权访问该生成记录');
+  }
+  if (user && user.role !== 'admin' && row.user_id !== user.id) {
     throw httpError(403, '无权访问该生成记录');
   }
 

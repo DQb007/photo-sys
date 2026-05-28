@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import { requireActiveUser, requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
+import { optionalUserOrGuest, type AuthenticatedRequest } from '../authMiddleware.js';
 import { getPool } from '../db.js';
 import { httpError } from '../errors.js';
 import { getAppSettings, type AppSettings } from '../settingsService.js';
@@ -12,7 +12,7 @@ import {
 import {
   createChatConversation,
   createChatMessageInConnection,
-  getChatConversationForUser,
+  getChatConversationForOwner,
   getChatMessageById,
   listChatConversations,
   listChatMessages,
@@ -23,10 +23,12 @@ import {
   serializeChatMessage,
   softDeleteChatConversation,
   updateAssistantMessage,
-  updateChatConversationTitle
+  updateChatConversationTitle,
+  type ChatOwner
 } from '../chatConversations.js';
 import { applyCreditTransaction, applyCreditTransactionInConnection, calculateChatMessageCreditCost, serializeCreditTransaction } from '../credits.js';
 import { buildRelayMessages, streamChatCompletion } from '../chatRelay.js';
+import { consumeGuestChatInConnection } from '../guestSessions.js';
 
 const router = express.Router();
 
@@ -50,19 +52,20 @@ const sendMessageSchema = z.object({
   })).max(6).optional().default([])
 });
 
-router.use(requireUser);
+router.use(optionalUserOrGuest);
 
 router.get('/bootstrap', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    const owner = chatOwner(req);
     const [settings, models, conversations] = await Promise.all([
       getAppSettings() as Promise<AppSettings>,
       listActiveChatModels(),
-      listChatConversations(req.user.id)
+      listChatConversations(owner)
     ]);
     const firstConversation = conversations[0] || null;
     const defaultModel = models.find((item) => item.is_default) || models[0] || null;
-    const messages = firstConversation ? await listChatMessagesForKnownConversation(firstConversation.id, req.user.id) : [];
+    const messages = firstConversation ? await listChatMessagesForKnownConversation(firstConversation.id, owner) : [];
     res.json({
       settings: {
         enabled: settings.chat.enabled,
@@ -116,41 +119,44 @@ router.get('/models', async (_req, res, next) => {
 
 router.get('/conversations', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
-    const items = await listChatConversations(req.user.id);
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    const items = await listChatConversations(chatOwner(req));
     res.json({ items: items.map(serializeChatConversation) });
   } catch (error) {
     next(error);
   }
 });
 
-router.post('/conversations', requireActiveUser, async (req: AuthenticatedRequest, res, next) => {
+router.post('/conversations', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    if (req.user) assertActiveUser(req);
     const parsed = conversationCreateSchema.parse(req.body);
-    const item = await createChatConversation(req.user.id, parsed.title || undefined);
+    const item = await createChatConversation(chatOwner(req), parsed.title || undefined);
     res.status(201).json({ item: serializeChatConversation(item) });
   } catch (error) {
     next(error);
   }
 });
 
-router.patch('/conversations/:id', requireActiveUser, async (req: AuthenticatedRequest, res, next) => {
+router.patch('/conversations/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    if (req.user) assertActiveUser(req);
     const id = numericParam(req.params.id, 'Invalid conversation id');
     const parsed = conversationPatchSchema.parse(req.body);
-    const item = await updateChatConversationTitle(id, req.user.id, parsed.title);
+    const item = await updateChatConversationTitle(id, chatOwner(req), parsed.title);
     res.json({ item: serializeChatConversation(item) });
   } catch (error) {
     next(error);
   }
 });
 
-router.delete('/conversations/:id', requireActiveUser, async (req: AuthenticatedRequest, res, next) => {
+router.delete('/conversations/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
-    await softDeleteChatConversation(numericParam(req.params.id, 'Invalid conversation id'), req.user.id);
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    if (req.user) assertActiveUser(req);
+    await softDeleteChatConversation(numericParam(req.params.id, 'Invalid conversation id'), chatOwner(req));
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -159,23 +165,26 @@ router.delete('/conversations/:id', requireActiveUser, async (req: Authenticated
 
 router.get('/conversations/:id/messages', async (req: AuthenticatedRequest, res, next) => {
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
-    const items = await listChatMessages(numericParam(req.params.id, 'Invalid conversation id'), req.user.id);
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    const items = await listChatMessages(numericParam(req.params.id, 'Invalid conversation id'), chatOwner(req));
     res.json({ items: items.map(serializeChatMessage) });
   } catch (error) {
     next(error);
   }
 });
 
-router.post('/conversations/:id/messages/stream', requireActiveUser, async (req: AuthenticatedRequest, res, next) => {
+router.post('/conversations/:id/messages/stream', async (req: AuthenticatedRequest, res, next) => {
   let assistantMessageId: number | null = null;
   let creditCost = 0;
   let refunded = false;
 
   try {
-    if (!req.user) throw httpError(401, 'Please sign in');
+    if (!req.user && !req.guestSession) throw httpError(401, 'Please sign in');
+    if (req.user) assertActiveUser(req);
+    const owner = chatOwner(req);
     const conversationId = numericParam(req.params.id, 'Invalid conversation id');
     const settings = await getAppSettings({ includeSecrets: true, fresh: true }) as AppSettings;
+    if (req.guestSession && !settings.trial.enabled) throw httpError(403, '游客试用暂未开放', 'TRIAL_DISABLED');
     if (!settings.chat.enabled) throw httpError(409, 'AI chat is disabled', 'CHAT_DISABLED');
 
     const parsed = sendMessageSchema.parse(req.body);
@@ -183,9 +192,9 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
       throw httpError(400, 'Chat message is too long');
     }
 
-    await getChatConversationForUser(conversationId, req.user.id);
+    await getChatConversationForOwner(conversationId, owner);
     const model = await getActiveChatModelWithSecret(parsed.chatModelId);
-    creditCost = calculateChatMessageCreditCost(settings);
+    creditCost = req.user ? calculateChatMessageCreditCost(settings) : 0;
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
@@ -203,7 +212,8 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
       await connection.beginTransaction();
       userMessage = await createChatMessageInConnection(connection, {
         conversationId,
-        userId: req.user.id,
+        userId: req.user?.id || null,
+        guestSessionId: req.guestSession?.id || null,
         role: 'user',
         content: parsed.content,
         chatModelId: model.id,
@@ -212,7 +222,7 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
         creditCost,
         metadata: parsed.attachments.length ? { attachments: parsed.attachments } : null
       });
-      if (creditCost > 0) {
+      if (req.user && creditCost > 0) {
         const debit = await applyCreditTransactionInConnection(connection, {
           userId: req.user.id,
           type: 'chat_message_debit',
@@ -229,7 +239,8 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
       }
       assistantMessage = await createChatMessageInConnection(connection, {
         conversationId,
-        userId: req.user.id,
+        userId: req.user?.id || null,
+        guestSessionId: req.guestSession?.id || null,
         role: 'assistant',
         content: '',
         status: 'streaming',
@@ -239,6 +250,9 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
         creditCost,
         creditTransactionId: debitTransactionId
       });
+      if (req.guestSession) {
+        await consumeGuestChatInConnection(connection, req.guestSession.id);
+      }
       assistantMessageId = assistantMessage.id;
       await connection.commit();
     } catch (error) {
@@ -258,7 +272,7 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
     let content = '';
 
     try {
-      const history = await listCompletedHistoryMessages(conversationId, req.user.id, settings.chat.maxHistoryMessages);
+      const history = await listCompletedHistoryMessages(conversationId, owner, settings.chat.maxHistoryMessages);
       const relayMessages = buildRelayMessages({
         systemPrompt: settings.chat.systemPrompt,
         history,
@@ -279,7 +293,7 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
         status: 'completed',
         errorMessage: null
       });
-      const conversation = await getChatConversationForUser(conversationId, req.user.id);
+      const conversation = await getChatConversationForOwner(conversationId, owner);
       sendEvent(res, 'completed', {
         assistantMessage: serializeChatMessage(updated),
         conversation: serializeChatConversation(conversation)
@@ -292,7 +306,7 @@ router.post('/conversations/:id/messages/stream', requireActiveUser, async (req:
         status: abortController.signal.aborted ? 'cancelled' : 'failed',
         errorMessage: message
       });
-      const refund = await refundChatMessageIfNeeded(assistantMessage.id, req.user.id, creditCost);
+      const refund = req.user ? await refundChatMessageIfNeeded(assistantMessage.id, req.user.id, creditCost) : null;
       refunded = Boolean(refund);
       sendEvent(res, 'failed', {
         error: message,
@@ -344,6 +358,20 @@ function numericParam(value: string | string[], message: string) {
   const id = Number(raw);
   if (!Number.isInteger(id) || id < 1) throw httpError(400, message);
   return id;
+}
+
+function chatOwner(req: AuthenticatedRequest): ChatOwner {
+  if (req.user) return { userId: req.user.id };
+  if (req.guestSession) return { guestSessionId: req.guestSession.id };
+  throw httpError(401, 'Please sign in');
+}
+
+function assertActiveUser(req: AuthenticatedRequest) {
+  if (!req.user) return;
+  if (req.user.status === 'pending_email_verification') {
+    throw httpError(403, '请先完成邮箱验证', 'EMAIL_VERIFICATION_REQUIRED');
+  }
+  if (req.user.status !== 'active') throw httpError(403, '账号不可用');
 }
 
 export { router as chatRouter };

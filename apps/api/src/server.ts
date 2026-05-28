@@ -15,6 +15,7 @@ import { adminPromptTemplatesRouter } from './routes/adminPromptTemplates.js';
 import { chatRouter } from './routes/chat.js';
 import { adminChatModelsRouter } from './routes/adminChatModels.js';
 import { adminChatSettingsRouter } from './routes/adminChatSettings.js';
+import { guestRouter } from './routes/guest.js';
 import { startGenerationWorker } from './queue.js';
 import { ensureStorageDirs } from './storage.js';
 import { ensureAdminSeed } from './users.js';
@@ -32,6 +33,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/generations', generationsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/guest', guestRouter);
 app.use('/api/credits', creditsRouter);
 app.use('/api/redeem-codes', redeemCodesRouter);
 app.use('/api/prompt-templates', promptTemplatesRouter);

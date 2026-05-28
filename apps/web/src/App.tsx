@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Activity, BookOpen, Bot, Clock3, Images, ImagePlus, LogOut, Menu, MessageSquare, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Activity, BookOpen, Bot, Clock3, Images, ImagePlus, LogIn, LogOut, Menu, MessageSquare, Palette, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { GeneratePage } from './pages/GeneratePage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -19,7 +19,7 @@ import { PromptLibraryPage } from './pages/PromptLibraryPage';
 import { AdminPromptTemplatesPage } from './pages/AdminPromptTemplatesPage';
 import { ChatPage } from './pages/ChatPage';
 import { AdminChatPage } from './pages/AdminChatPage';
-import { ThemeProvider } from './theme';
+import { ThemeProvider, useTheme } from './theme';
 
 const appName = '炫步 AI';
 const brandIconSrc = '/brand-icon.png';
@@ -42,6 +42,7 @@ export function App() {
 function ProtectedShell() {
   const auth = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isChatRoute = location.pathname === '/chat';
 
@@ -53,11 +54,8 @@ function ProtectedShell() {
     return <div className="appLoadingPage"><div className="panel appLoadingPanel">加载中...</div></div>;
   }
 
-  if (!auth.user) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
-  const isAdmin = auth.user.role === 'admin';
+  const isAdmin = auth.user?.role === 'admin';
+  const accountLabel = auth.user?.email || '游客试用中';
 
   return (
     <div className="shell">
@@ -69,7 +67,7 @@ function ProtectedShell() {
           <img className="mobileBrandIcon" src={brandIconSrc} alt="" />
           <div>
             <strong>{appName}</strong>
-            <span>{auth.user.email}</span>
+            <span>{accountLabel}</span>
           </div>
         </div>
         {isChatRoute && (
@@ -97,8 +95,9 @@ function ProtectedShell() {
           </div>
           <div>
             <strong>{appName}</strong>
-            <span>{auth.user.email}</span>
+            <span>{accountLabel}</span>
           </div>
+          {!auth.user && <SidebarThemeSwitch />}
           <button className="iconButton sidebarClose" type="button" onClick={() => setIsSidebarOpen(false)} aria-label="关闭菜单">
             <X size={18} />
           </button>
@@ -123,10 +122,12 @@ function ProtectedShell() {
                 <MessageSquare size={18} />
                 AI 对话
               </NavLink>
-              <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
-                <Settings size={18} />
-                账号设置
-              </NavLink>
+              {auth.user && (
+                <NavLink to="/settings" onClick={() => setIsSidebarOpen(false)}>
+                  <Settings size={18} />
+                  账号设置
+                </NavLink>
+              )}
             </>
           )}
           {isAdmin && (
@@ -175,13 +176,20 @@ function ProtectedShell() {
           )}
         </nav>
 
-        <button className="navButton logoutButton" onClick={() => {
-          setIsSidebarOpen(false);
-          void auth.signOut();
-        }}>
-          <LogOut size={18} />
-          退出
-        </button>
+        {auth.user ? (
+          <button className="navButton logoutButton" onClick={() => {
+            setIsSidebarOpen(false);
+            void auth.signOut().finally(() => navigate('/generate', { replace: true }));
+          }}>
+            <LogOut size={18} />
+            退出
+          </button>
+        ) : (
+          <NavLink className="navButton logoutButton" to="/login" onClick={() => setIsSidebarOpen(false)}>
+            <LogIn size={18} />
+            登录 / 注册
+          </NavLink>
+        )}
       </aside>
 
       <main className={isChatRoute ? 'main chatMain' : 'main'}>
@@ -191,7 +199,7 @@ function ProtectedShell() {
           <Route path="/history" element={<UserOnly><HistoryPage /></UserOnly>} />
           <Route path="/prompts" element={<UserOnly><PromptLibraryPage /></UserOnly>} />
           <Route path="/chat" element={<ChatPage />} />
-          <Route path="/settings" element={<UserOnly><SettingsPage /></UserOnly>} />
+          <Route path="/settings" element={<AccountOnly><SettingsPage /></AccountOnly>} />
           <Route path="/admin/overview" element={<AdminOnly><AdminOverviewPage /></AdminOnly>} />
           <Route path="/admin/status" element={<AdminOnly><AdminStatusPage /></AdminOnly>} />
           <Route path="/admin/generations" element={<AdminOnly><HistoryPage mode="admin" /></AdminOnly>} />
@@ -212,6 +220,25 @@ function UserOnly({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   if (user?.role === 'admin') {
     return <Navigate to="/admin/overview" replace />;
+  }
+  return children;
+}
+
+function SidebarThemeSwitch() {
+  const { theme, setTheme, themeLabels } = useTheme();
+  const nextTheme = theme === 'studio' ? 'ink' : 'studio';
+  return (
+    <button className="sidebarThemeSwitch" type="button" onClick={() => setTheme(nextTheme)} title={`切换到${themeLabels[nextTheme]}`} aria-label={`切换到${themeLabels[nextTheme]}`}>
+      <Palette size={18} />
+    </button>
+  );
+}
+
+function AccountOnly({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
   return children;
 }
