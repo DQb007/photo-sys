@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Check, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
 import {
@@ -126,7 +127,9 @@ export function PromptLibraryPage() {
     try {
       await recordPromptTemplateUse(activeTemplate.id);
       sessionStorage.setItem('reusePrompt', renderedPrompt);
-      navigate('/generate');
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      flushSync(() => setActiveTemplate(null));
+      window.requestAnimationFrame(() => navigate('/generate'));
     } catch (err) {
       setError(err instanceof Error ? err.message : '使用提示词失败');
       setIsUsing(false);

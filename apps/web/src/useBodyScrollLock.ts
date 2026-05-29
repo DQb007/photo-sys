@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 
 const lockedClassName = 'modalBodyLocked';
 let lockCount = 0;
 
 export function useBodyScrollLock(isLocked: boolean) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isLocked) return;
 
     lockCount += 1;
