@@ -2,15 +2,17 @@ import express from 'express';
 import multer from 'multer';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import type { ResultSetHeader } from 'mysql2/promise';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { getPool, type GenerationImageRow, type GenerationRow } from '../db.js';
 import {
   deleteStoredFile,
-  getUploadsDir,
+  discardUploadedTempFile,
+  getTempUploadsDir,
   makeUploadFilename,
+  saveUploadedTempFile,
+  uploadedStorageKey,
 } from '../storage.js';
 import { serializeGeneration } from '../serializers.js';
 import { enqueueGeneration, getQueueSummary, removeGenerationFromQueue } from '../queue.js';
@@ -27,7 +29,7 @@ import { consumeGuestGenerationInConnection } from '../guestSessions.js';
 
 const upload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, getUploadsDir()),
+    destination: (_req, _file, cb) => cb(null, getTempUploadsDir()),
     filename: (_req, file, cb) => cb(null, makeUploadFilename(file.originalname))
   }),
   limits: { fileSize: config.maxUploadBytes },
@@ -77,7 +79,7 @@ router.post('/', upload.array('referenceImages', 4), async (req: AuthenticatedRe
     const creditCost = req.user ? calculateGenerationCreditCost(parsed.count, settings) : 0;
     const resolvedReferenceImages = req.user
       ? await resolveReferenceImagePaths(req.user.id, uploadedFiles, newReferenceKeys)
-      : uploadedFiles.map((file) => ({ storageKey: path.relative(config.storageDir, file.path).replaceAll('\\', '/'), isNew: true }));
+      : await saveGuestReferenceImagePaths(uploadedFiles, newReferenceKeys);
     const referenceImagePaths = resolvedReferenceImages.map((item) => item.storageKey);
     const referenceImagePath = referenceImagePaths.length ? JSON.stringify(referenceImagePaths) : null;
 
@@ -137,8 +139,10 @@ router.post('/', upload.array('referenceImages', 4), async (req: AuthenticatedRe
       await Promise.all(newReferenceKeys.map((key) => removeReferenceUpload(key)));
     }
     await Promise.all(uploadedFiles.map((file) => {
-      const key = path.relative(config.storageDir, file.path).replaceAll('\\', '/');
-      return deleteStoredFile(key).catch(() => undefined);
+      return Promise.all([
+        deleteStoredFile(uploadedStorageKey(file.filename)).catch(() => undefined),
+        discardUploadedTempFile(file)
+      ]);
     }));
     next(error);
   }
@@ -461,7 +465,7 @@ async function resolveReferenceImagePaths(userId: number, files: Express.Multer.
 
 async function resolveReferenceImagePath(userId: number, file: Express.Multer.File) {
   const hash = await sha256File(file.path);
-  const storageKey = path.relative(config.storageDir, file.path).replaceAll('\\', '/');
+  const storageKey = uploadedStorageKey(file.filename);
   const pool = getPool();
 
   const [existingRows] = await pool.query<Array<{ storage_key: string } & import('mysql2').RowDataPacket>>(
@@ -470,9 +474,11 @@ async function resolveReferenceImagePath(userId: number, file: Express.Multer.Fi
   );
   const existingKey = existingRows[0]?.storage_key;
   if (existingKey) {
-    await deleteStoredFile(storageKey).catch(() => undefined);
+    await discardUploadedTempFile(file);
     return { storageKey: existingKey, isNew: false };
   }
+
+  await saveUploadedTempFile(file);
 
   const [insertResult] = await pool.execute<ResultSetHeader>(
     `INSERT IGNORE INTO reference_uploads (user_id, content_sha256, storage_key, mime_type, byte_size, original_name)
@@ -491,6 +497,16 @@ async function resolveReferenceImagePath(userId: number, file: Express.Multer.Fi
     }
   }
   return { storageKey, isNew: true };
+}
+
+async function saveGuestReferenceImagePaths(files: Express.Multer.File[], newReferenceKeys: string[]) {
+  const paths: Array<{ storageKey: string; isNew: boolean }> = [];
+  for (const file of files) {
+    const storageKey = await saveUploadedTempFile(file);
+    newReferenceKeys.push(storageKey);
+    paths.push({ storageKey, isNew: true });
+  }
+  return paths;
 }
 
 async function removeReferenceUpload(storageKey: string) {

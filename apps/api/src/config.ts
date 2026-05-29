@@ -7,6 +7,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
+const booleanEnv = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+  const normalized = value.trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off', ''].includes(normalized)) return false;
+  return value;
+}, z.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.string().default('development'),
   PORT: z.coerce.number().default(3001),
@@ -19,7 +27,16 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   REDIS_PASSWORD: z.string().optional(),
+  STORAGE_DRIVER: z.enum(['local', 'minio']).default('local'),
   STORAGE_DIR: z.string().default('./storage'),
+  MINIO_ENDPOINT: z.string().optional(),
+  MINIO_PORT: z.coerce.number().default(9000),
+  MINIO_USE_SSL: booleanEnv.default(false),
+  MINIO_ACCESS_KEY: z.string().optional(),
+  MINIO_SECRET_KEY: z.string().optional(),
+  MINIO_BUCKET: z.string().default('photo-sys'),
+  MINIO_AUTO_CREATE_BUCKET: booleanEnv.default(false),
+  MINIO_FALLBACK_TO_LOCAL: booleanEnv.default(false),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
   REQUEST_TIMEOUT_MS: z.coerce.number().default(300000),
   JWT_SECRET: z.string().optional(),
@@ -31,10 +48,11 @@ const envSchema = z.object({
 });
 
 const parsed = envSchema.parse(process.env);
+const storageBaseDir = process.env.INIT_CWD || process.cwd();
 
 export const config = {
   ...parsed,
-  storageDir: path.resolve(process.cwd(), parsed.STORAGE_DIR),
+  storageDir: path.resolve(storageBaseDir, parsed.STORAGE_DIR),
   maxUploadBytes: parsed.MAX_UPLOAD_MB * 1024 * 1024
 };
 
@@ -45,6 +63,11 @@ export function getMissingConfig() {
   if (!config.DATABASE_URL) missing.push('DATABASE_URL');
   if (!config.REDIS_URL) missing.push('REDIS_URL');
   if (!config.JWT_SECRET) missing.push('JWT_SECRET');
+  if (config.STORAGE_DRIVER === 'minio') {
+    if (!config.MINIO_ENDPOINT) missing.push('MINIO_ENDPOINT');
+    if (!config.MINIO_ACCESS_KEY) missing.push('MINIO_ACCESS_KEY');
+    if (!config.MINIO_SECRET_KEY) missing.push('MINIO_SECRET_KEY');
+  }
   if (config.NODE_ENV === 'production' && !config.SETTINGS_ENCRYPTION_KEY) {
     missing.push('SETTINGS_ENCRYPTION_KEY');
   }

@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2, XCircle } from 'lucide-react';
-import { ApiError, cancelGeneration, createGeneration, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
+import { ApiError, cancelGeneration, createGeneration, downloadFilename, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
 import { useAuth } from '../auth';
 import { SelectField } from '../SelectField';
 import { formatDuration, generationElapsedMs } from '../time';
@@ -51,7 +51,6 @@ export function GeneratePage() {
       setPrompt(reusePrompt);
       sessionStorage.removeItem('reusePrompt');
     }
-
     const activeGenerationId = Number(sessionStorage.getItem(activeGenerationKey));
     if (Number.isInteger(activeGenerationId) && activeGenerationId > 0) {
       getGeneration(activeGenerationId)
@@ -404,7 +403,7 @@ export function GeneratePage() {
             {generation?.images.map((image) => (
               <figure className="imageTile" key={image.id}>
                 <img src={image.url} alt={`生成图 ${image.id}`} />
-                <a href={downloadUrl(image.url)}>
+                <a href={downloadUrl(image.url)} download={downloadFilename(image.url)}>
                   <Download size={16} />
                   下载
                 </a>

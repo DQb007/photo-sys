@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
 import {
   favoritePromptTemplate,
@@ -15,6 +16,7 @@ type PromptScope = 'all' | 'favorites';
 const pageSize = 12;
 
 export function PromptLibraryPage() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<PromptTemplate[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [scope, setScope] = useState<PromptScope>('all');
@@ -124,10 +126,9 @@ export function PromptLibraryPage() {
     try {
       await recordPromptTemplateUse(activeTemplate.id);
       sessionStorage.setItem('reusePrompt', renderedPrompt);
-      window.location.href = '/generate';
+      navigate('/generate');
     } catch (err) {
       setError(err instanceof Error ? err.message : '使用提示词失败');
-    } finally {
       setIsUsing(false);
     }
   }

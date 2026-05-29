@@ -5,7 +5,7 @@ import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
-import { deleteGeneration, downloadUrl, getAdminUserGenerations, type Generation, type User } from '../api';
+import { deleteGeneration, downloadFilename, downloadUrl, getAdminUserGenerations, type Generation, type User } from '../api';
 import { useBodyScrollLock } from '../useBodyScrollLock';
 
 export function AdminUserGenerationsPage() {
@@ -66,7 +66,7 @@ export function AdminUserGenerationsPage() {
                     onClick={() => setPreview({ item, index })}
                     aria-label={`查看第 ${index + 1} 张图片`}
                   >
-                    <img src={image.url} alt={`${item.prompt} - ${index + 1}`} />
+                    <img src={image.url} alt={`${item.prompt} - ${index + 1}`} loading="lazy" decoding="async" />
                   </button>
                 ))
               ) : (
@@ -86,7 +86,7 @@ export function AdminUserGenerationsPage() {
               </dl>
               <div className="cardActions">
                 {item.images[0] && (
-                  <a className="ghostButton" href={downloadUrl(item.images[0].url)}>
+                  <a className="ghostButton" href={downloadUrl(item.images[0].url)} download={downloadFilename(item.images[0].url)}>
                     <Download size={15} />
                     下载
                   </a>
@@ -108,7 +108,7 @@ export function AdminUserGenerationsPage() {
           slides={preview.item.images.map((image, index) => ({
             src: image.url,
             alt: `${preview.item.prompt} - ${index + 1}`,
-            download: downloadUrl(image.url)
+            download: { url: downloadUrl(image.url), filename: downloadFilename(image.url) }
           }))}
           plugins={[Zoom, DownloadPlugin]}
           carousel={{ finite: true }}

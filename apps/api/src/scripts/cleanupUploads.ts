@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getPool } from '../db.js';
-import { getUploadsDir } from '../storage.js';
+import { deleteStoredFile, getUploadsDir } from '../storage.js';
 import { config } from '../config.js';
 
 interface CleanupCandidate {
@@ -14,6 +14,10 @@ const shouldApply = process.argv.includes('--apply');
 const shouldVerbose = process.argv.includes('--verbose');
 
 async function main() {
+  if (config.STORAGE_DRIVER !== 'local') {
+    throw new Error('cleanup:uploads only scans local STORAGE_DIR. Set STORAGE_DRIVER=local before running it.');
+  }
+
   const uploadsDir = getUploadsDir();
   await fs.mkdir(uploadsDir, { recursive: true });
 
@@ -41,7 +45,7 @@ async function main() {
   }
 
   for (const candidate of candidates) {
-    await fs.rm(candidate.absolutePath, { force: true });
+    await deleteStoredFile(candidate.storageKey);
   }
 
   console.log(`Deleted ${candidates.length} upload files (${formatBytes(totalBytes)}).`);

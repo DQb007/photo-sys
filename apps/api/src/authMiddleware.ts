@@ -4,6 +4,7 @@ import { verifyAuthToken } from './tokens.js';
 import { httpError } from './errors.js';
 import type { GuestSessionRow, UserRow } from './db.js';
 import { getGuestSessionByToken } from './guestSessions.js';
+import { getAuthCookie } from './authCookies.js';
 
 export interface AuthenticatedRequest extends express.Request {
   user?: UserRow;
@@ -13,7 +14,9 @@ export interface AuthenticatedRequest extends express.Request {
 export async function optionalUserOrGuest(req: AuthenticatedRequest, _res: express.Response, next: express.NextFunction) {
   try {
     const queryToken = req.baseUrl === '/files' && typeof req.query.token === 'string' ? req.query.token : '';
-    const token = bearerToken(req) || queryToken;
+    const bearer = bearerToken(req);
+    const cookieToken = getAuthCookie(req);
+    const token = bearer || cookieToken || queryToken;
     if (token) {
       try {
         const payload = verifyAuthToken(token);
@@ -26,6 +29,18 @@ export async function optionalUserOrGuest(req: AuthenticatedRequest, _res: expre
         next();
         return;
       } catch (error) {
+        if (!bearer && cookieToken && !queryToken) {
+          const headerGuestToken = req.get('x-guest-token') || '';
+          const queryGuestToken = typeof req.query.guestToken === 'string' ? req.query.guestToken : '';
+          const fallbackGuestToken = headerGuestToken || queryGuestToken;
+          if (fallbackGuestToken) {
+            const fallbackGuest = await getGuestSessionByToken(fallbackGuestToken);
+            if (!fallbackGuest) throw httpError(401, '游客会话已过期，请刷新后重试', 'GUEST_SESSION_EXPIRED');
+            req.guestSession = fallbackGuest;
+            next();
+            return;
+          }
+        }
         const guest = await getGuestSessionByToken(token);
         if (!guest) {
           const headerGuestToken = req.get('x-guest-token') || '';
@@ -57,7 +72,7 @@ export async function requireUser(req: AuthenticatedRequest, _res: express.Respo
   try {
     const match = bearerToken(req);
     const queryToken = req.baseUrl === '/files' && typeof req.query.token === 'string' ? req.query.token : '';
-    const token = match || queryToken;
+    const token = match || getAuthCookie(req) || queryToken;
     if (!token) {
       throw httpError(401, '请先登录');
     }

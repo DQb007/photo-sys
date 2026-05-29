@@ -1,8 +1,7 @@
-import fs from 'node:fs/promises';
 import { refundGenerationCreditsIfNeeded } from './credits.js';
 import { getPool, type GenerationRow } from './db.js';
 import { generateImages } from './relay.js';
-import { resolveStorageKey, saveGeneratedImage } from './storage.js';
+import { readStoredFile, saveGeneratedImage } from './storage.js';
 
 export async function processGeneration(generationId: number) {
   const pool = getPool();
@@ -22,9 +21,8 @@ export async function processGeneration(generationId: number) {
     const generation = await getGeneration(generationId);
     const referenceImages = await Promise.all(
       parseReferenceImagePaths(generation.reference_image_path).map(async (storageKey) => {
-        const absolutePath = resolveStorageKey(storageKey);
         return {
-          buffer: await fs.readFile(absolutePath),
+          buffer: await readStoredFile(storageKey),
           mimeType: mimeTypeFromPath(storageKey),
           filename: storageKey.split('/').pop() || 'reference.png'
         };
