@@ -9,6 +9,7 @@ import { createAuthToken, createOpaqueToken, hashOpaqueToken } from '../tokens.j
 import { createUser, getUserByEmail, getUserById, normalizeEmail, serializeUser } from '../users.js';
 import { writeAuditLog } from '../audit.js';
 import { requireUser, type AuthenticatedRequest } from '../authMiddleware.js';
+import { clearAuthCookie, setAuthCookie } from '../authCookies.js';
 
 const router = express.Router();
 
@@ -84,11 +85,14 @@ router.post('/register', async (req, res, next) => {
       await createAndSendVerification(user.id, user.email, settings);
     }
 
+    const token = verificationRequired ? undefined : createAuthToken({ sub: String(user.id), email: user.email, role: user.role });
+    if (token) setAuthCookie(res, token);
+
     res.status(201).json({
       ok: true,
       verificationRequired,
       user: verificationRequired ? undefined : serializeUser(user),
-      token: verificationRequired ? undefined : createAuthToken({ sub: String(user.id), email: user.email, role: user.role })
+      token
     });
   } catch (error) {
     next(error);
@@ -131,8 +135,11 @@ router.post('/login', async (req, res, next) => {
       req
     });
 
+    const token = createAuthToken({ sub: String(user.id), email: user.email, role: user.role });
+    setAuthCookie(res, token);
+
     res.json({
-      token: createAuthToken({ sub: String(user.id), email: user.email, role: user.role }),
+      token,
       user: serializeUser(refreshed || user)
     });
   } catch (error) {
@@ -223,6 +230,7 @@ router.post('/logout', requireUser, async (req: AuthenticatedRequest, res, next)
       targetUserId: req.user?.id || null,
       req
     });
+    clearAuthCookie(res);
     res.json({ ok: true });
   } catch (error) {
     next(error);

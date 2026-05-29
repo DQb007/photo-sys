@@ -66,6 +66,8 @@ New API environment variables:
 - `MINIO_ACCESS_KEY`
 - `MINIO_SECRET_KEY`
 - `MINIO_BUCKET`, default `photo-sys`
+- `MINIO_AUTO_CREATE_BUCKET`, default `false`
+- `MINIO_FALLBACK_TO_LOCAL`, default `false`, for temporary migration fallback only
 
 MinIO variables are required only when `STORAGE_DRIVER=minio` or when running the migration script.
 

@@ -483,6 +483,11 @@ export function downloadUrl(url: string) {
   return `${url}${separator}download=1`;
 }
 
+export function downloadFilename(url: string) {
+  const pathname = new URL(url, window.location.origin).pathname;
+  return decodeURIComponent(pathname.split('/').filter(Boolean).pop() || 'image.png');
+}
+
 export async function getSettingsStatus() {
   return request<SettingsStatus>('/settings/status');
 }
@@ -880,6 +885,7 @@ export async function testAdminChatModel(id: number) {
 async function request<T = unknown>(path: string, init: RequestInit = {}, includeAuth = true): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: 'include',
     headers: {
       ...authHeaders(includeAuth),
       ...(init.headers || {})
@@ -931,14 +937,11 @@ function withFileTokens(generation: Generation): Generation {
 }
 
 function appendToken(url: string) {
-  const token = getAuthToken();
   const guestToken = getGuestToken();
   if (url.includes('token=') || url.includes('guestToken=')) return url;
-  if (!token && !guestToken) return url;
+  if (getAuthToken() || !guestToken) return url;
   const separator = url.includes('?') ? '&' : '?';
-  return token
-    ? `${url}${separator}token=${encodeURIComponent(token)}`
-    : `${url}${separator}guestToken=${encodeURIComponent(guestToken || '')}`;
+  return `${url}${separator}guestToken=${encodeURIComponent(guestToken)}`;
 }
 
 function parseSseFrame(frame: string): ChatStreamEvent | null {

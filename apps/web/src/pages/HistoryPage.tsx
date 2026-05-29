@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, CopyPlus, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
@@ -7,6 +7,7 @@ import 'yet-another-react-lightbox/styles.css';
 import {
   ApiError,
   deleteGeneration,
+  downloadFilename,
   downloadUrl,
   getGenerationSummary,
   listGenerationsWithFilter,
@@ -38,6 +39,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [trialNotice, setTrialNotice] = useState('');
   const [preview, setPreview] = useState<{ url: string; prompt: string } | null>(null);
   const [now, setNow] = useState(Date.now());
+  const hasLoadedOnceRef = useRef(false);
 
   useBodyScrollLock(Boolean(deleteTarget || detailTarget || promptTarget || preview));
 
@@ -47,6 +49,9 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
     try {
       if (mode !== 'admin' && !auth.user) await auth.ensureGuestSession();
       const data = await listGenerationsWithFilter(nextPage, nextStatus, undefined, mode === 'admin' ? nextOwner : '');
+      if (hasLoadedOnceRef.current) {
+        await preloadHistoryImages(data.items);
+      }
       setItems(data.items);
       setPage(data.page);
       setTotal(data.total);
@@ -57,6 +62,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       showHistoryError(err);
     } finally {
       setIsLoading(false);
+      hasLoadedOnceRef.current = true;
       setHasLoadedOnce(true);
     }
   }, [auth, mode, ownerFilter, page, statusFilter]);
@@ -188,7 +194,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                     setPreview({ url: item.images[0].url, prompt: item.prompt });
                   }}
                 >
-                  <img src={item.images[0].url} alt="历史生成图" />
+                  <img src={item.images[0].url} alt="历史生成图" loading="lazy" decoding="async" />
                 </button>
               ) : (
                 <div className="thumbFallback">{item.status}</div>
@@ -299,7 +305,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               {detailTarget.referenceImageUrls.length ? (
                 <div className="detailReferenceGrid">
                   {detailTarget.referenceImageUrls.map((url, index) => (
-                    <img src={url} alt={`参考图 ${index + 1}`} key={url} />
+                    <img src={url} alt={`参考图 ${index + 1}`} key={url} loading="lazy" decoding="async" />
                   ))}
                 </div>
               ) : (
@@ -349,7 +355,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         <Lightbox
           open
           close={() => setPreview(null)}
-          slides={[{ src: preview.url, alt: preview.prompt, download: downloadUrl(preview.url) }]}
+          slides={[{ src: preview.url, alt: preview.prompt, download: { url: downloadUrl(preview.url), filename: downloadFilename(preview.url) } }]}
           plugins={[Zoom, DownloadPlugin]}
           carousel={{ finite: true }}
           controller={{ closeOnBackdropClick: true }}
@@ -367,6 +373,30 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       )}
     </div>
   );
+}
+
+async function preloadHistoryImages(items: Generation[]) {
+  const urls = items.map((item) => item.images[0]?.url).filter((url): url is string => Boolean(url));
+  await Promise.race([
+    Promise.all(urls.map((url) => preloadImage(url).catch(() => undefined))),
+    delay(350)
+  ]);
+}
+
+function preloadImage(url: string) {
+  return new Promise<void>((resolve, reject) => {
+    const image = new Image();
+    image.onload = async () => {
+      await image.decode?.().catch(() => undefined);
+      resolve();
+    };
+    image.onerror = reject;
+    image.src = url;
+  });
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 }
 
 function generationStatusLabel(status: Generation['status']) {

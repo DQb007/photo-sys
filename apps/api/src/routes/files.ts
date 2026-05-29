@@ -1,9 +1,8 @@
 import express from 'express';
-import mime from 'mime-types';
 import { optionalUserOrGuest, type AuthenticatedRequest } from '../authMiddleware.js';
 import { getPool } from '../db.js';
 import { httpError } from '../errors.js';
-import { keyFromFileRoute, resolveStorageKey } from '../storage.js';
+import { keyFromFileRoute, sendStoredFile } from '../storage.js';
 
 const router = express.Router();
 
@@ -19,12 +18,7 @@ router.get('/:folder/:filename', optionalUserOrGuest, async (req: AuthenticatedR
     const filename = stringParam(req.params.filename);
     const key = keyFromFileRoute(folder, filename);
     await assertCanAccessFile(key, req.user, req.guestSession);
-    const absolutePath = resolveStorageKey(key);
-    res.type(mime.lookup(absolutePath) || 'application/octet-stream');
-    if (req.query.download === '1') {
-      res.attachment(filename);
-    }
-    res.sendFile(absolutePath);
+    await sendStoredFile(key, req, res, { downloadName: req.query.download === '1' ? filename : undefined });
   } catch (error) {
     next(error);
   }

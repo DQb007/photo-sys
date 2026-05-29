@@ -14,6 +14,8 @@ router.get('/status', async (_req, res) => {
     model: config.IMAGE_MODEL,
     configured: missing.length === 0,
     missing,
+    storageDriver: config.STORAGE_DRIVER,
+    minioBucket: config.STORAGE_DRIVER === 'minio' ? config.MINIO_BUCKET : null,
     storageDir: config.storageDir
   });
 });
