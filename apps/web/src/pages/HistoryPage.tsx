@@ -40,27 +40,32 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [preview, setPreview] = useState<{ url: string; prompt: string } | null>(null);
   const [now, setNow] = useState(Date.now());
   const hasLoadedOnceRef = useRef(false);
+  const loadRequestRef = useRef(0);
 
   useBodyScrollLock(Boolean(deleteTarget || detailTarget || promptTarget || preview));
 
   const load = useCallback(async (nextPage = page, nextStatus = statusFilter, nextOwner = ownerFilter) => {
+    const requestId = ++loadRequestRef.current;
     setIsLoading(true);
     setError('');
     try {
       if (mode !== 'admin' && !auth.user) await auth.ensureGuestSession();
       const data = await listGenerationsWithFilter(nextPage, nextStatus, undefined, mode === 'admin' ? nextOwner : '');
-      if (hasLoadedOnceRef.current) {
-        await preloadHistoryImages(data.items);
-      }
+      if (requestId !== loadRequestRef.current) return;
       setItems(data.items);
       setPage(data.page);
       setTotal(data.total);
       setTotalPages(data.totalPages);
-      const nextSummary = await getGenerationSummary().catch(() => null);
-      if (nextSummary) setSummary(nextSummary);
+      void getGenerationSummary()
+        .then((nextSummary) => {
+          if (requestId === loadRequestRef.current) setSummary(nextSummary);
+        })
+        .catch(() => undefined);
     } catch (err) {
+      if (requestId !== loadRequestRef.current) return;
       showHistoryError(err);
     } finally {
+      if (requestId !== loadRequestRef.current) return;
       setIsLoading(false);
       hasLoadedOnceRef.current = true;
       setHasLoadedOnce(true);
@@ -373,30 +378,6 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       )}
     </div>
   );
-}
-
-async function preloadHistoryImages(items: Generation[]) {
-  const urls = items.map((item) => item.images[0]?.url).filter((url): url is string => Boolean(url));
-  await Promise.race([
-    Promise.all(urls.map((url) => preloadImage(url).catch(() => undefined))),
-    delay(350)
-  ]);
-}
-
-function preloadImage(url: string) {
-  return new Promise<void>((resolve, reject) => {
-    const image = new Image();
-    image.onload = async () => {
-      await image.decode?.().catch(() => undefined);
-      resolve();
-    };
-    image.onerror = reject;
-    image.src = url;
-  });
-}
-
-function delay(ms: number) {
-  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 }
 
 function generationStatusLabel(status: Generation['status']) {
