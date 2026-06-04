@@ -2842,16 +2842,43 @@ body.modalBodyLocked {
   overscroll-behavior: none;
 }
 
+html.modalBodyLocked body {
+  background-attachment: scroll;
+}
+
 .modalBackdrop {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(8, 9, 8, 0.58);
-  backdrop-filter: blur(8px) saturate(1.05);
+  background:
+    radial-gradient(circle at 68% 14%, rgba(240, 155, 84, 0.12), transparent 30%),
+    radial-gradient(circle at 20% 82%, rgba(120, 189, 168, 0.1), transparent 34%),
+    rgba(8, 9, 8, 0.66);
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+.modalBackdrop::before {
+  content: "";
+  position: absolute;
+  inset: -64px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 64% 18%, rgba(240, 155, 84, 0.22), transparent 28%),
+    radial-gradient(circle at 22% 76%, rgba(120, 189, 168, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(248, 239, 226, 0.08), transparent 38%, rgba(255, 255, 255, 0.05));
+  filter: blur(22px) saturate(1.12);
+  opacity: 0.72;
+}
+
+.modalBackdrop > * {
+  position: relative;
+  z-index: 1;
 }
 
 .confirmModal {
