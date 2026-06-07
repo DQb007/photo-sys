@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Check, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
 import {
   favoritePromptTemplate,
   listPromptTemplates,
@@ -29,6 +29,7 @@ export function PromptLibraryPage() {
   const [previewTemplate, setPreviewTemplate] = useState<PromptTemplate | null>(null);
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
+  const [previewCopied, setPreviewCopied] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isUsing, setIsUsing] = useState(false);
@@ -53,15 +54,6 @@ export function PromptLibraryPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!previewTemplate) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setPreviewTemplate(null);
-    }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [previewTemplate]);
-
   const renderedPrompt = useMemo(() => {
     if (!activeTemplate) return '';
     return renderPrompt(activeTemplate.promptText, variables);
@@ -70,6 +62,33 @@ export function PromptLibraryPage() {
   const missingVariables = activeTemplate?.variables.filter((item) => !item.defaultValue && !variables[item.name]?.trim()) ?? [];
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const pageItems = items.slice((page - 1) * pageSize, page * pageSize);
+  const previewItems = useMemo(() => items.filter((item) => item.exampleImageUrl), [items]);
+  const previewIndex = previewTemplate ? previewItems.findIndex((item) => item.id === previewTemplate.id) : -1;
+  const canNavigatePreview = previewItems.length > 1 && previewIndex >= 0;
+
+  const showAdjacentPreview = useCallback((direction: -1 | 1) => {
+    if (!previewTemplate || previewItems.length <= 1) return;
+    const currentIndex = previewItems.findIndex((item) => item.id === previewTemplate.id);
+    if (currentIndex < 0) return;
+    const nextIndex = (currentIndex + direction + previewItems.length) % previewItems.length;
+    setPreviewTemplate(previewItems[nextIndex]);
+    setPreviewCopied(false);
+  }, [previewItems, previewTemplate]);
+
+  useEffect(() => {
+    if (!previewTemplate) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPreviewTemplate(null);
+      } else if (event.key === 'ArrowLeft') {
+        showAdjacentPreview(-1);
+      } else if (event.key === 'ArrowRight') {
+        showAdjacentPreview(1);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [previewTemplate, showAdjacentPreview]);
 
   useEffect(() => {
     setPage(1);
@@ -92,6 +111,11 @@ export function PromptLibraryPage() {
     setPage(1);
   }
 
+  function openPreview(template: PromptTemplate) {
+    setPreviewTemplate(template);
+    setPreviewCopied(false);
+  }
+
   function changePage(nextPage: number) {
     setPage(nextPage);
     window.requestAnimationFrame(() => {
@@ -110,6 +134,8 @@ export function PromptLibraryPage() {
       setItems((current) => current.map((item) =>
         item.id === template.id ? { ...item, isFavorite: !item.isFavorite } : item
       ).filter((item) => scope !== 'favorites' || item.isFavorite));
+      setActiveTemplate((current) => current?.id === template.id ? { ...current, isFavorite: !current.isFavorite } : current);
+      setPreviewTemplate((current) => current?.id === template.id ? { ...current, isFavorite: !current.isFavorite } : current);
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新收藏失败');
     }
@@ -126,6 +152,12 @@ export function PromptLibraryPage() {
     if (!activeTemplate || missingVariables.length > 0) return;
     await navigator.clipboard.writeText(renderedPrompt);
     setMessage('提示词已复制');
+  }
+
+  async function copyPreviewPrompt(template: PromptTemplate) {
+    await navigator.clipboard.writeText(template.promptText);
+    setPreviewCopied(true);
+    window.setTimeout(() => setPreviewCopied(false), 1600);
   }
 
   async function applyInGenerate() {
@@ -221,10 +253,9 @@ export function PromptLibraryPage() {
               <button
                 className="promptExampleButton"
                 type="button"
-                onClick={() => setPreviewTemplate(item)}
+                onClick={() => openPreview(item)}
               >
                 <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
-                <span>查看大图</span>
               </button>
             ) : (
               <div className="promptExamplePlaceholder">
@@ -282,9 +313,6 @@ export function PromptLibraryPage() {
 
             <div className="promptTemplateModalBody">
               {activeTemplate.description && <p className="modalIntro">{activeTemplate.description}</p>}
-              {activeTemplate.exampleImageUrl && (
-                <img className="promptModalExampleImage" src={activeTemplate.exampleImageUrl} alt={`${activeTemplate.title} 示例图`} />
-              )}
 
               {activeTemplate.variables.length > 0 ? (
                 <div className="variableGrid">
@@ -331,48 +359,69 @@ export function PromptLibraryPage() {
       {previewTemplate && (
         <div className="modalBackdrop promptPreviewBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title">
           <button className="promptPreviewScrim" type="button" aria-label="关闭预览" onClick={() => setPreviewTemplate(null)} />
-          <div className="promptPreviewModal">
-            <div className="modalHeader">
-              <div className="promptTitleLine">
-                <h2 id="prompt-preview-title">{previewTemplate.title}</h2>
-                <span className="promptCategoryTag">{previewTemplate.category || '未分类'}</span>
-              </div>
-              <button className="iconButton" type="button" onClick={() => setPreviewTemplate(null)} aria-label="关闭">
-                <X size={18} />
+          <button className="promptPreviewClose" type="button" onClick={() => setPreviewTemplate(null)} aria-label="关闭">
+            <X size={28} />
+          </button>
+          {canNavigatePreview && (
+            <>
+              <button className="promptPreviewNav promptPreviewNavPrevious" type="button" onClick={() => showAdjacentPreview(-1)} aria-label="上一张">
+                <ChevronLeft size={28} />
               </button>
-            </div>
+              <button className="promptPreviewNav promptPreviewNavNext" type="button" onClick={() => showAdjacentPreview(1)} aria-label="下一张">
+                <ChevronRight size={28} />
+              </button>
+            </>
+          )}
+          <div className="promptPreviewModal">
             <div className="promptPreviewLayout">
-              <section className="promptPreviewText">
-                {previewTemplate.description && <p>{previewTemplate.description}</p>}
-                <div className="promptPreviewMeta">
-                  <span>{previewTemplate.variables.length} 个变量</span>
-                  <span>使用 {previewTemplate.usageCount}</span>
-                </div>
-                <div className="promptPreviewPrompt">
-                  <div className="panelTitle">
-                    <h2>提示词正文</h2>
-                  </div>
-                  <p>{previewTemplate.promptText}</p>
-                </div>
-                <div className="promptPreviewActions">
-                  <button className="primaryButton compact" type="button" onClick={() => {
-                    openUseModal(previewTemplate);
-                    setPreviewTemplate(null);
-                  }}>
-                    <Sparkles size={16} />
-                    使用模板
-                  </button>
-                </div>
-              </section>
               <section className="promptPreviewImagePanel">
                 <img src={previewTemplate.exampleImageUrl || ''} alt={`${previewTemplate.title} 示例图`} />
               </section>
+              <aside className="promptPreviewDetails">
+                <header className="promptPreviewHeader">
+                  <strong>{previewTemplate.category || '未分类'}</strong>
+                  <button
+                    className={previewTemplate.isFavorite ? 'promptPreviewFavorite active' : 'promptPreviewFavorite'}
+                    type="button"
+                    onClick={() => void toggleFavorite(previewTemplate)}
+                    aria-label={previewTemplate.isFavorite ? '取消收藏' : '收藏'}
+                  >
+                    <Heart size={18} fill={previewTemplate.isFavorite ? 'currentColor' : 'none'} />
+                  </button>
+                </header>
+                <section className="promptPreviewSummary">
+                  <h2 id="prompt-preview-title">{previewTemplate.title}</h2>
+                  {previewTemplate.description && <p>{previewTemplate.description}</p>}
+                </section>
+                <div className="promptPreviewPromptMeta">
+                  <span>GPT-IMAGE-2 PROMPT</span>
+                  <small>{formatPromptTemplateDate(previewTemplate.createdAt)} · {previewTemplate.promptText.length} 字</small>
+                </div>
+                <div className="promptPreviewPrompt">
+                  <p>{previewTemplate.promptText}</p>
+                </div>
+                <footer className="promptPreviewFooter">
+                  <button className="promptPreviewCopyButton" type="button" onClick={() => void copyPreviewPrompt(previewTemplate)}>
+                    {previewCopied ? <Check size={16} /> : <Copy size={16} />}
+                    {previewCopied ? '已复制' : '复制提示词'}
+                  </button>
+                </footer>
+              </aside>
             </div>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+function formatPromptTemplateDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function renderPrompt(promptText: string, values: Record<string, string>) {
