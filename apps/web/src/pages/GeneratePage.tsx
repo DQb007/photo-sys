@@ -14,7 +14,7 @@ const sizeOptions = [
 const sizes = sizeOptions.map((item) => item.value);
 const qualityOptions = qualities.map((item) => ({ label: item, value: item }));
 const activeGenerationKey = 'activeGenerationId';
-const generationWaitMessage = '生成大约需要2-3mins，请耐心等候，您可以进行其他操作';
+const generationWaitMessage = '生成大约需要1-2分钟，请耐心等候，您可以进行其他操作';
 
 export function GeneratePage() {
   const { user } = useAuth();
