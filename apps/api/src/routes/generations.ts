@@ -11,6 +11,7 @@ import {
   discardUploadedTempFile,
   getTempUploadsDir,
   makeUploadFilename,
+  normalizeStorageKey,
   saveUploadedTempFile,
   uploadedStorageKey,
 } from '../storage.js';
@@ -69,8 +70,11 @@ router.post('/', upload.array('referenceImages', 4), async (req: AuthenticatedRe
     const pool = getPool();
     const settings = await getAppSettings({ includeSecrets: true }) as AppSettings;
     const isGuest = !req.user && Boolean(req.guestSession);
+    const existingReferenceKeys = await resolveExistingReferenceKeys(req.body.referenceImageUrls, req.user, req.guestSession);
+    const referenceCount = uploadedFiles.length + existingReferenceKeys.length;
+    if (referenceCount > 4) throw httpError(422, '最多只能上传 4 张参考图', 'REFERENCE_IMAGE_LIMIT');
     if (isGuest && !settings.trial.enabled) throw httpError(403, '游客试用暂未开放', 'TRIAL_DISABLED');
-    if (isGuest && uploadedFiles.length > 0 && !settings.trial.allowReferenceImages) {
+    if (isGuest && referenceCount > 0 && !settings.trial.allowReferenceImages) {
       throw httpError(403, '游客试用暂不支持上传参考图', 'TRIAL_REFERENCE_DISABLED');
     }
     if (isGuest && parsed.count > settings.trial.maxImagesPerGeneration) {
@@ -80,7 +84,7 @@ router.post('/', upload.array('referenceImages', 4), async (req: AuthenticatedRe
     const resolvedReferenceImages = req.user
       ? await resolveReferenceImagePaths(req.user.id, uploadedFiles, newReferenceKeys)
       : await saveGuestReferenceImagePaths(uploadedFiles, newReferenceKeys);
-    const referenceImagePaths = resolvedReferenceImages.map((item) => item.storageKey);
+    const referenceImagePaths = [...existingReferenceKeys, ...resolvedReferenceImages.map((item) => item.storageKey)];
     const referenceImagePath = referenceImagePaths.length ? JSON.stringify(referenceImagePaths) : null;
 
     const connection = await pool.getConnection();
@@ -451,6 +455,79 @@ function getUploadedFiles(files: Express.Multer.File[] | { [fieldname: string]: 
   if (!files) return [];
   if (Array.isArray(files)) return files;
   return Object.values(files).flat();
+}
+
+async function resolveExistingReferenceKeys(
+  value: unknown,
+  user?: AuthenticatedRequest['user'],
+  guestSession?: AuthenticatedRequest['guestSession']
+) {
+  const keys = parseReferenceImageUrlFields(value).map(referenceImageUrlToStorageKey);
+  const uniqueKeys = [...new Set(keys)];
+  for (const key of uniqueKeys) {
+    await assertCanReuseReferenceKey(key, user, guestSession);
+  }
+  return uniqueKeys;
+}
+
+function parseReferenceImageUrlFields(value: unknown) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  }
+  if (typeof value === 'string' && value.trim()) return [value];
+  return [];
+}
+
+function referenceImageUrlToStorageKey(value: string) {
+  try {
+    const parsed = new URL(value, config.PUBLIC_BASE_URL);
+    const marker = '/files/';
+    const markerIndex = parsed.pathname.indexOf(marker);
+    if (markerIndex < 0) throw new Error('Invalid reference image URL');
+    const key = decodeURIComponent(parsed.pathname.slice(markerIndex + marker.length));
+    const storageKey = normalizeStorageKey(key);
+    if (!storageKey.startsWith('uploads/')) throw new Error('Invalid reference image URL');
+    return storageKey;
+  } catch {
+    throw httpError(422, '参考图地址无效', 'INVALID_REFERENCE_IMAGE_URL');
+  }
+}
+
+async function assertCanReuseReferenceKey(
+  storageKey: string,
+  user?: AuthenticatedRequest['user'],
+  guestSession?: AuthenticatedRequest['guestSession']
+) {
+  const [rows] = await getPool().query<Array<{ user_id: number | null; guest_session_id: number | null; reference_image_path: string | null } & import('mysql2').RowDataPacket>>(
+    `SELECT user_id, guest_session_id, reference_image_path
+     FROM generations
+     WHERE reference_image_path IS NOT NULL
+       AND reference_image_path LIKE ?
+     LIMIT 20`,
+    [`%${storageKey}%`]
+  );
+
+  for (const row of rows) {
+    if (!parseReferenceImagePaths(row.reference_image_path).includes(storageKey)) continue;
+    if (user && (user.role === 'admin' || row.user_id === user.id)) return;
+    if (guestSession && row.guest_session_id === guestSession.id) return;
+  }
+
+  throw httpError(403, '无权复用该参考图', 'REFERENCE_IMAGE_FORBIDDEN');
+}
+
+function parseReferenceImagePaths(value: string | null) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string');
+    }
+  } catch {
+    return [value];
+  }
+  return [value];
 }
 
 async function resolveReferenceImagePaths(userId: number, files: Express.Multer.File[], newReferenceKeys: string[]) {

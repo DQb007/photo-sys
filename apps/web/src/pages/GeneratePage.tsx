@@ -24,6 +24,7 @@ export function GeneratePage() {
   const [quality, setQuality] = useState(qualities[0]);
   const [count, setCount] = useState(1);
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
+  const [dismissedGenerationReferenceImages, setDismissedGenerationReferenceImages] = useState(false);
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -44,6 +45,16 @@ export function GeneratePage() {
       url: URL.createObjectURL(file)
     }));
   }, [referenceImages]);
+  const generationReferenceImageUrls = !dismissedGenerationReferenceImages && referenceImages.length === 0
+    ? generation?.referenceImageUrls ?? []
+    : [];
+  const referenceImageCount = referenceImages.length || generationReferenceImageUrls.length;
+
+  useEffect(() => {
+    return () => {
+      for (const item of previewUrl) URL.revokeObjectURL(item.url);
+    };
+  }, [previewUrl]);
 
   useEffect(() => {
     const reusePrompt = sessionStorage.getItem('reusePrompt');
@@ -135,11 +146,17 @@ export function GeneratePage() {
     for (const image of referenceImages) {
       formData.append('referenceImages', image);
     }
+    if (referenceImages.length === 0 && generationReferenceImageUrls.length > 0) {
+      for (const url of generationReferenceImageUrls) {
+        formData.append('referenceImageUrls', url);
+      }
+    }
 
     try {
       if (!user) await auth.ensureGuestSession();
       const nextGeneration = await createGeneration(formData);
       setGeneration(nextGeneration);
+      setDismissedGenerationReferenceImages(false);
       setMessage(generationWaitMessage);
       restoreFormFromGeneration(nextGeneration);
       sessionStorage.setItem(activeGenerationKey, String(nextGeneration.id));
@@ -201,6 +218,7 @@ export function GeneratePage() {
     sessionStorage.removeItem(activeGenerationKey);
     setGeneration(null);
     setReferenceImages([]);
+    setDismissedGenerationReferenceImages(false);
     setMessage('');
     setTrialNotice('');
     setError('');
@@ -281,7 +299,7 @@ export function GeneratePage() {
 
           <label className="uploadBox">
             <ImageUp size={22} />
-            <span>{referenceImages.length ? `已选择 ${referenceImages.length} 张参考图` : '上传参考图，可选，最多 4 张'}</span>
+            <span>{referenceImageCount ? `已选择 ${referenceImageCount} 张参考图` : '上传参考图，可选，最多 4 张'}</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
@@ -290,6 +308,7 @@ export function GeneratePage() {
               onChange={(event) => {
                 const files = Array.from(event.target.files || []);
                 setReferenceImages((current) => [...current, ...files].slice(0, 4));
+                if (files.length) setDismissedGenerationReferenceImages(true);
                 event.target.value = '';
               }}
             />
@@ -306,7 +325,10 @@ export function GeneratePage() {
                   <img src={item.url} alt={`参考图 ${index + 1}`} />
                   <button
                     type="button"
-                    onClick={() => setReferenceImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                    onClick={() => {
+                      setReferenceImages((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                      setDismissedGenerationReferenceImages(true);
+                    }}
                   >
                     移除
                   </button>
@@ -315,11 +337,17 @@ export function GeneratePage() {
             </div>
           )}
 
-          {previewUrl.length === 0 && generation?.referenceImageUrls.length ? (
+          {generationReferenceImageUrls.length ? (
             <div className="referencePreviewGrid">
-              {generation.referenceImageUrls.map((url, index) => (
+              {generationReferenceImageUrls.map((url, index) => (
                 <div className="referencePreviewItem" key={url}>
                   <img src={url} alt={`参考图 ${index + 1}`} />
+                  <button
+                    type="button"
+                    onClick={() => setDismissedGenerationReferenceImages(true)}
+                  >
+                    移除
+                  </button>
                 </div>
               ))}
             </div>
