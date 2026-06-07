@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Check, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
@@ -18,6 +18,7 @@ const pageSize = 12;
 
 export function PromptLibraryPage() {
   const navigate = useNavigate();
+  const pageTopRef = useRef<HTMLDivElement | null>(null);
   const [items, setItems] = useState<PromptTemplate[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [scope, setScope] = useState<PromptScope>('all');
@@ -91,6 +92,13 @@ export function PromptLibraryPage() {
     setPage(1);
   }
 
+  function changePage(nextPage: number) {
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      pageTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   async function toggleFavorite(template: PromptTemplate) {
     setError('');
     try {
@@ -137,7 +145,7 @@ export function PromptLibraryPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page" ref={pageTopRef}>
       <header className="pageHeader">
         <div>
           <h1>提示词库</h1>
@@ -256,7 +264,7 @@ export function PromptLibraryPage() {
         page={page}
         totalPages={totalPages}
         total={items.length}
-        onPageChange={setPage}
+        onPageChange={changePage}
       />
 
       {activeTemplate && (

@@ -21,6 +21,7 @@ import { useAuth } from '../auth';
 
 export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const auth = useAuth();
+  const pageTopRef = useRef<HTMLDivElement | null>(null);
   const [items, setItems] = useState<Generation[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -109,8 +110,15 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
     setError(message.includes('请先登录') ? '' : message);
   }
 
+  function changePage(nextPage: number) {
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      pageTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   return (
-    <div className="page">
+    <div className="page" ref={pageTopRef}>
       <header className="pageHeader">
         <div>
           <h1>{mode === 'admin' ? '图片管理' : '生成历史'}</h1>
@@ -263,7 +271,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         ))}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={changePage} />
 
       {deleteTarget && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="delete-title">
