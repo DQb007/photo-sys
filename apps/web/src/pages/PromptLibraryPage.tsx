@@ -155,9 +155,9 @@ export function PromptLibraryPage() {
   }
 
   async function copyPreviewPrompt(template: PromptTemplate) {
+    if (previewCopied) return;
     await navigator.clipboard.writeText(template.promptText);
     setPreviewCopied(true);
-    window.setTimeout(() => setPreviewCopied(false), 1600);
   }
 
   async function applyInGenerate() {
@@ -401,7 +401,12 @@ export function PromptLibraryPage() {
                   <p>{previewTemplate.promptText}</p>
                 </div>
                 <footer className="promptPreviewFooter">
-                  <button className="promptPreviewCopyButton" type="button" onClick={() => void copyPreviewPrompt(previewTemplate)}>
+                  {previewCopied && (
+                    <div className="toastNotice" role="status">
+                      复制成功
+                    </div>
+                  )}
+                  <button className="promptPreviewCopyButton" type="button" disabled={previewCopied} onClick={() => void copyPreviewPrompt(previewTemplate)}>
                     {previewCopied ? <Check size={16} /> : <Copy size={16} />}
                     {previewCopied ? '已复制' : '复制提示词'}
                   </button>

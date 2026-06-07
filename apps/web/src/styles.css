@@ -4755,6 +4755,8 @@ th {
   --prompt-preview-copy-bg: #000000;
   --prompt-preview-copy-hover: #151515;
   --prompt-preview-copy-text: #ffffff;
+  --prompt-preview-copy-disabled-bg: #d9dee7;
+  --prompt-preview-copy-disabled-text: #6d788b;
   --prompt-preview-scrollbar: #8a8a8a;
   min-width: 0;
   min-height: 0;
@@ -4779,6 +4781,8 @@ th {
   --prompt-preview-copy-bg: #1d5a48;
   --prompt-preview-copy-hover: #0f3d32;
   --prompt-preview-copy-text: #ffffff;
+  --prompt-preview-copy-disabled-bg: #d8cfbb;
+  --prompt-preview-copy-disabled-text: #746c5f;
   --prompt-preview-scrollbar: rgba(29, 90, 72, 0.5);
 }
 
@@ -4916,6 +4920,8 @@ th {
   padding: 16px;
   border-top: 1px solid var(--prompt-preview-line);
   background: var(--prompt-preview-panel);
+  display: grid;
+  gap: 10px;
 }
 
 .promptPreviewCopyButton {
@@ -4940,6 +4946,18 @@ th {
 .promptPreviewCopyButton:hover {
   background: var(--prompt-preview-copy-hover);
   transform: translateY(-1px);
+}
+
+.promptPreviewCopyButton:disabled {
+  background: var(--prompt-preview-copy-disabled-bg);
+  color: var(--prompt-preview-copy-disabled-text);
+  cursor: default;
+  transform: none;
+}
+
+.promptPreviewCopyButton:disabled:hover {
+  background: var(--prompt-preview-copy-disabled-bg);
+  transform: none;
 }
 
 .variableGrid {
