@@ -1,42 +1,53 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, BookOpen, Bot, Clock3, Images, ImagePlus, LogIn, LogOut, Menu, MessageSquare, Palette, Settings, Shield, SlidersHorizontal, Tags, Ticket, Users, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
-import { GeneratePage } from './pages/GeneratePage';
-import { HistoryPage } from './pages/HistoryPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { AdminStatusPage } from './pages/AdminStatusPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { VerifyEmailPage } from './pages/VerifyEmailPage';
-import { AdminOverviewPage } from './pages/AdminOverviewPage';
-import { AdminSettingsPage } from './pages/AdminSettingsPage';
-import { AdminUsersPage } from './pages/AdminUsersPage';
-import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
-import { AdminUserGenerationsPage } from './pages/AdminUserGenerationsPage';
-import { AdminRedeemCodesPage } from './pages/AdminRedeemCodesPage';
-import { PromptLibraryPage } from './pages/PromptLibraryPage';
-import { AdminPromptTemplatesPage } from './pages/AdminPromptTemplatesPage';
-import { ChatPage } from './pages/ChatPage';
-import { AdminChatPage } from './pages/AdminChatPage';
 import { ThemeProvider, useTheme } from './theme';
 
 const appName = '炫步 AI';
 const brandIconSrc = '/brand-icon.png';
+const loadHistoryPage = () => import('./pages/HistoryPage');
+const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then((module) => ({ default: module.RegisterPage })));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then((module) => ({ default: module.VerifyEmailPage })));
+const GeneratePage = lazy(() => import('./pages/GeneratePage').then((module) => ({ default: module.GeneratePage })));
+const HistoryPage = lazy(() => loadHistoryPage().then((module) => ({ default: module.HistoryPage })));
+const PromptLibraryPage = lazy(() => import('./pages/PromptLibraryPage').then((module) => ({ default: module.PromptLibraryPage })));
+const ChatPage = lazy(() => import('./pages/ChatPage').then((module) => ({ default: module.ChatPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((module) => ({ default: module.SettingsPage })));
+const AdminOverviewPage = lazy(() => import('./pages/AdminOverviewPage').then((module) => ({ default: module.AdminOverviewPage })));
+const AdminStatusPage = lazy(() => import('./pages/AdminStatusPage').then((module) => ({ default: module.AdminStatusPage })));
+const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage').then((module) => ({ default: module.AdminSettingsPage })));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })));
+const AdminUserGenerationsPage = lazy(() => import('./pages/AdminUserGenerationsPage').then((module) => ({ default: module.AdminUserGenerationsPage })));
+const AdminRedeemCodesPage = lazy(() => import('./pages/AdminRedeemCodesPage').then((module) => ({ default: module.AdminRedeemCodesPage })));
+const AdminPromptTemplatesPage = lazy(() => import('./pages/AdminPromptTemplatesPage').then((module) => ({ default: module.AdminPromptTemplatesPage })));
+const AdminChatPage = lazy(() => import('./pages/AdminChatPage').then((module) => ({ default: module.AdminChatPage })));
+const AdminAuditLogsPage = lazy(() => import('./pages/AdminAuditLogsPage').then((module) => ({ default: module.AdminAuditLogsPage })));
+
+function preloadHistoryPage() {
+  void loadHistoryPage();
+}
 
 export function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/*" element={<ProtectedShell />} />
-        </Routes>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/*" element={<ProtectedShell />} />
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </ThemeProvider>
   );
+}
+
+function RouteLoading() {
+  return <div className="appLoadingPage"><div className="panel appLoadingPanel">加载中...</div></div>;
 }
 
 function ProtectedShell() {
@@ -50,6 +61,12 @@ function ProtectedShell() {
     setIsSidebarOpen(false);
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (auth.isLoading) return;
+    const timer = window.setTimeout(preloadHistoryPage, 700);
+    return () => window.clearTimeout(timer);
+  }, [auth.isLoading, auth.user?.role]);
 
   if (auth.isLoading) {
     return <div className="appLoadingPage"><div className="panel appLoadingPanel">加载中...</div></div>;
@@ -111,7 +128,7 @@ function ProtectedShell() {
                 <ImagePlus size={18} />
                 图片生成
               </NavLink>
-              <NavLink to="/history" onClick={() => setIsSidebarOpen(false)}>
+              <NavLink to="/history" onFocus={preloadHistoryPage} onMouseEnter={preloadHistoryPage} onClick={() => setIsSidebarOpen(false)}>
                 <Clock3 size={18} />
                 生成历史
               </NavLink>
@@ -137,7 +154,7 @@ function ProtectedShell() {
                 <Shield size={18} />
                 后台概览
               </NavLink>
-              <NavLink to="/admin/generations" onClick={() => setIsSidebarOpen(false)}>
+              <NavLink to="/admin/generations" onFocus={preloadHistoryPage} onMouseEnter={preloadHistoryPage} onClick={() => setIsSidebarOpen(false)}>
                 <Images size={18} />
                 图片管理
               </NavLink>

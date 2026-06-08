@@ -218,7 +218,7 @@ export function AdminUsersPage() {
         </button>
       </form>
 
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
 
       <div className="panel tablePanel adminUsersPanel">
         <table>
@@ -343,7 +343,7 @@ export function AdminUsersPage() {
                 />
               </label>
             </div>
-            {passwordError && <div className="inlineError">{passwordError}</div>}
+            {passwordError && <div className="inlineError" role="alert">{passwordError}</div>}
             <div className="modalActions">
               <button className="ghostButton" type="button" onClick={closePasswordModal}>
                 取消
@@ -389,7 +389,7 @@ export function AdminUsersPage() {
                 />
               </label>
             </div>
-            {creditError && <div className="inlineError">{creditError}</div>}
+            {creditError && <div className="inlineError" role="alert">{creditError}</div>}
             <div className="modalActions">
               <button className="ghostButton" type="button" onClick={closeCreditModal}>
                 取消

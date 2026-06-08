@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, CopyPlus, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
+import { Check, CopyPlus, FileText, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
@@ -118,7 +118,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   }
 
   return (
-    <div className="page" ref={pageTopRef}>
+    <div className={mode === 'admin' ? 'page historyPage adminHistoryPage' : 'page historyPage'} ref={pageTopRef}>
       <header className="pageHeader">
         <div>
           <h1>{mode === 'admin' ? '图片管理' : '生成历史'}</h1>
@@ -187,7 +187,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         </button>
       </section>
 
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       {toastMessage && <div className="toastNotice" role="status">{toastMessage}</div>}
       {trialNotice && <div className="toastNotice chatTrialNotice" role="status">{trialNotice}</div>}
 
@@ -196,7 +196,9 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       )}
 
       <div className={isLoading && hasLoadedOnce ? 'historyGrid refreshing' : 'historyGrid'}>
-        {items.map((item) => (
+        {items.map((item, index) => {
+          const shouldPrioritizeImage = index < 4;
+          return (
           <article className={mode === 'admin' ? 'historyCard adminGenerationCard' : 'historyCard'} key={item.id}>
             <div className="thumbStrip">
               {item.images[0] ? (
@@ -207,13 +209,19 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                     setPreview({ url: item.images[0].url, prompt: item.prompt });
                   }}
                 >
-                  <img src={item.images[0].url} alt="历史生成图" loading="lazy" decoding="async" />
+                  <img
+                    src={item.images[0].url}
+                    alt="历史生成图"
+                    loading={shouldPrioritizeImage ? 'eager' : 'lazy'}
+                    decoding="async"
+                    fetchPriority={shouldPrioritizeImage ? 'high' : 'low'}
+                  />
                 </button>
               ) : (
                 <div className="thumbFallback">{item.status}</div>
               )}
-              </div>
-              <div className="historyBody">
+            </div>
+            <div className="historyBody">
               <div className="historyMeta">
                 {mode === 'admin' && <span className={item.guestSessionId ? 'ownerTag guest' : 'ownerTag user'}>{ownerLabel(item)}</span>}
                 {item.errorMessage ? (
@@ -224,12 +232,6 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                   <span className={`statusTag ${item.status}`}>{generationStatusLabel(item.status)}</span>
                 ) : null}
               </div>
-              <button className="promptPreview" onClick={() => {
-                setPromptTarget(item);
-                setIsPromptCopied(false);
-              }}>
-                <p>{item.prompt}</p>
-              </button>
               <dl>
                 <div><dt>尺寸</dt><dd>{item.size || '-'}</dd></div>
                 <div><dt>质量</dt><dd>{item.quality || '-'}</dd></div>
@@ -241,6 +243,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                     className="ghostButton"
                     onClick={() => {
                       sessionStorage.setItem('reusePrompt', item.prompt);
+                      if (item.size) sessionStorage.setItem('reuseSize', item.size);
+                      if (item.quality) sessionStorage.setItem('reuseQuality', item.quality);
                       window.location.href = '/generate';
                     }}
                   >
@@ -248,6 +252,13 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                     复用
                   </button>
                 )}
+                <button className="ghostButton historyPromptButton" type="button" onClick={() => {
+                  setPromptTarget(item);
+                  setIsPromptCopied(false);
+                }}>
+                  <FileText size={15} />
+                  提示词
+                </button>
                 <button className="dangerButton" onClick={() => setDeleteTarget(item)}>
                   <Trash2 size={15} />
                   删除
@@ -268,7 +279,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               </div>
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
 
       <Pagination page={page} totalPages={totalPages} total={total} onPageChange={changePage} />

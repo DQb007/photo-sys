@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Feather, LogIn, Mail, Orbit, WandSparkles } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, LogIn, Mail } from 'lucide-react';
 import { ApiError, resendVerification } from '../api';
 import { useAuth } from '../auth';
 
@@ -15,6 +15,7 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/generate';
 
   async function onSubmit(event: FormEvent) {
@@ -52,15 +53,39 @@ export function LoginPage() {
       <form className="authForm" onSubmit={onSubmit}>
         <label className="field">
           <span>邮箱</span>
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            autoComplete="email"
+            placeholder="name@example.com"
+            required
+          />
         </label>
         <label className="field">
           <span>密码</span>
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
+          <div className="authPasswordField">
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type={isPasswordVisible ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="输入登录密码"
+              required
+            />
+            <button
+              type="button"
+              aria-label={isPasswordVisible ? '隐藏密码' : '显示密码'}
+              aria-pressed={isPasswordVisible}
+              onClick={() => setIsPasswordVisible((value) => !value)}
+            >
+              {isPasswordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
         </label>
-        {error && <div className="errorBox">{error}</div>}
+        {error && <div className="errorBox" role="alert">{error}</div>}
         {notice && <div className="hintBox">{notice}</div>}
-        <button className="primaryButton" disabled={isLoading}>
+        <button className="primaryButton" disabled={isLoading} aria-busy={isLoading}>
           <LogIn size={18} />
           {isLoading ? '登录中' : '登录'}
         </button>
@@ -87,19 +112,8 @@ export function AuthLayout({
   subtitle?: string;
   children: React.ReactNode;
 }) {
-  const typedTitle = useTypewriter(HERO_TITLE, 140);
-
   return (
     <div className="authPage">
-      <div className="authMotionLayer" aria-hidden="true">
-        <span className="authBeam authBeamOne" />
-        <span className="authBeam authBeamTwo" />
-        <span className="authPulse authPulseOne" />
-        <span className="authPulse authPulseTwo" />
-        <span className="authParticle authParticleOne" />
-        <span className="authParticle authParticleTwo" />
-        <span className="authParticle authParticleThree" />
-      </div>
       <section className="authShell">
         <div className="authHero">
           <div className="authBrandLockup">
@@ -111,40 +125,13 @@ export function AuthLayout({
           </div>
           <div className="authHeroCopy">
             <p className="eyebrow">Step into creation</p>
-            <h1 className="typewriterTitle" aria-label={HERO_TITLE}>
-              <span aria-hidden="true">{typedTitle}</span>
-              <span className="typewriterCursor" aria-hidden="true" />
+            <h1 aria-label={HERO_TITLE}>
+              <span aria-hidden="true">让灵感</span>
+              <span aria-hidden="true">先一步成画</span>
             </h1>
             <p>
               把想象交给 AI，把惊喜留给作品。每一次生成，都是一次新的风格实验。
             </p>
-          </div>
-          <div className="authSlogan">一张图，打开一个新世界</div>
-          <div className="authFeatureGrid authCopyGrid">
-            <div>
-              <WandSparkles size={18} />
-              <strong>更快抵达画面感</strong>
-              <span>让脑海里的画面，不再停在描述里。</span>
-            </div>
-            <div>
-              <Orbit size={18} />
-              <strong>更适合反复打磨</strong>
-              <span>灵感不会一次定稿，好作品值得多试几次。</span>
-            </div>
-            <div>
-              <Feather size={18} />
-              <strong>更容易沉淀风格</strong>
-              <span>把喜欢的方向留下来，下一次更接近你想要的样子。</span>
-            </div>
-          </div>
-          <div className="authFlow">
-            <span>想象</span>
-            <ArrowRight size={14} />
-            <span>生成</span>
-            <ArrowRight size={14} />
-            <span>收藏</span>
-            <ArrowRight size={14} />
-            <span>再创作</span>
           </div>
         </div>
 
@@ -159,25 +146,4 @@ export function AuthLayout({
       </section>
     </div>
   );
-}
-
-function useTypewriter(text: string, speedMs: number) {
-  const [visibleLength, setVisibleLength] = useState(0);
-
-  useEffect(() => {
-    setVisibleLength(0);
-    const letters = Array.from(text);
-    let index = 0;
-    const timer = window.setInterval(() => {
-      index += 1;
-      setVisibleLength(index);
-      if (index >= letters.length) {
-        window.clearInterval(timer);
-      }
-    }, speedMs);
-
-    return () => window.clearInterval(timer);
-  }, [text, speedMs]);
-
-  return Array.from(text).slice(0, visibleLength).join('');
 }

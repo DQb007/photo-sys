@@ -81,6 +81,13 @@ export function MarkdownMessage({ content }: { content: string }) {
         },
         code({ className, children, ...props }) {
           return <code className={className} {...props}>{children}</code>;
+        },
+        table({ children }) {
+          return (
+            <div className="markdownTableScroll">
+              <table>{children}</table>
+            </div>
+          );
         }
       }}
     >
