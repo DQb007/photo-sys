@@ -2596,6 +2596,8 @@ textarea {
 
 .historyCard {
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, transparent), color-mix(in srgb, var(--panel-solid) 78%, transparent)),
     var(--panel);
@@ -3704,6 +3706,7 @@ html.modalBodyLocked body {
   position: absolute;
   right: 8px;
   top: 50%;
+  transform: translateY(-50%);
   width: 34px;
   height: 34px;
   border: 0;

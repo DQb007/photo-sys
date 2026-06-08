@@ -432,6 +432,18 @@ export async function listGenerations(page = 1) {
   return listGenerationsWithFilter(page, '');
 }
 
+const generationListRequests = new Map<string, Promise<{
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  items: Generation[];
+}>>();
+let generationSummaryRequest: Promise<{
+  statusCounts: Record<string, number>;
+  queue: { waiting: number };
+}> | null = null;
+
 export async function listGenerationsWithFilter(page = 1, status = '', userId?: number, ownerType: 'user' | 'guest' | '' = '') {
   const params = new URLSearchParams({
     page: String(page),
@@ -440,14 +452,23 @@ export async function listGenerationsWithFilter(page = 1, status = '', userId?: 
   if (status) params.set('status', status);
   if (userId) params.set('userId', String(userId));
   if (ownerType) params.set('ownerType', ownerType);
-  const payload = await request<{
+  const queryString = params.toString();
+  const cacheKey = `${authCacheKey()}::${queryString}`;
+  const existing = generationListRequests.get(cacheKey);
+  if (existing) return existing;
+  const nextRequest = request<{
     page: number;
     pageSize: number;
     total: number;
     totalPages: number;
     items: Generation[];
-  }>(`/generations?${params.toString()}`);
-  return { ...payload, items: payload.items.map(withFileTokens) };
+  }>(`/generations?${queryString}`)
+    .then((payload) => ({ ...payload, items: payload.items.map(withFileTokens) }))
+    .finally(() => {
+      generationListRequests.delete(cacheKey);
+    });
+  generationListRequests.set(cacheKey, nextRequest);
+  return nextRequest;
 }
 
 export async function getGeneration(id: number) {
@@ -468,10 +489,18 @@ export async function cancelGeneration(id: number) {
 }
 
 export async function getGenerationSummary() {
-  return request<{
+  if (generationSummaryRequest) return generationSummaryRequest;
+  generationSummaryRequest = request<{
     statusCounts: Record<string, number>;
     queue: { waiting: number };
-  }>('/generations/meta/summary');
+  }>('/generations/meta/summary').finally(() => {
+    generationSummaryRequest = null;
+  });
+  return generationSummaryRequest;
+}
+
+function authCacheKey() {
+  return `${getAuthToken() || ''}:${getGuestToken() || ''}`;
 }
 
 export async function deleteGeneration(id: number) {

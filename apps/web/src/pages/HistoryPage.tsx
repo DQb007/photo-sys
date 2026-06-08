@@ -196,7 +196,9 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       )}
 
       <div className={isLoading && hasLoadedOnce ? 'historyGrid refreshing' : 'historyGrid'}>
-        {items.map((item) => (
+        {items.map((item, index) => {
+          const shouldPrioritizeImage = index < 4;
+          return (
           <article className={mode === 'admin' ? 'historyCard adminGenerationCard' : 'historyCard'} key={item.id}>
             <div className="thumbStrip">
               {item.images[0] ? (
@@ -207,13 +209,19 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                     setPreview({ url: item.images[0].url, prompt: item.prompt });
                   }}
                 >
-                  <img src={item.images[0].url} alt="历史生成图" loading="lazy" decoding="async" />
+                  <img
+                    src={item.images[0].url}
+                    alt="历史生成图"
+                    loading={shouldPrioritizeImage ? 'eager' : 'lazy'}
+                    decoding="async"
+                    fetchPriority={shouldPrioritizeImage ? 'high' : 'low'}
+                  />
                 </button>
               ) : (
                 <div className="thumbFallback">{item.status}</div>
               )}
-              </div>
-              <div className="historyBody">
+            </div>
+            <div className="historyBody">
               <div className="historyMeta">
                 {mode === 'admin' && <span className={item.guestSessionId ? 'ownerTag guest' : 'ownerTag user'}>{ownerLabel(item)}</span>}
                 {item.errorMessage ? (
@@ -271,7 +279,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               </div>
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
 
       <Pagination page={page} totalPages={totalPages} total={total} onPageChange={changePage} />
