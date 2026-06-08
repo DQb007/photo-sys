@@ -2644,7 +2644,7 @@ textarea {
   padding: 0;
   border: 0;
   background: var(--panel-soft);
-  cursor: zoom-in;
+  cursor: pointer;
 }
 
 .adminThumbGrid img {
@@ -2671,7 +2671,7 @@ textarea {
   padding: 0;
   border: 0;
   background: transparent;
-  cursor: zoom-in;
+  cursor: pointer;
   display: block;
 }
 
@@ -4215,7 +4215,7 @@ th {
   background: transparent;
   padding: 0;
   overflow: hidden;
-  cursor: zoom-in;
+  cursor: pointer;
   display: block;
 }
 
