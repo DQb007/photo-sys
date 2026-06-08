@@ -4123,10 +4123,17 @@ th {
 }
 
 .promptSearch .primaryButton {
-  border: 1px solid var(--accent-border);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
   background:
-    linear-gradient(135deg, var(--accent), var(--accent-strong));
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 12%, transparent), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 96%, #12362d), var(--accent-strong));
   color: var(--button-primary-text);
+  box-shadow:
+    0 14px 30px color-mix(in srgb, var(--accent) 18%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.16);
 }
 
 .promptSearch .ghostButton {
@@ -4142,6 +4149,14 @@ th {
   transform: translateY(-1px);
   border-color: var(--accent-border);
   box-shadow: 0 0 0 3px var(--accent-soft), var(--field-glow);
+}
+
+.promptSearch .primaryButton:hover {
+  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
+  box-shadow:
+    0 18px 38px color-mix(in srgb, var(--accent) 24%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
 }
 
 .promptSearch .ghostButton:hover {
@@ -4226,13 +4241,57 @@ th {
   display: block;
   border: 0;
   border-radius: inherit;
-  transition: transform 360ms ease, filter 360ms ease;
+  transition: transform 360ms ease;
 }
 
-.promptTemplateCard:hover .promptExampleImage,
+.promptExampleButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: rgba(18, 20, 18, 0.28);
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.promptExampleOverlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%) scale(0.96);
+  min-width: 92px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #101510;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.promptExampleButton:hover .promptExampleImage,
 .promptExampleButton:focus-visible .promptExampleImage {
   transform: scale(1.025);
-  filter: saturate(1.04) contrast(1.02);
+}
+
+.promptExampleButton:hover::before,
+.promptExampleButton:focus-visible::before,
+.promptExampleButton:hover .promptExampleOverlay,
+.promptExampleButton:focus-visible .promptExampleOverlay {
+  opacity: 1;
+}
+
+.promptExampleButton:hover .promptExampleOverlay,
+.promptExampleButton:focus-visible .promptExampleOverlay {
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .promptExampleButton:focus-visible {
@@ -5469,12 +5528,12 @@ th {
   }
 
   .promptPreviewBackdrop {
-    padding: 54px 14px 18px;
+    padding: 30px 0 0;
   }
 
   .promptPreviewClose {
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
   }
 
   .promptPreviewNav {
@@ -5484,31 +5543,75 @@ th {
 
   .promptPreviewLayout {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(220px, 42vh) minmax(0, 1fr);
+    grid-template-rows: clamp(180px, 32dvh, 276px) minmax(0, 1fr);
   }
 
   .promptPreviewModal {
     width: 100%;
-    height: calc(100dvh - 72px);
-    max-height: calc(100dvh - 72px);
+    height: calc(100dvh - 30px);
+    max-height: calc(100dvh - 30px);
+    border-radius: 0;
   }
 
   .promptPreviewDetails {
     min-height: 0;
   }
 
+  .promptPreviewImagePanel {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #050505;
+  }
+
+  .promptPreviewImagePanel img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain !important;
+  }
+
+  .promptPreviewHeader {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  .promptPreviewSummary {
+    padding: 14px 16px 12px;
+  }
+
   .promptPreviewSummary h2 {
     font-size: 19px;
   }
 
+  .promptPreviewSummary p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
   .promptPreviewPromptMeta {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 16px 7px;
+  }
+
+  .promptPreviewPromptMeta span,
+  .promptPreviewPromptMeta small {
+    min-width: 0;
+    white-space: nowrap;
   }
 
   .promptPreviewPrompt {
     margin-bottom: 12px;
+    padding: 13px;
+  }
+
+  .promptPreviewFooter {
+    padding: 14px 16px;
   }
 
   .promptAdminTable .tableHeader {
@@ -6485,8 +6588,14 @@ select,
 
   .historyCard:hover .thumbButton img,
   .promptTemplateCard:hover .promptExampleImage,
+  .promptExampleButton:hover .promptExampleImage,
   .imageTile:hover img {
     transform: none;
     filter: none;
+  }
+
+  .promptExampleButton:hover::before,
+  .promptExampleButton:hover .promptExampleOverlay {
+    opacity: 0;
   }
 }

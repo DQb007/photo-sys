@@ -256,6 +256,7 @@ export function PromptLibraryPage() {
                 onClick={() => openPreview(item)}
               >
                 <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+                <span className="promptExampleOverlay" aria-hidden="true">查看详情</span>
               </button>
             ) : (
               <div className="promptExamplePlaceholder">
