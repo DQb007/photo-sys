@@ -6,11 +6,12 @@ import { ThemeProvider, useTheme } from './theme';
 
 const appName = '炫步 AI';
 const brandIconSrc = '/brand-icon.png';
+const loadGeneratePage = () => import('./pages/GeneratePage');
 const loadHistoryPage = () => import('./pages/HistoryPage');
 const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then((module) => ({ default: module.RegisterPage })));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then((module) => ({ default: module.VerifyEmailPage })));
-const GeneratePage = lazy(() => import('./pages/GeneratePage').then((module) => ({ default: module.GeneratePage })));
+const GeneratePage = lazy(() => loadGeneratePage().then((module) => ({ default: module.GeneratePage })));
 const HistoryPage = lazy(() => loadHistoryPage().then((module) => ({ default: module.HistoryPage })));
 const PromptLibraryPage = lazy(() => import('./pages/PromptLibraryPage').then((module) => ({ default: module.PromptLibraryPage })));
 const ChatPage = lazy(() => import('./pages/ChatPage').then((module) => ({ default: module.ChatPage })));
@@ -27,6 +28,10 @@ const AdminAuditLogsPage = lazy(() => import('./pages/AdminAuditLogsPage').then(
 
 function preloadHistoryPage() {
   void loadHistoryPage();
+}
+
+function preloadGeneratePage() {
+  void loadGeneratePage();
 }
 
 export function App() {
@@ -64,7 +69,10 @@ function ProtectedShell() {
 
   useEffect(() => {
     if (auth.isLoading) return;
-    const timer = window.setTimeout(preloadHistoryPage, 700);
+    const timer = window.setTimeout(() => {
+      preloadGeneratePage();
+      preloadHistoryPage();
+    }, 700);
     return () => window.clearTimeout(timer);
   }, [auth.isLoading, auth.user?.role]);
 
@@ -124,7 +132,7 @@ function ProtectedShell() {
         <nav className="nav">
           {!isAdmin && (
             <>
-              <NavLink to="/generate" onClick={() => setIsSidebarOpen(false)}>
+              <NavLink to="/generate" onFocus={preloadGeneratePage} onMouseEnter={preloadGeneratePage} onClick={() => setIsSidebarOpen(false)}>
                 <ImagePlus size={18} />
                 图片生成
               </NavLink>

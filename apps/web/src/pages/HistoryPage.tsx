@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, CopyPlus, FileText, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
@@ -21,6 +22,7 @@ import { useAuth } from '../auth';
 
 export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const auth = useAuth();
+  const navigate = useNavigate();
   const pageTopRef = useRef<HTMLDivElement | null>(null);
   const [items, setItems] = useState<Generation[]>([]);
   const [page, setPage] = useState(1);
@@ -245,7 +247,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                       sessionStorage.setItem('reusePrompt', item.prompt);
                       if (item.size) sessionStorage.setItem('reuseSize', item.size);
                       if (item.quality) sessionStorage.setItem('reuseQuality', item.quality);
-                      window.location.href = '/generate';
+                      navigate('/generate');
                     }}
                   >
                     <CopyPlus size={15} />
