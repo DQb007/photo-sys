@@ -38,7 +38,7 @@ export function AdminStatusPage() {
         </button>
       </header>
 
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
 
       <section className="panel settingsPanel">
         <div className="settingRow">

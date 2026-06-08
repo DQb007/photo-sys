@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { register } from '../api';
 import { useAuth } from '../auth';
 import { AuthLayout } from './LoginPage';
@@ -14,6 +14,7 @@ export function RegisterPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -40,19 +41,51 @@ export function RegisterPage() {
       <form className="authForm" onSubmit={onSubmit}>
         <label className="field">
           <span>邮箱</span>
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            autoComplete="email"
+            placeholder="name@example.com"
+            required
+          />
         </label>
         <label className="field">
           <span>昵称</span>
-          <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+          <input
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            autoComplete="nickname"
+            placeholder="给自己起个名字"
+          />
         </label>
         <label className="field">
           <span>密码</span>
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={8} required />
+          <div className="authPasswordField">
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type={isPasswordVisible ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="至少 8 位字符"
+              minLength={8}
+              aria-describedby="register-password-hint"
+              required
+            />
+            <button
+              type="button"
+              aria-label={isPasswordVisible ? '隐藏密码' : '显示密码'}
+              aria-pressed={isPasswordVisible}
+              onClick={() => setIsPasswordVisible((value) => !value)}
+            >
+              {isPasswordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
+          <small className="fieldHint" id="register-password-hint">至少 8 位字符，建议包含字母和数字。</small>
         </label>
-        {error && <div className="errorBox">{error}</div>}
+        {error && <div className="errorBox" role="alert">{error}</div>}
         {message && <div className="toastNotice" role="status">{message}</div>}
-        <button className="primaryButton" disabled={isLoading}>
+        <button className="primaryButton" disabled={isLoading} aria-busy={isLoading}>
           <UserPlus size={18} />
           {isLoading ? '注册中' : '注册'}
         </button>

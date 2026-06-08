@@ -174,7 +174,7 @@ export function AdminChatPage() {
         </button>
       </header>
 
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       {message && <div className="toastNotice" role="status">{message}</div>}
 
       <div className="adminChatGrid">

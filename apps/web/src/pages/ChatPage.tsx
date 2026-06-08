@@ -618,7 +618,7 @@ export function ChatPage() {
 
   return (
     <div className="page chatPage">
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       {message && <div className="toastNotice" role="status">{message}</div>}
       {trialNotice && <div className="toastNotice chatTrialNotice" role="status">{trialNotice}</div>}
 

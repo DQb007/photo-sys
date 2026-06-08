@@ -68,7 +68,7 @@ export function AdminAuditLogsPage() {
           重置
         </button>
       </form>
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       <div className="panel tablePanel">
         <table>
           <thead>

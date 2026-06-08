@@ -240,7 +240,7 @@ export function PromptLibraryPage() {
         </div>
       </section>
 
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
 
       {!isLoading && items.length === 0 && (
         <div className="panel emptyState">暂无可用提示词模板。</div>

@@ -19,7 +19,7 @@ export function AdminOverviewPage() {
           <h1>后台概览</h1>
         </div>
       </header>
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       <div className="statsGrid">
         <Stat label="活跃用户" value={data?.users.active ?? 0} />
         <Stat label="待验证用户" value={data?.users.pending_email_verification ?? 0} />

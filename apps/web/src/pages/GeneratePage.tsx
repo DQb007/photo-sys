@@ -14,6 +14,8 @@ const sizeOptions = [
 const sizes = sizeOptions.map((item) => item.value);
 const qualityOptions = qualities.map((item) => ({ label: item, value: item }));
 const activeGenerationKey = 'activeGenerationId';
+const reuseSizeKey = 'reuseSize';
+const reuseQualityKey = 'reuseQuality';
 const generationWaitMessage = '生成大约需要1-2分钟，请耐心等候，您可以进行其他操作';
 
 export function GeneratePage() {
@@ -62,6 +64,16 @@ export function GeneratePage() {
       setPrompt(reusePrompt);
       sessionStorage.removeItem('reusePrompt');
     }
+    const reuseSize = sessionStorage.getItem(reuseSizeKey);
+    if (reuseSize && sizes.includes(reuseSize)) {
+      setSize(reuseSize);
+    }
+    sessionStorage.removeItem(reuseSizeKey);
+    const reuseQuality = sessionStorage.getItem(reuseQualityKey);
+    if (reuseQuality && qualities.includes(reuseQuality)) {
+      setQuality(reuseQuality);
+    }
+    sessionStorage.removeItem(reuseQualityKey);
     const activeGenerationId = Number(sessionStorage.getItem(activeGenerationKey));
     if (Number.isInteger(activeGenerationId) && activeGenerationId > 0) {
       getGeneration(activeGenerationId)
@@ -245,7 +257,7 @@ export function GeneratePage() {
   }
 
   return (
-    <div className="page">
+    <div className="page generatePage">
       <header className="pageHeader">
         <div>
           <h1>图片生成</h1>
@@ -353,7 +365,7 @@ export function GeneratePage() {
             </div>
           ) : null}
 
-          {formError && <div className="errorBox">{formError}</div>}
+          {formError && <div className="errorBox" role="alert">{formError}</div>}
 
           <div className="creditSummary">
             <span>当前余额 {creditBalance}</span>
@@ -424,7 +436,7 @@ export function GeneratePage() {
           )}
 
           {generation?.errorMessage && (
-            <div className="errorBox">{generation.errorMessage}</div>
+            <div className="errorBox" role="alert">{generation.errorMessage}</div>
           )}
 
           <div className="imageGrid">

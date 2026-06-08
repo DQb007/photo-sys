@@ -51,7 +51,7 @@ export function AdminUserGenerationsPage() {
           返回用户管理
         </Link>
       </header>
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       {!items.length && !error && <div className="panel emptyState">暂无生成记录</div>}
       <div className="historyGrid adminGenerationGrid">
         {items.map((item) => (

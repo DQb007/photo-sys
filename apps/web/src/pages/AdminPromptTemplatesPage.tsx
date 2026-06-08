@@ -219,7 +219,7 @@ export function AdminPromptTemplatesPage() {
         </div>
       </header>
 
-      {error && <div className="errorBox">{error}</div>}
+      {error && <div className="errorBox" role="alert">{error}</div>}
       {message && <div className="toastNotice" role="status">{message}</div>}
 
       <section className="promptAdminStats" aria-label="提示词模板统计">
