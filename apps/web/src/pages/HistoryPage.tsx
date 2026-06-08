@@ -45,7 +45,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const hasLoadedOnceRef = useRef(false);
   const loadRequestRef = useRef(0);
 
-  useBodyScrollLock(Boolean(deleteTarget || detailTarget || promptTarget || preview));
+  useBodyScrollLock(Boolean(deleteTarget || promptTarget || preview));
 
   const load = useCallback(async (nextPage = page, nextStatus = statusFilter, nextOwner = ownerFilter) => {
     const requestId = ++loadRequestRef.current;
@@ -68,10 +68,11 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       if (requestId !== loadRequestRef.current) return;
       showHistoryError(err);
     } finally {
-      if (requestId !== loadRequestRef.current) return;
-      setIsLoading(false);
-      hasLoadedOnceRef.current = true;
-      setHasLoadedOnce(true);
+      if (requestId === loadRequestRef.current) {
+        setIsLoading(false);
+        hasLoadedOnceRef.current = true;
+        setHasLoadedOnce(true);
+      }
     }
   }, [auth, mode, ownerFilter, page, statusFilter]);
 
@@ -227,7 +228,11 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               <div className="historyMeta">
                 {mode === 'admin' && <span className={item.guestSessionId ? 'ownerTag guest' : 'ownerTag user'}>{ownerLabel(item)}</span>}
                 {item.errorMessage ? (
-                  <button className={`statusTag statusButton ${item.status}`} onClick={() => setDetailTarget(item)}>
+                  <button
+                    className={`statusTag statusButton ${item.status}`}
+                    type="button"
+                    onClick={() => setDetailTarget(item)}
+                  >
                     {generationStatusLabel(item.status)}
                   </button>
                 ) : item.status !== 'succeeded' ? (
@@ -241,18 +246,34 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
               </dl>
               <div className="cardActions">
                 {mode !== 'admin' && (
-                  <button
-                    className="ghostButton"
-                    onClick={() => {
-                      sessionStorage.setItem('reusePrompt', item.prompt);
-                      if (item.size) sessionStorage.setItem('reuseSize', item.size);
-                      if (item.quality) sessionStorage.setItem('reuseQuality', item.quality);
-                      navigate('/generate');
-                    }}
-                  >
-                    <CopyPlus size={15} />
-                    复用
-                  </button>
+                  item.status === 'failed' ? (
+                    <button
+                      className="ghostButton"
+                      type="button"
+                      onClick={async () => {
+                        const next = await retryGeneration(item.id);
+                        sessionStorage.setItem('activeGenerationId', String(next.id));
+                        await load(1, statusFilter, ownerFilter);
+                      }}
+                    >
+                      <RotateCw size={15} />
+                      重试
+                    </button>
+                  ) : (
+                    <button
+                      className="ghostButton"
+                      type="button"
+                      onClick={() => {
+                        sessionStorage.setItem('reusePrompt', item.prompt);
+                        if (item.size) sessionStorage.setItem('reuseSize', item.size);
+                        if (item.quality) sessionStorage.setItem('reuseQuality', item.quality);
+                        navigate('/generate');
+                      }}
+                    >
+                      <CopyPlus size={15} />
+                      复用
+                    </button>
+                  )
                 )}
                 <button className="ghostButton historyPromptButton" type="button" onClick={() => {
                   setPromptTarget(item);
@@ -265,19 +286,6 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                   <Trash2 size={15} />
                   删除
                 </button>
-                {item.status === 'failed' && (
-                  <button
-                    className="ghostButton"
-                    onClick={async () => {
-                      const next = await retryGeneration(item.id);
-                      sessionStorage.setItem('activeGenerationId', String(next.id));
-                      await load(1, statusFilter, ownerFilter);
-                    }}
-                  >
-                    <RotateCw size={15} />
-                    重试
-                  </button>
-                )}
               </div>
             </div>
           </article>
@@ -311,8 +319,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       )}
 
       {detailTarget && (
-        <div className="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="detail-title">
-          <div className="confirmModal">
+        <div className="modalBackdrop detailModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+          <div className="confirmModal detailModal">
             <div className="modalHeader">
               <h2 id="detail-title">生成详情</h2>
               <button className="iconButton" onClick={() => setDetailTarget(null)} aria-label="关闭">
