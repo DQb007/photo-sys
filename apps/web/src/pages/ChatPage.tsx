@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Clipboard, Edit3, MessageSquarePlus, MoreVertical, Paperclip, Pin, Plus, Send, Square, Trash2, X } from 'lucide-react';
 import {
@@ -103,6 +103,7 @@ export function ChatPage() {
   const abortRef = useRef<AbortController | null>(null);
   const submitLockRef = useRef(false);
   const shouldRestoreInputFocusRef = useRef(false);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -113,7 +114,6 @@ export function ChatPage() {
   const typingTimerRef = useRef<number | null>(null);
   const pendingFinalAssistantRef = useRef<ChatMessage | null>(null);
 
-  const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
   const modelOptions = useMemo(() => models.map((item) => ({ label: item.name, value: String(item.id) })), [models]);
   const pinnedConversationIdSet = useMemo(() => new Set(pinnedConversationIds), [pinnedConversationIds]);
   const visibleConversations = useMemo(() => {
@@ -219,8 +219,10 @@ export function ChatPage() {
     };
   }, []);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  useLayoutEffect(() => {
+    const messageList = messageListRef.current;
+    if (!messageList) return;
+    messageList.scrollTop = messageList.scrollHeight;
   }, [messages, isStreaming]);
 
   useEffect(() => {
@@ -269,8 +271,6 @@ export function ChatPage() {
     const cachedMessages = messageCacheRef.current.get(id);
     if (cachedMessages) {
       setCachedMessages(id, cachedMessages);
-    } else {
-      setCachedMessages(id, []);
     }
     try {
       const payload = await listChatMessages(id);
@@ -696,7 +696,7 @@ export function ChatPage() {
         )}
 
         <section className="panel chatPanel">
-          <div className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
+          <div ref={messageListRef} className={messages.length === 0 ? 'chatMessageList empty' : 'chatMessageList'}>
             {settings && !settings.enabled && (
               <div className="chatEmptyState">
                 <strong>AI 对话当前已关闭</strong>
