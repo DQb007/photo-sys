@@ -78,8 +78,9 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
 
   async function remove(id: number) {
     await deleteGeneration(id);
-    setItems((current) => current.filter((item) => item.id !== id));
     setDeleteTarget(null);
+    const nextPage = items.length <= 1 && page > 1 ? page - 1 : page;
+    await load(nextPage, statusFilter, ownerFilter);
   }
 
   useEffect(() => {
