@@ -4248,7 +4248,7 @@ th {
   aspect-ratio: 1 / 1;
   border: 0;
   border-radius: 12px;
-  background: transparent;
+  background: var(--panel-soft);
   padding: 0;
   overflow: hidden;
   cursor: pointer;
@@ -4262,6 +4262,7 @@ th {
   display: block;
   border: 0;
   border-radius: inherit;
+  background: var(--panel-soft);
   transition: transform 360ms ease;
 }
 

@@ -247,7 +247,9 @@ export function PromptLibraryPage() {
       )}
 
       <div className={isLoading ? 'promptTemplateGrid refreshing' : 'promptTemplateGrid'}>
-        {pageItems.map((item) => (
+        {pageItems.map((item, index) => {
+          const shouldPrioritizeImage = index < 6;
+          return (
           <article className="promptTemplateCard" key={item.id}>
             {item.exampleImageUrl ? (
               <button
@@ -255,7 +257,16 @@ export function PromptLibraryPage() {
                 type="button"
                 onClick={() => openPreview(item)}
               >
-                <img className="promptExampleImage" src={item.exampleImageUrl} alt={`${item.title} 示例图`} />
+                <img
+                  className="promptExampleImage"
+                  src={item.exampleImageUrl}
+                  alt={`${item.title} 示例图`}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority={shouldPrioritizeImage ? 'high' : 'auto'}
+                  width="640"
+                  height="640"
+                />
                 <span className="promptExampleOverlay" aria-hidden="true">查看详情</span>
               </button>
             ) : (
@@ -288,7 +299,8 @@ export function PromptLibraryPage() {
               使用
             </button>
           </article>
-        ))}
+          );
+        })}
       </div>
 
       <Pagination
@@ -376,7 +388,13 @@ export function PromptLibraryPage() {
           <div className="promptPreviewModal">
             <div className="promptPreviewLayout">
               <section className="promptPreviewImagePanel">
-                <img src={previewTemplate.exampleImageUrl || ''} alt={`${previewTemplate.title} 示例图`} />
+                <img
+                  src={previewTemplate.exampleImageUrl || ''}
+                  alt={`${previewTemplate.title} 示例图`}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
               </section>
               <aside className="promptPreviewDetails">
                 <header className="promptPreviewHeader">
