@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2, XCircle } from 'lucide-react';
 import { ApiError, cancelGeneration, createGeneration, downloadFilename, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
 import { useAuth } from '../auth';
@@ -104,25 +104,41 @@ export function GeneratePage() {
       .catch(() => undefined);
   }, [user?.id]);
 
+  const refreshActiveGeneration = useCallback(async (generationId: number) => {
+    setNow(Date.now());
+    try {
+      const latest = await getGeneration(generationId);
+      setGeneration(latest);
+      setPollError('');
+      if (!['pending', 'processing'].includes(latest.status)) {
+        sessionStorage.removeItem(activeGenerationKey);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '读取生成任务失败');
+    }
+  }, []);
+
   useEffect(() => {
     if (!generation || !['pending', 'processing'].includes(generation.status)) return;
+    const generationId = generation.id;
 
-    const timer = window.setInterval(async () => {
-      setNow(Date.now());
-      try {
-        const latest = await getGeneration(generation.id);
-        setGeneration(latest);
-        setPollError('');
-        if (!['pending', 'processing'].includes(latest.status)) {
-          sessionStorage.removeItem(activeGenerationKey);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '读取生成任务失败');
-      }
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      void refreshActiveGeneration(generationId);
     }, 3000);
 
-    return () => window.clearInterval(timer);
-  }, [generation]);
+    function refreshWhenVisible() {
+      if (document.visibilityState !== 'visible') return;
+      void refreshActiveGeneration(generationId);
+    }
+
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [generation?.id, generation?.status, refreshActiveGeneration]);
 
   useEffect(() => {
     if (generation && !['pending', 'processing'].includes(generation.status)) {

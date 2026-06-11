@@ -44,6 +44,7 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [now, setNow] = useState(Date.now());
   const hasLoadedOnceRef = useRef(false);
   const loadRequestRef = useRef(0);
+  const hasActiveGeneration = items.some((item) => item.status === 'pending' || item.status === 'processing');
 
   useBodyScrollLock(Boolean(deleteTarget || promptTarget || preview));
 
@@ -88,15 +89,27 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   }, [load]);
 
   useEffect(() => {
-    if (!items.some((item) => item.status === 'pending' || item.status === 'processing')) return;
+    if (!hasActiveGeneration) return;
 
     const timer = window.setInterval(() => {
+      if (document.hidden) return;
       setNow(Date.now());
       void load(page, statusFilter, ownerFilter);
     }, 5000);
 
-    return () => window.clearInterval(timer);
-  }, [items, load, ownerFilter, page, statusFilter]);
+    function refreshWhenVisible() {
+      if (document.visibilityState !== 'visible') return;
+      setNow(Date.now());
+      void load(page, statusFilter, ownerFilter);
+    }
+
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [hasActiveGeneration, load, ownerFilter, page, statusFilter]);
 
   useEffect(() => {
     if (!trialNotice) return;
