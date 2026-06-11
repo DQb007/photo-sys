@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, Copy, Heart, Loader2, RotateCcw, Search, Send, Sparkles, X } from 'lucide-react';
@@ -19,6 +19,8 @@ const pageSize = 12;
 export function PromptLibraryPage() {
   const navigate = useNavigate();
   const pageTopRef = useRef<HTMLDivElement | null>(null);
+  const previewTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const previewTransitionTimerRef = useRef<number | null>(null);
   const [items, setItems] = useState<PromptTemplate[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [scope, setScope] = useState<PromptScope>('all');
@@ -27,9 +29,11 @@ export function PromptLibraryPage() {
   const [page, setPage] = useState(1);
   const [activeTemplate, setActiveTemplate] = useState<PromptTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<PromptTemplate | null>(null);
+  const [previousPreviewTemplate, setPreviousPreviewTemplate] = useState<PromptTemplate | null>(null);
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [previewCopied, setPreviewCopied] = useState(false);
+  const [previewDirection, setPreviewDirection] = useState<0 | -1 | 1>(0);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isUsing, setIsUsing] = useState(false);
@@ -71,15 +75,44 @@ export function PromptLibraryPage() {
     const currentIndex = previewItems.findIndex((item) => item.id === previewTemplate.id);
     if (currentIndex < 0) return;
     const nextIndex = (currentIndex + direction + previewItems.length) % previewItems.length;
+    if (previewTransitionTimerRef.current !== null) {
+      window.clearTimeout(previewTransitionTimerRef.current);
+    }
+    setPreviousPreviewTemplate(previewTemplate);
+    setPreviewDirection(direction);
     setPreviewTemplate(previewItems[nextIndex]);
     setPreviewCopied(false);
+    previewTransitionTimerRef.current = window.setTimeout(() => {
+      setPreviousPreviewTemplate(null);
+      setPreviewDirection(0);
+      previewTransitionTimerRef.current = null;
+    }, 380);
   }, [previewItems, previewTemplate]);
+
+  const closePreview = useCallback(() => {
+    if (previewTransitionTimerRef.current !== null) {
+      window.clearTimeout(previewTransitionTimerRef.current);
+      previewTransitionTimerRef.current = null;
+    }
+    previewTouchStartRef.current = null;
+    setPreviousPreviewTemplate(null);
+    setPreviewTemplate(null);
+    setPreviewDirection(0);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewTransitionTimerRef.current !== null) {
+        window.clearTimeout(previewTransitionTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!previewTemplate) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setPreviewTemplate(null);
+        closePreview();
       } else if (event.key === 'ArrowLeft') {
         showAdjacentPreview(-1);
       } else if (event.key === 'ArrowRight') {
@@ -88,7 +121,7 @@ export function PromptLibraryPage() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [previewTemplate, showAdjacentPreview]);
+  }, [closePreview, previewTemplate, showAdjacentPreview]);
 
   useEffect(() => {
     setPage(1);
@@ -112,8 +145,32 @@ export function PromptLibraryPage() {
   }
 
   function openPreview(template: PromptTemplate) {
+    if (previewTransitionTimerRef.current !== null) {
+      window.clearTimeout(previewTransitionTimerRef.current);
+      previewTransitionTimerRef.current = null;
+    }
+    setPreviousPreviewTemplate(null);
+    setPreviewDirection(0);
     setPreviewTemplate(template);
     setPreviewCopied(false);
+  }
+
+  function handlePreviewTouchStart(event: TouchEvent<HTMLDivElement>) {
+    const touch = event.touches[0];
+    if (!touch) return;
+    previewTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handlePreviewTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    const start = previewTouchStartRef.current;
+    const touch = event.changedTouches[0];
+    previewTouchStartRef.current = null;
+    if (!start || !touch || !canNavigatePreview) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 56 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    showAdjacentPreview(deltaX < 0 ? 1 : -1);
   }
 
   function changePage(nextPage: number) {
@@ -371,8 +428,8 @@ export function PromptLibraryPage() {
 
       {previewTemplate && (
         <div className="modalBackdrop promptPreviewBackdrop" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title">
-          <button className="promptPreviewScrim" type="button" aria-label="关闭预览" onClick={() => setPreviewTemplate(null)} />
-          <button className="promptPreviewClose" type="button" onClick={() => setPreviewTemplate(null)} aria-label="关闭">
+          <button className="promptPreviewScrim" type="button" aria-label="关闭预览" onClick={closePreview} />
+          <button className="promptPreviewClose" type="button" onClick={closePreview} aria-label="关闭">
             <X size={28} />
           </button>
           {canNavigatePreview && (
@@ -385,16 +442,38 @@ export function PromptLibraryPage() {
               </button>
             </>
           )}
-          <div className="promptPreviewModal">
+          <div
+            className="promptPreviewModal"
+            onTouchStart={handlePreviewTouchStart}
+            onTouchEnd={handlePreviewTouchEnd}
+          >
             <div className="promptPreviewLayout">
-              <section className="promptPreviewImagePanel">
-                <img
-                  src={previewTemplate.exampleImageUrl || ''}
-                  alt={`${previewTemplate.title} 示例图`}
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
+              <section
+                className={
+                  previewDirection === 0
+                    ? 'promptPreviewImagePanel'
+                    : `promptPreviewImagePanel sliding ${previewDirection > 0 ? 'slideNext' : 'slidePrevious'}`
+                }
+              >
+                {previousPreviewTemplate && previewDirection !== 0 && (
+                  <div className="promptPreviewImageFrame outgoing">
+                    <img
+                      src={previousPreviewTemplate.exampleImageUrl || ''}
+                      alt={`${previousPreviewTemplate.title} 示例图`}
+                      loading="eager"
+                      decoding="async"
+                    />
+                  </div>
+                )}
+                <div className="promptPreviewImageFrame incoming">
+                  <img
+                    src={previewTemplate.exampleImageUrl || ''}
+                    alt={`${previewTemplate.title} 示例图`}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                </div>
               </section>
               <aside className="promptPreviewDetails">
                 <header className="promptPreviewHeader">

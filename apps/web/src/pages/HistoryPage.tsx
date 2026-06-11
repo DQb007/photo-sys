@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, CopyPlus, FileText, RotateCcw, RotateCw, Trash2, X } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
@@ -20,6 +20,35 @@ import { formatDuration, generationElapsedMs } from '../time';
 import { useBodyScrollLock } from '../useBodyScrollLock';
 import { useAuth } from '../auth';
 
+type HistoryPreviewSlide = {
+  generationId: number;
+  imageId: number;
+  src: string;
+  alt: string;
+  download: { url: string; filename: string };
+};
+
+type GalleryPageWindow = {
+  startPage: number;
+  endPage: number;
+  totalPages: number;
+};
+
+type GalleryQuery = {
+  status: string;
+  ownerType: 'user' | 'guest' | '';
+};
+
+function buildPreviewSlides(generations: Generation[]): HistoryPreviewSlide[] {
+  return generations.flatMap((item) => item.images.map((image, index) => ({
+    generationId: item.id,
+    imageId: image.id,
+    src: image.url,
+    alt: `${item.prompt} - ${index + 1}`,
+    download: { url: downloadUrl(image.url), filename: downloadFilename(image.url) }
+  })));
+}
+
 export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -40,13 +69,19 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
   const [isPromptCopied, setIsPromptCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [trialNotice, setTrialNotice] = useState('');
-  const [preview, setPreview] = useState<{ url: string; prompt: string } | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [gallerySlides, setGallerySlides] = useState<HistoryPreviewSlide[]>([]);
+  const [galleryWindow, setGalleryWindow] = useState<GalleryPageWindow>({ startPage: 1, endPage: 1, totalPages: 1 });
+  const [galleryQuery, setGalleryQuery] = useState<GalleryQuery>({ status: '', ownerType: '' });
   const [now, setNow] = useState(Date.now());
   const hasLoadedOnceRef = useRef(false);
   const loadRequestRef = useRef(0);
+  const gallerySessionRef = useRef(0);
+  const galleryLoadingPagesRef = useRef(new Set<number>());
   const hasActiveGeneration = items.some((item) => item.status === 'pending' || item.status === 'processing');
+  const currentPageSlides = useMemo(() => buildPreviewSlides(items), [items]);
 
-  useBodyScrollLock(Boolean(deleteTarget || promptTarget || preview));
+  useBodyScrollLock(Boolean(deleteTarget || promptTarget || previewIndex !== null));
 
   const load = useCallback(async (nextPage = page, nextStatus = statusFilter, nextOwner = ownerFilter) => {
     const requestId = ++loadRequestRef.current;
@@ -133,6 +168,82 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
       pageTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+
+  function closePreview() {
+    gallerySessionRef.current += 1;
+    galleryLoadingPagesRef.current.clear();
+    setPreviewIndex(null);
+    setGallerySlides([]);
+  }
+
+  function openPreview(item: Generation) {
+    const firstImage = item.images[0];
+    if (!firstImage) return;
+
+    const nextSlides = currentPageSlides;
+    const nextPreviewIndex = nextSlides.findIndex((slide) =>
+      slide.generationId === item.id && slide.imageId === firstImage.id
+    );
+    gallerySessionRef.current += 1;
+    galleryLoadingPagesRef.current.clear();
+    setGallerySlides(nextSlides);
+    setGalleryWindow({ startPage: page, endPage: page, totalPages });
+    setGalleryQuery({ status: statusFilter, ownerType: mode === 'admin' ? ownerFilter : '' });
+    setPreviewIndex(Math.max(nextPreviewIndex, 0));
+  }
+
+  const loadGalleryPage = useCallback(async (targetPage: number, direction: 'prev' | 'next') => {
+    if (targetPage < 1 || targetPage > galleryWindow.totalPages) return;
+    if (galleryLoadingPagesRef.current.has(targetPage)) return;
+
+    const sessionId = gallerySessionRef.current;
+    galleryLoadingPagesRef.current.add(targetPage);
+
+    try {
+      if (mode !== 'admin' && !auth.user) await auth.ensureGuestSession();
+      const data = await listGenerationsWithFilter(targetPage, galleryQuery.status, undefined, galleryQuery.ownerType);
+      if (sessionId !== gallerySessionRef.current) return;
+
+      const nextSlides = buildPreviewSlides(data.items);
+      if (nextSlides.length === 0) return;
+
+      setGalleryWindow((current) => ({
+        startPage: direction === 'prev' ? Math.min(current.startPage, data.page) : current.startPage,
+        endPage: direction === 'next' ? Math.max(current.endPage, data.page) : current.endPage,
+        totalPages: data.totalPages
+      }));
+
+      setGallerySlides((currentSlides) => {
+        const existingKeys = new Set(currentSlides.map((slide) => `${slide.generationId}:${slide.imageId}`));
+        const uniqueSlides = nextSlides.filter((slide) => !existingKeys.has(`${slide.generationId}:${slide.imageId}`));
+        if (uniqueSlides.length === 0) return currentSlides;
+        return direction === 'prev' ? [...uniqueSlides, ...currentSlides] : [...currentSlides, ...uniqueSlides];
+      });
+
+      if (direction === 'prev') {
+        setPreviewIndex((currentIndex) => currentIndex === null ? currentIndex : currentIndex + nextSlides.length);
+      }
+    } catch (err) {
+      showHistoryError(err);
+    } finally {
+      galleryLoadingPagesRef.current.delete(targetPage);
+    }
+  }, [auth, galleryQuery.ownerType, galleryQuery.status, galleryWindow.totalPages, mode]);
+
+  const prepareAdjacentGalleryPages = useCallback((nextIndex: number) => {
+    if (gallerySlides.length === 0) return;
+    if (nextIndex <= 3 && galleryWindow.startPage > 1) {
+      void loadGalleryPage(galleryWindow.startPage - 1, 'prev');
+    }
+    if (nextIndex >= gallerySlides.length - 4 && galleryWindow.endPage < galleryWindow.totalPages) {
+      void loadGalleryPage(galleryWindow.endPage + 1, 'next');
+    }
+  }, [gallerySlides.length, galleryWindow.endPage, galleryWindow.startPage, galleryWindow.totalPages, loadGalleryPage]);
+
+  useEffect(() => {
+    if (previewIndex === null) return;
+    prepareAdjacentGalleryPages(previewIndex);
+  }, [prepareAdjacentGalleryPages, previewIndex]);
 
   return (
     <div className={mode === 'admin' ? 'page historyPage adminHistoryPage' : 'page historyPage'} ref={pageTopRef}>
@@ -222,9 +333,8 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
                 <button
                   className="thumbButton"
                   type="button"
-                  onClick={() => {
-                    setPreview({ url: item.images[0].url, prompt: item.prompt });
-                  }}
+                  onClick={() => openPreview(item)}
+                  aria-label="查看生成图片"
                 >
                   <img
                     src={item.images[0].url}
@@ -400,23 +510,26 @@ export function HistoryPage({ mode = 'user' }: { mode?: 'user' | 'admin' }) {
         </div>
       )}
 
-      {preview && (
+      {previewIndex !== null && (
         <Lightbox
           open
-          close={() => setPreview(null)}
-          slides={[{ src: preview.url, alt: preview.prompt, download: { url: downloadUrl(preview.url), filename: downloadFilename(preview.url) } }]}
+          close={closePreview}
+          index={previewIndex}
+          slides={gallerySlides}
           plugins={[Zoom, DownloadPlugin]}
           carousel={{ finite: true }}
           controller={{ closeOnBackdropClick: true }}
+          on={{
+            view: ({ index }) => {
+              setPreviewIndex(index);
+              prepareAdjacentGalleryPages(index);
+            }
+          }}
           zoom={{
             maxZoomPixelRatio: 4,
             scrollToZoom: true,
             zoomInMultiplier: 1.25,
             doubleTapDelay: 280
-          }}
-          render={{
-            buttonPrev: () => null,
-            buttonNext: () => null
           }}
         />
       )}

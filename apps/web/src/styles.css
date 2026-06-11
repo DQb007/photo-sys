@@ -3428,6 +3428,48 @@ html.modalBodyLocked body {
   color: var(--accent-strong);
 }
 
+.paginationJump {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.paginationJump input {
+  width: 72px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-solid) 42%, transparent);
+  color: var(--ink);
+  padding: 6px 12px;
+  text-align: center;
+  font-size: 13px;
+  outline: none;
+}
+
+.paginationJump input:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.paginationJumpLabel,
+.paginationJumpError {
+  min-height: auto !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.paginationJumpError {
+  color: var(--danger) !important;
+  white-space: nowrap;
+}
+
+.paginationJumpButton {
+  padding-inline: 10px !important;
+}
+
 .ghostButton:disabled,
 .dangerButton:disabled {
   opacity: 0.5;
@@ -4584,6 +4626,7 @@ th {
 }
 
 .promptPreviewImagePanel {
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -4596,7 +4639,62 @@ th {
   overflow: hidden;
 }
 
-.promptPreviewImagePanel img {
+.promptPreviewImagePanel.sliding {
+  isolation: isolate;
+}
+
+.promptPreviewImageFrame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #050505;
+  will-change: transform;
+}
+
+.promptPreviewImagePanel:not(.sliding) .promptPreviewImageFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.promptPreviewImagePanel.slideNext .incoming {
+  animation: promptPreviewIncomingFromRight 320ms cubic-bezier(0.16, 0.76, 0.24, 1) both;
+}
+
+.promptPreviewImagePanel.slideNext .outgoing {
+  animation: promptPreviewOutgoingToLeft 320ms cubic-bezier(0.16, 0.76, 0.24, 1) both;
+}
+
+.promptPreviewImagePanel.slidePrevious .incoming {
+  animation: promptPreviewIncomingFromLeft 320ms cubic-bezier(0.16, 0.76, 0.24, 1) both;
+}
+
+.promptPreviewImagePanel.slidePrevious .outgoing {
+  animation: promptPreviewOutgoingToRight 320ms cubic-bezier(0.16, 0.76, 0.24, 1) both;
+}
+
+@keyframes promptPreviewIncomingFromRight {
+  from { transform: translate3d(34%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes promptPreviewOutgoingToLeft {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-34%, 0, 0); }
+}
+
+@keyframes promptPreviewIncomingFromLeft {
+  from { transform: translate3d(-34%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes promptPreviewOutgoingToRight {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(34%, 0, 0); }
+}
+
+.promptPreviewImageFrame img {
   display: block;
   width: 100%;
   height: 100%;
@@ -5587,7 +5685,7 @@ th {
     background: #050505;
   }
 
-  .promptPreviewImagePanel img {
+  .promptPreviewImageFrame img {
     width: 100%;
     height: 100%;
     max-width: 100%;
@@ -5732,6 +5830,16 @@ th {
     width: 100%;
     justify-content: space-between;
     gap: 8px;
+  }
+
+  .paginationJump {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .paginationJump input {
+    width: min(84px, 28vw);
   }
 
   .variableGrid {
