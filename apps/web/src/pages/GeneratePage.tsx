@@ -1,9 +1,14 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, ImageUp, Loader2, PlusCircle, Sparkles, Wand2, XCircle } from 'lucide-react';
+import Lightbox from 'yet-another-react-lightbox';
+import DownloadPlugin from 'yet-another-react-lightbox/plugins/download';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import 'yet-another-react-lightbox/styles.css';
 import { ApiError, cancelGeneration, createGeneration, downloadFilename, downloadUrl, getCreditBalance, getGeneration, type Generation } from '../api';
 import { useAuth } from '../auth';
 import { SelectField } from '../SelectField';
 import { formatDuration, generationElapsedMs } from '../time';
+import { useBodyScrollLock } from '../useBodyScrollLock';
 
 const qualities = ['auto', 'high', 'medium', 'low'];
 const sizeOptions = [
@@ -38,8 +43,18 @@ export function GeneratePage() {
   const [creditsEnabled, setCreditsEnabled] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [isCancelling, setIsCancelling] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const isActiveGeneration = Boolean(generation && ['pending', 'processing'].includes(generation.status));
   const estimatedCreditCost = creditsEnabled ? count * costPerImage : 0;
+  const previewSlides = useMemo(() => (
+    generation?.images.map((image, index) => ({
+      src: image.url,
+      alt: `${generation.prompt} - ${index + 1}`,
+      download: { url: downloadUrl(image.url), filename: downloadFilename(image.url) }
+    })) ?? []
+  ), [generation]);
+
+  useBodyScrollLock(previewIndex !== null);
 
   const previewUrl = useMemo(() => {
     return referenceImages.map((file) => ({
@@ -244,6 +259,7 @@ export function GeneratePage() {
 
   function startNewTask() {
     sessionStorage.removeItem(activeGenerationKey);
+    setPreviewIndex(null);
     setGeneration(null);
     setReferenceImages([]);
     setDismissedGenerationReferenceImages(false);
@@ -270,6 +286,10 @@ export function GeneratePage() {
       return;
     }
     setError(text);
+  }
+
+  function closePreview() {
+    setPreviewIndex(null);
   }
 
   return (
@@ -456,9 +476,16 @@ export function GeneratePage() {
           )}
 
           <div className="imageGrid">
-            {generation?.images.map((image) => (
+            {generation?.images.map((image, index) => (
               <figure className="imageTile" key={image.id}>
-                <img src={image.url} alt={`生成图 ${image.id}`} />
+                <button
+                  className="thumbButton imagePreviewButton"
+                  type="button"
+                  onClick={() => setPreviewIndex(index)}
+                  aria-label={`查看生成图 ${index + 1}`}
+                >
+                  <img src={image.url} alt={`生成图 ${image.id}`} />
+                </button>
                 <a href={downloadUrl(image.url)} download={downloadFilename(image.url)}>
                   <Download size={16} />
                   下载
@@ -468,6 +495,24 @@ export function GeneratePage() {
           </div>
         </section>
       </div>
+
+      {previewIndex !== null && previewSlides[previewIndex] && (
+        <Lightbox
+          open
+          close={closePreview}
+          index={0}
+          slides={[previewSlides[previewIndex]]}
+          plugins={[Zoom, DownloadPlugin]}
+          carousel={{ finite: true }}
+          controller={{ closeOnBackdropClick: true }}
+          zoom={{
+            maxZoomPixelRatio: 4,
+            scrollToZoom: true,
+            zoomInMultiplier: 1.25,
+            doubleTapDelay: 280
+          }}
+        />
+      )}
     </div>
   );
 }
